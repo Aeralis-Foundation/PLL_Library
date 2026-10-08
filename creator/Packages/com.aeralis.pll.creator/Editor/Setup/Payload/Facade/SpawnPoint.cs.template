@@ -1,0 +1,4 @@
+ public class SpawnPoint : UnityEngine.MonoBehaviour
+ {
+ }
+

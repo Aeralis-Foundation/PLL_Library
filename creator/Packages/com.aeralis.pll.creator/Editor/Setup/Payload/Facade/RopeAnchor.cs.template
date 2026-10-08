@@ -1,0 +1,7 @@
+public class RopeAnchor : UnityEngine.MonoBehaviour
+{
+    public UnityEngine.GameObject ghostPart;
+    public UnityEngine.GameObject normalPart;
+    public UnityEngine.Transform anchorPoint;
+    public Photon.Pun.PhotonView photonView;
+}

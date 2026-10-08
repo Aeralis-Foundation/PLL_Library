@@ -1,0 +1,5 @@
+ public class PSB_ChildSpawners : PostSpawnBehavior
+ {
+    public override void RunBehavior(System.Collections.Generic.IEnumerable<UnityEngine.GameObject> values) { }
+ }
+

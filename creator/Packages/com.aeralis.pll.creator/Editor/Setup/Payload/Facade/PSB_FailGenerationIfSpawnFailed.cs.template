@@ -1,0 +1,5 @@
+public class PSB_FailGenerationIfSpawnFailed : PostSpawnBehavior
+{
+    public int minimumSpawnsToPass;
+    public override void RunBehavior(System.Collections.Generic.IEnumerable<UnityEngine.GameObject> spawned) { }
+}

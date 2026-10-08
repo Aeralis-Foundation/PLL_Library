@@ -1,0 +1,8 @@
+ public class PropSpawner_Line : PropSpawner
+ {
+    public float height;
+    public float coreWidth;
+    public float RayWiggle;
+    public bool rayCastSpawn;
+ }
+

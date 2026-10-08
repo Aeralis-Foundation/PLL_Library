@@ -1,0 +1,6 @@
+public class AudioLoop : UnityEngine.MonoBehaviour
+{
+    public UnityEngine.AudioSource loop;
+    public float volume;
+    public float pitch = 1f;
+}

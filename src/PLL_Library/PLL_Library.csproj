@@ -1,0 +1,98 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>PLL_Library</AssemblyName>
+    <AssemblyTitle>AF.PLL.Library</AssemblyTitle>
+    <RootNamespace>PLL.Library</RootNamespace>
+    <Version>5.8.1</Version>
+    <Description>Map layout and custom biome runtime library.</Description>
+    <PackageId>PLL_Library</PackageId>
+    <Title>AF.PLL.Library</Title>
+    <Authors>Aurora Aeralis</Authors>
+    <Company>Aeralis Foundation</Company>
+    <Product>AF.PLL.Library</Product>
+    <PackageTags>bepinex;modding;unity;library;peak</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageOutputPath>$(SolutionRoot)artifacts\nuget\</PackageOutputPath>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IsThunderstorePackable>true</IsThunderstorePackable>
+
+    <ThunderstoreName>PLL_Library</ThunderstoreName>
+    <ThunderstoreDescription>$(Description)</ThunderstoreDescription>
+    <ThunderstoreCommunities>peak</ThunderstoreCommunities>
+    <ThunderstoreCategories>mods;libraries</ThunderstoreCategories>
+	<ThunderstoreWebsite>https://github.com/Aeralis-Foundation/PLL_Library</ThunderstoreWebsite>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ModFile Include="$(TargetPath)" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\AudioCurveContract.cs" Link="Shared\AudioCurveContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\ForceObjectNameContract.cs" Link="Shared\ForceObjectNameContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllAuthoringValueContract.cs" Link="Shared\PllAuthoringValueContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\GeneratedPropAssetCatalogCodec.cs" Link="Shared\GeneratedPropAssetCatalogCodec.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllHookedPropGenerationSourceContract.cs" Link="Shared\PllHookedPropGenerationSourceContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\NativeContentArtifact.cs" Link="Shared\NativeContentArtifact.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\NativeContentRequestFile.cs" Link="Shared\NativeContentRequestFile.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\NativePrefabContracts.Candidates.cs" Link="Shared\NativePrefabContracts.Candidates.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllBiomeGroupContract.cs" Link="Shared\PllBiomeGroupContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllLayoutCapacityContract.cs" Link="Shared\PllLayoutCapacityContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllConnectorContract.cs" Link="Shared\PllConnectorContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllStagedLuggageShapeContract.cs" Link="Shared\PllStagedLuggageShapeContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\TransformOwnership.cs" Link="Shared\TransformOwnership.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllCriticalGenerationContract.cs" Link="Shared\PllCriticalGenerationContract.cs" />
+    <EmbeddedResource Include="$(SolutionRoot)icon.png" LogicalName="PLL.Library.MainMenu.PackageIcon.png" />
+    <EmbeddedResource Include="Assets\AeralisFoundationLogoWhite.png" LogicalName="PLL.Library.MainMenu.AeralisFoundationLogoWhite.png" />
+  </ItemGroup>
+
+  <Target Name="GenerateNativeFogResourceContract" BeforeTargets="CoreCompile;CreateThunderstorePackage">
+    <PropertyGroup>
+      <NativeFogResourceContractPath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)NativeFogResourceContract.g.cs', '$(MSBuildProjectDirectory)'))</NativeFogResourceContractPath>
+    </PropertyGroup>
+    <MSBuild Projects="$(SolutionRoot)resources\FogResources.proj" Targets="GenerateRuntimeContract"
+      Properties="RuntimeContractPath=$(NativeFogResourceContractPath)" />
+    <XmlPeek XmlInputPath="$(SolutionRoot)resources\FogResources.proj" Query="/Project/PropertyGroup/PackageVersion/text()">
+      <Output TaskParameter="Result" PropertyName="NativeFogResourceVersion" />
+    </XmlPeek>
+    <ItemGroup>
+      <Compile Include="$(NativeFogResourceContractPath)" />
+      <FileWrites Include="$(NativeFogResourceContractPath)" />
+      <ThunderstoreDependency Include="AeralisFoundation-PLL_Fog_Resources" Version="$(NativeFogResourceVersion)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="BuildNativeResourcePackages" BeforeTargets="CreateThunderstorePackage"
+    Condition="'$(Configuration)' == 'Release' and '$(PackPackagesOnBuild)' == 'true'">
+    <MSBuild Projects="$(SolutionRoot)resources\FogResources.proj" Targets="Build"
+      Properties="Configuration=$(Configuration)" />
+  </Target>
+
+  <ItemGroup>
+    <ThunderstorePackageFile Include="$(SolutionRoot)Public Logs\README.md" />
+    <ThunderstorePackageFile Include="$(SolutionRoot)Public Logs\CHANGELOG.md" />
+    <ThunderstorePackageFile Include="$(SolutionRoot)icon.png" Condition="Exists('$(SolutionRoot)icon.png')" />
+    <ThunderstorePackageFile Include="$(SolutionRoot)LICENSE.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ThunderstoreDependency Include="BepInEx-BepInExPack_PEAK" Version="5.4.75301" />
+    <ThunderstoreDependency Include="AeralisFoundation-Unified_Ray_Tracing" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(SolutionRoot)Public Logs\README.md" Pack="true" PackagePath="\" />
+    <None Include="$(SolutionRoot)Public Logs\CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="$(SolutionRoot)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(SolutionRoot)icon.png')" />
+    <None Include="$(SolutionRoot)LICENSE.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<AssemblyMetadata Include="AI_Assisted_Creation" Value="This assembly's creation was supported by AI: Code Suggestions, Log Lines (print statements) and Research." />
+	<AssemblyMetadata Include="AI_Model_Vendor" Value="OpenAI" />
+  </ItemGroup>
+</Project>

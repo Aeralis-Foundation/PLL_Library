@@ -1,0 +1,10 @@
+namespace Peak
+{
+    public class PropSpawner_AmuletStatues : PropSpawner, ILevelGenFinalizer
+    {
+        public bool ReplaceMaterial;
+        public UnityEngine.Material replaceThis;
+        public int statueIndex;
+        public void OnLevelGenFinished() { }
+    }
+}

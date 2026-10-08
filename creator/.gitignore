@@ -1,0 +1,4 @@
+Sdk/bin/
+Sdk/obj/
+.build/
+artifacts/

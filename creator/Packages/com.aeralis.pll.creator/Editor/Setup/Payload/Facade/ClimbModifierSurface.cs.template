@@ -1,0 +1,13 @@
+ public class ClimbModifierSurface : UnityEngine.MonoBehaviour
+ {
+    public bool onlySlideDown;
+    public float speedMultiplier = 1f;
+    public float slipModifier;
+    public float staminaUsageMultiplier = 1f;
+    public bool applyStatus;
+    public CharacterAfflictions.STATUSTYPE statusType;
+    public bool applyPetrify;
+    public float statusAmount = 0.5f;
+    public float statusCooldown = 0.5f;
+    public bool staticClimbCost;
+ }

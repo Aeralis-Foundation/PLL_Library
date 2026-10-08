@@ -1,0 +1,8 @@
+namespace Peak
+{
+    [System.Serializable]
+     public abstract class DictionaryContainer<TKey, TValue>
+     {
+     }
+}
+

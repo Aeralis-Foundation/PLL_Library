@@ -1,0 +1,36 @@
+ public class WindChillZone : UnityEngine.MonoBehaviour
+ {
+    public float StormProgress;
+    public float timeUntilStorm;
+    public float grabStaminaMultiplierDuringWind = 1f;
+    public UnityEngine.Vector2 windTimeRangeOn;
+    public UnityEngine.Vector2 windTimeRangeOff;
+    public float lightVolumeSampleThreshold_lower;
+    public float lightVolumeSampleThreshold_margin;
+    public CharacterAfflictions.STATUSTYPE statusType;
+    public UnityEngine.Bounds windZoneBounds;
+    public float forceRadius = 2f;
+    public float delayBeforeForce = 2f;
+    public float ragdolledWindForceMult = 0.5f;
+    public bool windMovesItems;
+    [UnityEngine.Serialization.FormerlySerializedAs("windChillPerSecond")]
+    public float statusApplicationPerSecond = 0.01f;
+    public float windForce = 15f;
+    public bool setSlippy;
+    [UnityEngine.Serialization.FormerlySerializedAs("characterInsideBounds")]
+    public bool localCharacterInsideBounds;
+    [UnityEngine.Serialization.FormerlySerializedAs("characterInsideBounds")]
+    public bool observedCharacterInsideBounds;
+    public bool windActive;
+    public float windPlayerFactor;
+    public bool debubEnable;
+    public float windItemFactor = 1f;
+    public float windIntensity;
+    public UnityEngine.AnimationCurve windIntensityCurve;
+    public bool useIntensityCurve;
+    public bool useRaycast;
+    public float maxRaycastDistance;
+    public float minRaycastDistance;
+    public RunSettings.SETTINGTYPE disableIfSettingDisabled;
+ }
+

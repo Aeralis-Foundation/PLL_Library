@@ -1,0 +1,6 @@
+ public interface IValidationConstraint
+ {
+    bool Muted { get; }
+    bool Validate(UnityEngine.GameObject value, PropSpawner.SpawnData data);
+ }
+

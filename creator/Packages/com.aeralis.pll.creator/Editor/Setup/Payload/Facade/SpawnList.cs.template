@@ -1,0 +1,4 @@
+ public class SpawnList : UnityEngine.MonoBehaviour
+ {
+ }
+

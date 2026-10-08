@@ -1,0 +1,4 @@
+ public class SFX_Instance : UnityEngine.ScriptableObject
+ {
+ }
+

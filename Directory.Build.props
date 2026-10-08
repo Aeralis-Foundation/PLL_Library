@@ -1,0 +1,32 @@
+<Project>
+  <PropertyGroup>
+    <SolutionRoot>$(MSBuildThisFileDirectory)</SolutionRoot>
+  </PropertyGroup>
+
+  <Import
+    Project="$(SolutionRoot)Config.Build.user.props"
+    Condition="Exists('$(SolutionRoot)Config.Build.user.props')"
+  />
+
+  <PropertyGroup>
+    <ThunderstoreTeam>AeralisFoundation</ThunderstoreTeam>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>recommended</AnalysisMode>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PEAKManagedDir Condition="'$(PEAKManagedDir)' == ''"></PEAKManagedDir>
+  </PropertyGroup>
+</Project>

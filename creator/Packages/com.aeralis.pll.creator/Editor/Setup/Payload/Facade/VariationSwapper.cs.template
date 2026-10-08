@@ -1,0 +1,4 @@
+ public class VariationSwapper : UnityEngine.MonoBehaviour
+ {
+ }
+

@@ -1,0 +1,51 @@
+<Project DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <ConfigurationFolder>$([System.String]::Copy('$(Configuration)').ToLowerInvariant())</ConfigurationFolder>
+    <RepositoryRoot>$(MSBuildProjectDirectory)\..</RepositoryRoot>
+    <PackageName>PLL_Fog_Resources</PackageName>
+    <PackageVersion>1.0.0</PackageVersion>
+    <PackageDirectory>AeralisFoundation-$(PackageName)</PackageDirectory>
+    <PackageId>$(PackageDirectory)-$(PackageVersion)</PackageId>
+    <BundleFileName>NativeFog.bundle</BundleFileName>
+    <BundlePath>$(RepositoryRoot)\src\PLL_Library\Assets\Fog\$(BundleFileName)</BundlePath>
+    <BundleBytes>6885080</BundleBytes>
+    <BundleSha256>9BCD3884BDD7BB01C681A6DDDDC1707E4040F99282B27AD235E90E7822C39C2C</BundleSha256>
+    <IntermediateRoot>$(RepositoryRoot)\.build\fog-resources\$(ConfigurationFolder)</IntermediateRoot>
+    <PackageStage>$(IntermediateRoot)\package</PackageStage>
+    <TemporaryPackage>$(IntermediateRoot)\$(PackageName)-$(PackageVersion).zip</TemporaryPackage>
+    <PackageOutput Condition="'$(PackageOutput)' == ''">$(RepositoryRoot)\artifacts\resources\$(ConfigurationFolder)\$(PackageName)-$(PackageVersion).zip</PackageOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageRootFile Include="$(MSBuildProjectDirectory)\README.md" />
+    <PackageRootFile Include="$(RepositoryRoot)\icon.png" />
+    <PackageRootFile Include="$(RepositoryRoot)\LICENSE.md" />
+  </ItemGroup>
+
+  <Target Name="GenerateRuntimeContract">
+    <Error Condition="'$(RuntimeContractPath)' == ''" Text="RuntimeContractPath must name the consumer's intermediate C# file." />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(RuntimeContractPath)'))" />
+    <WriteLinesToFile File="$(RuntimeContractPath)" Encoding="UTF-8" Overwrite="true" WriteOnlyWhenDifferent="true"
+      Lines="namespace PLL.Library%3B&#x0A;internal static class NativeFogResourceContract&#x0A;{&#x0A;    internal const string PackageId = &quot;$(PackageId)&quot;%3B&#x0A;    internal const string DirectoryName = &quot;$(PackageDirectory)&quot;%3B&#x0A;    internal const string FileName = &quot;$(BundleFileName)&quot;%3B&#x0A;    internal const long BundleBytes = $(BundleBytes)%3B&#x0A;    internal const string BundleSha256 = &quot;$(BundleSha256)&quot;%3B&#x0A;}" />
+  </Target>
+
+  <Target Name="Build">
+    <Error Condition="!Exists('$(BundlePath)')" Text="The sealed fog bundle is missing: $(BundlePath)" />
+    <GetFileHash Files="$(BundlePath)" Algorithm="SHA256" HashEncoding="hex">
+      <Output TaskParameter="Items" ItemName="BundleWithHash" />
+    </GetFileHash>
+    <Error Condition="'%(BundleWithHash.FileHash)' != '$(BundleSha256)'"
+      Text="The fog bundle differs from resource version $(PackageVersion). Expected $(BundleSha256), found %(BundleWithHash.FileHash)." />
+    <Error Condition="!Exists('%(PackageRootFile.Identity)')" Text="Required package file is missing: %(PackageRootFile.Identity)" />
+    <RemoveDir Directories="$(PackageStage)" Condition="Exists('$(PackageStage)')" />
+    <MakeDir Directories="$(PackageStage)" />
+    <WriteLinesToFile File="$(PackageStage)\manifest.json" Encoding="UTF-8" Overwrite="true" WriteOnlyWhenDifferent="true"
+      Lines="{&#x0A;  &quot;name&quot;: &quot;$(PackageName)&quot;,&#x0A;  &quot;version_number&quot;: &quot;$(PackageVersion)&quot;,&#x0A;  &quot;website_url&quot;: &quot;&quot;,&#x0A;  &quot;description&quot;: &quot;Sealed Direct3D 11 fog shader resources for PLL Library on PEAK 2.6a.&quot;,&#x0A;  &quot;dependencies&quot;: []&#x0A;}" />
+    <Copy SourceFiles="@(PackageRootFile)" DestinationFolder="$(PackageStage)" />
+    <Copy SourceFiles="$(BundlePath)" DestinationFolder="$(PackageStage)" />
+    <ZipDirectory SourceDirectory="$(PackageStage)" DestinationFile="$(TemporaryPackage)" Overwrite="true" />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(PackageOutput)'))" />
+    <Copy SourceFiles="$(TemporaryPackage)" DestinationFiles="$(PackageOutput)" />
+  </Target>
+</Project>

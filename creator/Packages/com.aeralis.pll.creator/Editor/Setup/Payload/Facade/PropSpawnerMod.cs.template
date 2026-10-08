@@ -1,0 +1,7 @@
+[System.Serializable]
+ public abstract class PropSpawnerMod
+ {
+    public bool mute;
+    public abstract void ModifyObject(UnityEngine.GameObject value, PropSpawner.SpawnData data);
+ }
+

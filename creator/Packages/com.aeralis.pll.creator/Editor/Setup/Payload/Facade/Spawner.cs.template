@@ -1,0 +1,67 @@
+#pragma warning disable 0169
+ public class Spawner : Photon.Pun.MonoBehaviourPunCallbacks, ISpawner
+ {
+    public int playersInRoomRequirement;
+    public int belowAscentRequirement = -1;
+    public bool normalRunsOnly;
+    public Spawner.SpawnMode spawnMode = Spawner.SpawnMode.SpawnPool;
+    [UnityEngine.Serialization.FormerlySerializedAs("spawnCountMode")]
+    public Spawner.SpawnPointMode spawnPointMode;
+    public float baseSpawnChance;
+    public UnityEngine.GameObject spawnedObjectPrefab;
+    public SpawnList spawns;
+    public SpawnPool spawnPool;
+    public bool canRepeatSpawns;
+    public System.Collections.Generic.List<UnityEngine.Transform> spawnSpots;
+    public System.Collections.Generic.List<Spawner.WeightedSpawnPointEntry> weightedSpawnSpots = new();
+    public UnityEngine.Transform spawnUpTowardsTarget;
+    public bool spawnTransformIsSpawnerTransform;
+    public bool spawnAwayFromUpTarget;
+    public bool centerItemsVisually;
+    public bool spawnOnStart;
+    public bool isKinematic = true;
+    public bool spawnWithForce;
+    public float spawnForce;
+    public float spawnTorque;
+    public System.Collections.Generic.List<Spawner.HeightBasedSpawnListEntry> heightBasedSpawnPools;
+    public UnityEngine.GameObject fallbackSpawn;
+
+    public System.Collections.Generic.List<Photon.Pun.PhotonView> TrySpawnItems()
+    {
+        return new();
+    }
+
+     public enum SpawnMode : int
+     {
+        SingleItem = 0,
+        SpawnPool = 1,
+        HeightBasedSpawnPools = 2,
+        Guidebook = 3
+     }
+
+     public enum SpawnPointMode : int
+     {
+        SingleList = 0,
+        WeightedLists = 1
+     }
+
+    [System.Serializable]
+     public class HeightBasedSpawnListEntry
+     {
+        public SpawnPool spawnPool;
+        public float minimumHeight;
+        public float minimumZ;
+        public bool hasBiomeRequirement;
+        public Biome.BiomeType biomeRequirement;
+     }
+
+    [System.Serializable]
+     public class WeightedSpawnPointEntry
+     {
+        public System.Collections.Generic.List<UnityEngine.Transform> spawnSpots;
+        public int weight;
+        [UnityEngine.SerializeField]
+        private float percentageOdds;
+     }
+ }
+

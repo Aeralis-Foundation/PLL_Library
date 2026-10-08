@@ -1,0 +1,11 @@
+ public enum Segment : byte
+ {
+    Beach = 0,
+    Tropics = 1,
+    Alpine = 2,
+    Caldera = 3,
+    TheKiln = 4,
+    Peak = 5,
+    Void = 6
+ }
+

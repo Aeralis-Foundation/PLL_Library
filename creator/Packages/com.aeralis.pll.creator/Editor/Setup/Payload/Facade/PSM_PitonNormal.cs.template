@@ -1,0 +1,4 @@
+ public class PSM_PitonNormal : PropSpawnerMod
+ {
+    public override void ModifyObject(UnityEngine.GameObject value, PropSpawner.SpawnData data) { }
+ }

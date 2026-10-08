@@ -1,0 +1,5 @@
+public class RockMaterialSwapper : UnityEngine.MonoBehaviour
+{
+    public UnityEngine.Transform[] parents;
+    public UnityEngine.Material mat;
+}

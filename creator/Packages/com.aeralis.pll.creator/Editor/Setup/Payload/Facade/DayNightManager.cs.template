@@ -1,0 +1,18 @@
+ public class DayNightManager : UnityEngine.MonoBehaviour
+ {
+
+     public enum ShaderParams : int
+     {
+        AirDistortion = 0,
+        RimFresnel = 1,
+        LavaAlpha = 2,
+        BandFog = 3,
+        SunSize = 4,
+        HeightFogAmount = 5,
+        HeightFogHeight = 6,
+        HeightFogColor = 7,
+        HeightFogSoften = 8,
+        InSpace = 9
+     }
+ }
+

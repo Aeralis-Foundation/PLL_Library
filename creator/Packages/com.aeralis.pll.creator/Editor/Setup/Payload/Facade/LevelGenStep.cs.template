@@ -1,0 +1,7 @@
+ public abstract class LevelGenStep : UnityEngine.MonoBehaviour
+ {
+    public abstract System.Collections.IEnumerator Execute();
+    public abstract void ExecuteImmediately();
+    public abstract void Clear();
+ }
+

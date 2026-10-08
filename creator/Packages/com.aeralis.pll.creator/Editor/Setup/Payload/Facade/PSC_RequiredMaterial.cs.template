@@ -1,0 +1,5 @@
+public class PSC_RequiredMaterial : PropSpawnerConstraint
+{
+    public UnityEngine.Material[] RequiredMaterial;
+    public override bool CheckConstraint(PropSpawner.SpawnData spawnData) => true;
+}

@@ -1,0 +1,6 @@
+public class BreakableRopeAnchor : UnityEngine.MonoBehaviour
+{
+    public float breakAnimTime;
+    public UnityEngine.Vector2 breakableTimeMinMax;
+    public float dropSegments;
+}

@@ -1,0 +1,5 @@
+public class PSCP_LateConstraintCheck : PropSpawnerConstraintPost, IValidationConstraint
+{
+    [UnityEngine.SerializeReference] public PropSpawnerConstraint Constraint;
+    public override bool CheckConstraint(UnityEngine.GameObject spawned, PropSpawner.SpawnData spawnData) => true;
+}

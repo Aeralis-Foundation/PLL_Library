@@ -1,0 +1,4 @@
+public interface ICollisionModifierEvent
+{
+    void OnBouncedCharacter(Character character);
+}

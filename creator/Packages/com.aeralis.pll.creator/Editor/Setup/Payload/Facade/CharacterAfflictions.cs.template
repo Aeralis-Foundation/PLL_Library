@@ -1,0 +1,23 @@
+ public class CharacterAfflictions : Photon.Pun.MonoBehaviourPunCallbacks
+ {
+
+     public enum STATUSTYPE : int
+     {
+        Injury = 0,
+        Hunger = 1,
+        Cold = 2,
+        Poison = 3,
+        Crab = 4,
+        Curse = 5,
+        Drowsy = 6,
+        Weight = 7,
+        Hot = 8,
+        Thorns = 9,
+        Spores = 10,
+        Web = 11,
+        Arrow = 12,
+        Petrify = 13,
+        FlyTrap = 14
+     }
+ }
+

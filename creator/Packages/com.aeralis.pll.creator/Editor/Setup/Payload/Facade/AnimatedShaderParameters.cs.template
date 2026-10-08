@@ -1,0 +1,7 @@
+[System.Serializable]
+ public class AnimatedShaderParameters
+ {
+    public DayNightManager.ShaderParams parameter;
+    public UnityEngine.AnimationCurve paramValue;
+ }
+

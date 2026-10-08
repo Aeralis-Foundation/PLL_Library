@@ -1,0 +1,11 @@
+#pragma warning disable 0169
+public class PSC_Embedded : PropSpawnerConstraint, IValidationConstraint
+{
+    public HelperFunctions.LayerType LayerType;
+    [UnityEngine.SerializeField] private float Deadzone;
+    public float RaycastDistance;
+    public bool DesiredResult;
+    public string PostSpawnTransformName;
+    public override bool CheckConstraint(PropSpawner.SpawnData spawnData) => true;
+    public override bool Validate(UnityEngine.GameObject spawnedProp, PropSpawner.SpawnData spawnData) => true;
+}

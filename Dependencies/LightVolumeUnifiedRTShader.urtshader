@@ -1,0 +1,140 @@
+#include "Packages/com.unity.render-pipelines.core/Runtime/UnifiedRayTracing/TraceRayAndQueryHit.hlsl"
+#include "UnityShaderVariables.cginc"
+
+#pragma max_recursion_depth 1
+
+struct Light
+{
+    float3 Position;
+    float ConeSize;
+    float3 Direction;
+    float Radius;
+    float3 Color;
+    float Falloff;
+    float ConeFalloff;
+};
+
+UNIFIED_RT_DECLARE_ACCEL_STRUCT(_AccelStruct);
+RWTexture3D<float4> lightMap;
+
+// Metal on Mac does not support StructuredBuffer.GetDimensions, so have to pass in the length too
+StructuredBuffer<Light> lightBuffer;
+uint lightBufferLength;
+float texelSize;
+float3 originOffset;
+int rayCount;
+float3 skyColor;
+uint doLightIndex;
+uint subdivisionOffset;
+
+float inverse_lerp_clamped(float a, float b, float v)
+{
+    return saturate((v - a) / (b - a));
+}
+
+float angle(float3 a, float3 b)
+{
+    return acos(clamp(dot(normalize(a), normalize(b)), -1, 1));
+}
+
+float3 FibSphere(int i, int maxSamples)
+{
+    float n = maxSamples;
+
+    float PI = 3.14159;
+    float k = i + .5;
+
+    float phi = acos(1.0 - k / n);
+    float theta = PI * (1.0 + sqrt(5)) * k;
+
+    float x = cos(theta) * sin(phi);
+    float y = cos(phi);
+    float z = sin(theta) * sin(phi);
+
+    return float3(x, y, z);
+}
+
+bool IsLightBlocked(UnifiedRT::RayTracingAccelStruct accelStruct, UnifiedRT::DispatchInfo dispatchInfo, UnifiedRT::Ray ray)
+{
+    // These flags existed here before. Maybe need to be reimplemented into the new tracer.
+    // RAY_FLAG_CULL_FRONT_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER,
+
+    UnifiedRT::Hit hitResult = UnifiedRT::TraceRayClosestHit(dispatchInfo, accelStruct, 0xFFFFFFFF, ray, 
+    UnifiedRT::kRayFlagCullFrontFacingTriangles
+    );
+    return hitResult.IsValid();
+}
+
+float4 SphereTrace(UnifiedRT::RayTracingAccelStruct accelStruct, UnifiedRT::DispatchInfo dispatchInfo, float3 position)
+{
+    int hits = 0;
+
+    for (int i = 0; i < rayCount; i++)
+    {
+        UnifiedRT::Ray ray;
+        ray.origin = position;
+        ray.direction = FibSphere(i, rayCount);
+        ray.tMin = 0.0f;
+        ray.tMax = 10000.0f;
+        if (!IsLightBlocked(accelStruct, dispatchInfo, ray))
+            hits++;
+    }
+
+    float percentage = float(hits) / rayCount;
+    return float4(percentage * skyColor, percentage);
+}
+
+float3 TraceLight(UnifiedRT::RayTracingAccelStruct accelStruct, UnifiedRT::DispatchInfo dispatchInfo, float3 position, Light light)
+{
+    float distToLight = distance(position, light.Position);
+
+    // optimization
+    if (distToLight > light.Radius)
+        return float3(0, 0, 0);
+
+    float coneFade = 1.0;
+    if (light.ConeSize > 0)
+    {
+        float ang = angle(position - light.Position, light.Direction);
+        if (ang >= light.ConeSize)
+            return float3(0, 0, 0);
+        if (light.ConeFalloff < 1)
+            coneFade = inverse_lerp_clamped(1, light.ConeFalloff, ang / light.ConeSize);
+    }
+
+    UnifiedRT::Ray ray;
+    ray.origin = position;
+    ray.direction = normalize(light.Position - position);
+    ray.tMin = 0.0f;
+    ray.tMax = distToLight;
+    if (IsLightBlocked(accelStruct, dispatchInfo, ray))
+        return float3(0, 0, 0);
+
+    float power = inverse_lerp_clamped(light.Radius, light.Radius * min(1 - light.Falloff, 0.999f), distToLight);
+    power *= coneFade;
+    return light.Color * power;
+}
+
+void RayGenExecute(UnifiedRT::DispatchInfo dispatchInfo)
+{
+    UnifiedRT::RayTracingAccelStruct accelStruct = UNIFIED_RT_GET_ACCEL_STRUCT(_AccelStruct);
+
+    uint3 id = dispatchInfo.dispatchThreadID + uint3(0, 0, subdivisionOffset);
+
+    float3 position = (float3(id) - float3(0.5, 0.5, 0.5)) * texelSize + originOffset;
+
+    if (doLightIndex == 0u)
+    {
+        lightMap[id] = SphereTrace(accelStruct, dispatchInfo, position);
+    }
+    else
+    {
+        uint lightIndex = doLightIndex - 1;
+        if (lightIndex < lightBufferLength)
+        {
+            float4 val = lightMap[id];
+            val.xyz += TraceLight(accelStruct, dispatchInfo, position, lightBuffer[lightIndex]);
+            lightMap[id] = val;
+        }
+    }
+}

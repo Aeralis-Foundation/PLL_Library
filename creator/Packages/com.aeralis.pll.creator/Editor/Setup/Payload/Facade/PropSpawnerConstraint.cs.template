@@ -1,0 +1,9 @@
+[System.Serializable]
+ public abstract class PropSpawnerConstraint
+ {
+    public bool mute;
+    public bool Muted => mute;
+    public abstract bool CheckConstraint(PropSpawner.SpawnData data);
+    public virtual bool Validate(UnityEngine.GameObject value, PropSpawner.SpawnData data) => true;
+ }
+

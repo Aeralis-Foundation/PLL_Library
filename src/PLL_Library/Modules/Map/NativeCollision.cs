@@ -1,0 +1,17 @@
+using UnityEngine;
+
+namespace PLL.Library;
+
+internal static class NativeCollision
+{
+    internal static bool IsGeneratedOutput(Transform root, Transform value)
+    {
+        if (value == root) return false;
+        for (var current = value.parent; current; current = current.parent)
+        {
+            if (current.GetComponent<PropSpawner>()) return true;
+            if (current == root) return false;
+        }
+        return false;
+    }
+}

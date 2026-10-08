@@ -1,0 +1,300 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using BepInEx;
+using BepInEx.Logging;
+using HarmonyLib;
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using PhotonHashtable = ExitGames.Client.Photon.Hashtable;
+using PhotonPlayer = Photon.Realtime.Player;
+
+namespace PLL.Library;
+
+[BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
+public sealed class Plugin : BaseUnityPlugin, IInRoomCallbacks, IMatchmakingCallbacks
+{
+    Harmony? harmony;
+    readonly HashSet<IEnumerator> mapRoutines = new();
+    bool teardownStarted;
+    static Plugin instance = null!;
+
+    public static ManualLogSource PLLLog { get; private set; } = null!;
+    internal static Coroutine StartRoutine(IEnumerator routine) => instance.StartMapRoutine(routine);
+
+    private void Awake()
+    {
+        PLLLog = Logger;
+        try
+        {
+            FileManager.Initialize(Info.Metadata);
+            BiomeRegistration.DiscoverStartupBundles();
+            AuthoringRuntime.Initialize(gameObject);
+            instance = this;
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+            harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
+            harmony.PatchAll(typeof(Plugin).Assembly);
+            PhotonNetwork.AddCallbackTarget(this);
+            PhotonNetwork.NetworkingClient.StateChanged += OnNetworkStateChanged;
+        }
+        catch (Exception exception)
+        {
+            enabled = false;
+            try
+            {
+                Teardown();
+            }
+            catch (Exception teardownException)
+            {
+                throw new AggregateException(
+                    "PLL Library initialization and rollback both failed.", exception, teardownException);
+            }
+            throw;
+        }
+    }
+
+    private void Start()
+    {
+        try
+        {
+            LayoutRegistry.Seal();
+        }
+        catch (Exception Failure)
+        {
+            enabled = false;
+            try
+            {
+                Teardown();
+            }
+            catch (Exception TeardownFailure)
+            {
+                throw new AggregateException(
+                    "PLL Library layout registration and rollback both failed.", Failure, TeardownFailure);
+            }
+            throw;
+        }
+    }
+
+    void Teardown()
+    {
+        if (teardownStarted) return;
+        teardownStarted = true;
+        var failures = new List<Exception>();
+        void Release(Action action)
+        {
+            try { action(); }
+            catch (Exception exception) { failures.Add(exception); }
+        }
+
+        Release(() => NativeContentTools.Cancel("The plugin stopped before the native content request completed."));
+        Release(() => ReleaseMapOwnership(Map.ReleaseCurrentRun));
+        Release(LightVolumeHarmonyAdapter.Shutdown);
+        Release(Map.ClearTransientPreflight);
+        Release(() => SceneManager.sceneUnloaded -= OnSceneUnloaded);
+        Release(() => PhotonNetwork.NetworkingClient.StateChanged -= OnNetworkStateChanged);
+        Release(() => PhotonNetwork.RemoveCallbackTarget(this));
+        Release(LobbyAdmission.Shutdown);
+        Release(PllSettingsSurface.Shutdown);
+        Release(MenuVersionMark.Shutdown);
+        Release(MainMenuDeveloperBar.Shutdown);
+        Release(TerminalLayoutSelector.Shutdown);
+        Release(TerminalLayoutSelection.Shutdown);
+        Release(() => harmony?.UnpatchSelf());
+        harmony = null;
+        Release(BiomeRegistration.ClearLiveCatalogs);
+        Release(AuthoringRuntime.Shutdown);
+        if (instance == this) instance = null!;
+        if (failures.Count == 1) ExceptionPropagation.Throw(failures[0]);
+        if (failures.Count != 0) throw new AggregateException("PLL Library teardown failed.", failures);
+    }
+
+    Coroutine StartMapRoutine(IEnumerator routine)
+    {
+        if (routine is null) throw new ArgumentNullException(nameof(routine));
+        if (!mapRoutines.Add(routine))
+            throw new InvalidOperationException("A map coroutine is already owned by the plugin.");
+        try
+        {
+            return StartCoroutine(ObserveMapRoutine(routine));
+        }
+        catch
+        {
+            mapRoutines.Remove(routine);
+            throw;
+        }
+    }
+
+    IEnumerator ObserveMapRoutine(IEnumerator routine)
+    {
+        try
+        {
+            while (routine.MoveNext()) yield return routine.Current;
+        }
+        finally
+        {
+            try { (routine as IDisposable)?.Dispose(); }
+            finally { mapRoutines.Remove(routine); }
+        }
+    }
+
+    void StopMapRoutines()
+    {
+        StopAllCoroutines();
+        if (mapRoutines.Count == 0) return;
+        var routines = new List<IEnumerator>(mapRoutines);
+        mapRoutines.Clear();
+        Exception? failure = null;
+        foreach (var routine in routines)
+            try
+            {
+                (routine as IDisposable)?.Dispose();
+            }
+            catch (Exception exception)
+            {
+                failure = failure is null
+                    ? exception
+                    : new AggregateException("Multiple map coroutine releases failed.", failure, exception);
+            }
+        if (failure is not null) ExceptionPropagation.Throw(failure);
+    }
+
+    void ReleaseMapOwnership(Action release)
+    {
+        var failures = new List<Exception>();
+        void Try(Action action)
+        {
+            try { action(); }
+            catch (Exception exception) { failures.Add(exception); }
+        }
+
+        Try(release);
+        Try(StopMapRoutines);
+        if (failures.Count == 1) ExceptionPropagation.Throw(failures[0]);
+        if (failures.Count != 0) throw new AggregateException("Map ownership release failed.", failures);
+    }
+
+    void ReleaseScene(Scene scene)
+    {
+        if (Map.OwnsScene(scene.handle)) ReleaseMapOwnership(() => Map.ReleaseScene(scene.handle));
+        else Map.ReleaseScene(scene.handle);
+    }
+
+    void OnSceneUnloaded(Scene scene)
+    {
+        if (teardownStarted) return;
+        ReleaseScene(scene);
+    }
+
+    void OnNetworkStateChanged(ClientState previous, ClientState current)
+    {
+        if (teardownStarted) return;
+        if (Map.CurrentRun is { Releasing: false, Released: false } Run)
+            Run.Network.GenerationBarrier.ConnectionStateChanged(current);
+        QuicksaveRoomGate.ConnectionStateChanged(current);
+        IslandLoadPublication.ConnectionStateChanged(current);
+        FinalManifestConsensus.ConnectionStateChanged(current);
+    }
+
+    private void OnDestroy() => Teardown();
+
+    private void Update()
+    {
+        NativeContentTools.Tick();
+        IslandLoadPublication.Tick();
+        Map.CurrentRun?.Network.DeferredOperations.Tick();
+    }
+
+    void IInRoomCallbacks.OnRoomPropertiesUpdate(PhotonHashtable propertiesThatChanged)
+    {
+        if (teardownStarted) return;
+        IslandLoadPublication.RoomPropertiesChanged(propertiesThatChanged);
+        FinalManifestConsensus.MaintainCurrent();
+    }
+
+    void IInRoomCallbacks.OnMasterClientSwitched(PhotonPlayer newMasterClient)
+    {
+        if (teardownStarted) return;
+        IslandLoadPublication.MasterClientChanged();
+        FinalManifestConsensus.MaintainCurrent();
+        if (newMasterClient.IsLocal) TerminalLayoutSelection.Reset();
+        else TerminalLayoutSelection.RefreshAuthority();
+    }
+
+    void IInRoomCallbacks.OnPlayerEnteredRoom(PhotonPlayer newPlayer)
+    {
+        if (teardownStarted) return;
+        FinalManifestConsensus.MaintainCurrent();
+    }
+
+    void IInRoomCallbacks.OnPlayerLeftRoom(PhotonPlayer otherPlayer)
+    {
+        if (teardownStarted) return;
+        Map.CurrentRun?.Network.ViewBatches.PlayerLeft(otherPlayer);
+        FinalManifestConsensus.MaintainCurrent();
+    }
+
+    void IInRoomCallbacks.OnPlayerPropertiesUpdate(PhotonPlayer targetPlayer, PhotonHashtable changedProps) { }
+
+    void IMatchmakingCallbacks.OnFriendListUpdate(List<FriendInfo> friendList) { }
+    void IMatchmakingCallbacks.OnCreatedRoom()
+    {
+        if (teardownStarted) return;
+        TerminalLayoutSelection.Reset();
+    }
+
+    void IMatchmakingCallbacks.OnCreateRoomFailed(short returnCode, string message)
+    {
+        if (teardownStarted) return;
+        QuicksaveRoomGate.MatchmakingFailed("room creation", returnCode, message);
+    }
+
+    void IMatchmakingCallbacks.OnJoinedRoom()
+    {
+        if (teardownStarted) return;
+        LobbyAdmission.RoomJoined();
+        if (PhotonNetwork.IsMasterClient) TerminalLayoutSelection.Reset();
+    }
+
+    void IMatchmakingCallbacks.OnJoinRoomFailed(short returnCode, string message)
+    {
+        if (teardownStarted) return;
+        QuicksaveRoomGate.MatchmakingFailed("room join", returnCode, message);
+    }
+
+    void IMatchmakingCallbacks.OnJoinRandomFailed(short returnCode, string message)
+    {
+        if (teardownStarted) return;
+        QuicksaveRoomGate.MatchmakingFailed("random room join", returnCode, message);
+    }
+
+    void IMatchmakingCallbacks.OnLeftRoom()
+    {
+        if (teardownStarted) return;
+        IslandLoadPublication.RoomLeft();
+        Map.ClearTransientPreflight();
+        FinalManifestConsensus.Reset();
+        AscentUIStartPatch.ResetResolved();
+        QuicksaveRoomGate.RoomLeft();
+        TerminalLayoutSelection.Reset();
+    }
+
+    [HarmonyPatch(typeof(NetworkConnector), nameof(NetworkConnector.HandleConnectionState))]
+    static class DisconnectingPatch
+    {
+        [HarmonyPrefix]
+        static void Prefix(ConnectionState state)
+        {
+            if (state is DisconnectingState)
+                instance.ReleaseMapOwnership(Map.ReleaseCurrentRun);
+        }
+    }
+
+    [HarmonyPatch(typeof(Player), nameof(Player.LeaveCurrentGame))]
+    static class PlayerLeavePatch
+    {
+        [HarmonyPrefix]
+        static void Prefix() => instance.ReleaseMapOwnership(Map.ReleaseCurrentRun);
+    }
+}

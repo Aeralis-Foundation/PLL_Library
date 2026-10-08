@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="creator/Sdk/PLL_Library.CreatorSdk.csproj" />
+  <Project Path="src/PLL_Library/PLL_Library.csproj" />
+</Solution>

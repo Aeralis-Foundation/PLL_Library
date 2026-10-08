@@ -1,0 +1,22 @@
+ public class WaterZone : Sirenix.OdinInspector.SerializedMonoBehaviour
+ {
+    public UnityEngine.MeshRenderer waterPlane;
+    public float waterDepth;
+    public UnityEngine.Bounds zoneBounds;
+    public float movementModifierShallow = 0.85f;
+    public float movementModifierDeep = 0.7f;
+    public float movementModifierJumping = 1f;
+    public float jumpMultiplier = 1f;
+    public bool disableSprintJump;
+    public UnityEngine.ParticleSystem waterVFX;
+    public float animModDeep = 0.25f;
+    public float animModShallow = 0.3f;
+
+     public enum InWaterState : int
+     {
+        NONE = 0,
+        Shallow = 1,
+        Deep = 2
+     }
+ }
+

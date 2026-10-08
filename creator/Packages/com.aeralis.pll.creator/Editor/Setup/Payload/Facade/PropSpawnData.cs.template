@@ -1,0 +1,5 @@
+[System.Serializable]
+ public class PropSpawnData : Peak.DictionaryContainer<UnityEngine.GameObject, PropSpawner.SpawnData>
+ {
+ }
+

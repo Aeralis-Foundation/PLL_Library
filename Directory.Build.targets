@@ -1,0 +1,89 @@
+<Project>
+  <Import Project="Sdk.tasks" Sdk="ThunderPipe.Sdk" Version="0.1.3" />
+
+  <PropertyGroup>
+    <RestoreAdditionalProjectSources>
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.windows10ce.com/nuget/v3/index.json
+    </RestoreAdditionalProjectSources>
+    <PackPackagesOnBuild Condition="'$(PackPackagesOnBuild)' == '' And '$(Configuration)' == 'Release' And '$(DesignTimeBuild)' != 'true'">true</PackPackagesOnBuild>
+    <GeneratePackageOnBuild Condition="'$(PackPackagesOnBuild)' == 'true' And '$(IsPackable)' == 'true'">true</GeneratePackageOnBuild>
+    <ThunderstoreVersion Condition="'$(ThunderstoreVersion)' == ''">$(Version)</ThunderstoreVersion>
+    <ThunderstoreWebsite Condition="'$(ThunderstoreWebsite)' == ''">$(RepositoryUrl)</ThunderstoreWebsite>
+    <ThunderstoreHost Condition="'$(ThunderstoreHost)' == ''">https://thunderstore.io/</ThunderstoreHost>
+    <ThunderPipeOutputDir Condition="'$(ThunderPipeOutputDir)' == ''">$(SolutionRoot)artifacts\thunderstore\$([System.String]::Copy('$(Configuration)').ToLowerInvariant())</ThunderPipeOutputDir>
+    <ThunderPipeOutputFile Condition="'$(ThunderPipeOutputFile)' == ''">$(ThunderPipeOutputDir)\PLL_Library-$(ThunderstoreVersion).zip</ThunderPipeOutputFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <PackageReference Include="HarmonyX" Version="[2.9.0]" />
+  </ItemGroup>
+
+  <ItemDefinitionGroup Condition="'$(MSBuildProjectName)' == 'PLL_Library'">
+    <Publicize>
+      <PublicizeTarget>All</PublicizeTarget>
+      <PublicizeCompilerGenerated>false</PublicizeCompilerGenerated>
+      <IncludeOriginalAttributesAttribute>false</IncludeOriginalAttributesAttribute>
+      <Strip>false</Strip>
+    </Publicize>
+  </ItemDefinitionGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'PLL_Library'">
+    <PackageReference
+      Include="BepInEx.AssemblyPublicizer.MSBuild"
+      Version="0.4.3"
+      PrivateAssets="all"
+      IncludeAssets="build;contentFiles"
+    />
+    <Publicize Include="Assembly-CSharp" />
+    <Publicize Include="PhotonUnityNetworking" />
+    <Publicize Include="LightVolume.Runtime" />
+    <Publicize Include="Unity.UnifiedRayTracing.Runtime" />
+    <Publicize Include="Zorro.Core.Runtime" />
+    <Publicize Include="UnityEngine.CoreModule" />
+    <Publicize Include="Unity.Splines" />
+    <Publicize Include="BepInEx" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('$(PEAKManagedDir)')">
+    <Reference
+      Include="$(PEAKManagedDir)\*.dll"
+      Exclude="$(PEAKManagedDir)\mscorlib.dll;$(PEAKManagedDir)\netstandard.dll"
+    >
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="ValidatePEAKManagedDir" BeforeTargets="ResolveAssemblyReferences">
+    <Error
+      Text="PEAKManagedDir must point to PEAK_Data\Managed containing Assembly-CSharp.dll and UnityEngine.CoreModule.dll. Configure PEAKManagedDir in Config.Build.user.props or pass -p:PEAKManagedDir=..."
+      Condition="'$(PEAKManagedDir)' == '' Or !Exists('$(PEAKManagedDir)\Assembly-CSharp.dll') Or !Exists('$(PEAKManagedDir)\UnityEngine.CoreModule.dll')"
+    />
+  </Target>
+
+  <Import Project="$(MSBuildThisFileDirectory)PluginVersion.targets" />
+
+  <Target Name="CreateThunderstorePackage" Returns="$(TargetPath)">
+    <ItemGroup>
+      <ThunderstoreFile Include="@(ModFile)" />
+    </ItemGroup>
+    <ThunderPipePack
+      Token=""
+      Team="$(ThunderstoreTeam)"
+      Name="$(ThunderstoreName)"
+      Version="$(ThunderstoreVersion)"
+      Description="$(ThunderstoreDescription)"
+      Website="$(ThunderstoreWebsite)"
+      Dependencies="@(ThunderstoreDependency)"
+      PackageFiles="@(ThunderstorePackageFile)"
+      Files="@(ThunderstoreFile)"
+      Host="$(ThunderstoreHost)"
+      OutputDir="$(ThunderPipeOutputDir)"
+      OutputFile="$(ThunderPipeOutputFile)"
+    />
+  </Target>
+
+  <Target Name="PackThunderstorePackage" AfterTargets="Build" Condition="'$(PackPackagesOnBuild)' == 'true'" DependsOnTargets="CreateThunderstorePackage" />
+</Project>

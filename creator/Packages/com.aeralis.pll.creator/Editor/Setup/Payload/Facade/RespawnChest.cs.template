@@ -1,0 +1,5 @@
+ public class RespawnChest : Luggage
+ {
+    public UnityEngine.GameObject skeleton;
+ }
+

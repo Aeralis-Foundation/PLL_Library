@@ -1,0 +1,14 @@
+#pragma warning disable 0169
+ public class PropGrouper : UnityEngine.MonoBehaviour
+ {
+    public PropGrouper.PropGrouperTiming timing;
+    [UnityEngine.SerializeField]
+    private bool ValidateAfterwards;
+
+     public enum PropGrouperTiming : int
+     {
+        Early = 0,
+        Late = 1
+     }
+ }
+

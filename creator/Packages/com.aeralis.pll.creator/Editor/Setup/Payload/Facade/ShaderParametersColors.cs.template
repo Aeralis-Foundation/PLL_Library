@@ -1,0 +1,7 @@
+[System.Serializable]
+ public class ShaderParametersColors
+ {
+    public DayNightManager.ShaderParams parameter;
+    public UnityEngine.Color paramValue;
+ }
+

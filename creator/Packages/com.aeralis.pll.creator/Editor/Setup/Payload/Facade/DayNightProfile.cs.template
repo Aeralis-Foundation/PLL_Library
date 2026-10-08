@@ -1,0 +1,16 @@
+ public class DayNightProfile : UnityEngine.ScriptableObject
+ {
+    public float sunIntensity;
+    public float moonIntensity;
+    public UnityEngine.Gradient sunGradient;
+    public UnityEngine.Gradient skyTopGradient;
+    public UnityEngine.Gradient skyMidGradient;
+    public UnityEngine.Gradient skyBottomGradient;
+    public UnityEngine.Gradient fogGradient;
+    public ShaderParameters[] globalShaderFloats;
+    public ShaderParameters[] globalStaticShaderFloats;
+    [UnityEngine.Serialization.FormerlySerializedAs("globalStaticShaderValues")]
+    public ShaderParametersColors[] globalStaticShaderColors;
+    public AnimatedShaderParameters[] animatedGlobalShaderFloats;
+ }
+

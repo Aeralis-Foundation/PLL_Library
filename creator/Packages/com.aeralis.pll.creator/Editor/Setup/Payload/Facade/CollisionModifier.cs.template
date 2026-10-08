@@ -1,0 +1,14 @@
+public class CollisionModifier : UnityEngine.MonoBehaviour
+{
+    public bool applyEffects;
+    public bool applyPetrify;
+    public CharacterAfflictions.STATUSTYPE statusType;
+    public float damage;
+    public float cooldown;
+    public float knockback;
+    public float ragdolledKnockback;
+    public float knockbackTowardsFwdVector;
+    public float staminaBackOnBounce;
+    public bool knockbackOnlyWhenStanding;
+    public bool preventFallDamageIfKnockback;
+}

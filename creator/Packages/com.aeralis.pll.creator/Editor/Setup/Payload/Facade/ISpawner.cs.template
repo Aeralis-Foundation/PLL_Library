@@ -1,0 +1,4 @@
+ public interface ISpawner
+ {
+    System.Collections.Generic.List<Photon.Pun.PhotonView> TrySpawnItems();
+ }

@@ -1,0 +1,18 @@
+ public class StatusEmitter : UnityEngine.MonoBehaviour
+ {
+    public CharacterAfflictions.STATUSTYPE statusType;
+    public float amount;
+    public float radius = 1f;
+    public float outerFade;
+    public float innerFade;
+    public float minAmount = 0.2f;
+    public bool inZoneWarning;
+    public float extraWarningTime = 1f;
+    public float randomStart;
+    public float debug;
+    public bool preventOverlap;
+    public string overlapIdentifier;
+    public bool isOverlapPriority;
+    public bool emitterDisabledByWind;
+ }
+

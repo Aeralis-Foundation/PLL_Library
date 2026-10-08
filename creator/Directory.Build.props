@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <SolutionRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\'))</SolutionRoot>
+  </PropertyGroup>
+
+  <Import Project="$(SolutionRoot)\Config.Build.user.props" Condition="Exists('$(SolutionRoot)\Config.Build.user.props')" />
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Deterministic>true</Deterministic>
+    <PackPackagesOnBuild Condition="'$(PackPackagesOnBuild)' == '' And '$(Configuration)' == 'Release' And '$(DesignTimeBuild)' != 'true'">true</PackPackagesOnBuild>
+    <CreatorPackageSourceDirectory Condition="'$(CreatorPackageSourceDirectory)' == ''">$(SolutionRoot)creator\Packages\com.aeralis.pll.creator</CreatorPackageSourceDirectory>
+    <CreatorPackageOutputDirectory Condition="'$(CreatorPackageOutputDirectory)' == ''">$(SolutionRoot)artifacts\Editor</CreatorPackageOutputDirectory>
+    <CreatorNpmCacheDirectory Condition="'$(CreatorNpmCacheDirectory)' == ''">$(SolutionRoot)artifacts\obj\PLL_Library.CreatorSdk\npm-cache</CreatorNpmCacheDirectory>
+    <CreatorPackageStageDirectory Condition="'$(CreatorPackageStageDirectory)' == ''">$(SolutionRoot)artifacts\obj\PLL_Library.CreatorSdk\package-stage\$(Configuration)</CreatorPackageStageDirectory>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,8 @@
+namespace Peak
+{
+     public class GameObjectList : UnityEngine.ScriptableObject
+     {
+        public UnityEngine.GameObject[] gameObjects;
+     }
+}
+

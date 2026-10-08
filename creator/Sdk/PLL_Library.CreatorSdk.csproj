@@ -1,0 +1,198 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="Version">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>PLL_Library</AssemblyName>
+    <RootNamespace>PLL.Library</RootNamespace>
+    <AssemblyTitle>PLL Library Creator SDK</AssemblyTitle>
+    <Description>Authoring only serialized type surface for PLL biome creators.</Description>
+    <DefineConstants>$(DefineConstants);PLL_CREATOR_SDK</DefineConstants>
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RuntimeSourceRoot Condition="'$(RuntimeSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\..\src\PLL_Library</RuntimeSourceRoot>
+    <RuntimeProject>$(RuntimeSourceRoot)\PLL_Library.csproj</RuntimeProject>
+    <PEAKManagedDir Condition="'$(PEAKManagedDir)' == ''"></PEAKManagedDir>
+    <CreatorPackageName>com.aeralis.pll.creator</CreatorPackageName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CreatorPackage Include="$(CreatorPackageName)">
+      <Unity>6000.3</Unity>
+      <DisplayName>PLL Creator</DisplayName>
+      <Description>Editor-only custom-biome authoring and deterministic .pll bundle building for PEAK.</Description>
+      <HideInEditor>true</HideInEditor>
+      <License>MIT</License>
+      <Author>Aeralis Foundation</Author>
+    </CreatorPackage>
+    <CreatorPackageKeyword Include="peak;pll;assetbundle" />
+    <CreatorPackageFile Include="Editor;Editor.meta;Shaders;Shaders.meta;package.json.meta;README.md" />
+    <CreatorPackageDependency Include="com.unity.modules.animation;com.unity.modules.assetbundle;com.unity.modules.audio;com.unity.modules.particlesystem;com.unity.modules.terrainphysics" Version="1.0.0" />
+    <CreatorPackageDependency Include="com.unity.nuget.mono-cecil" Version="1.11.6" />
+    <CreatorPackageDependency Include="com.unity.inputsystem" Version="1.19.0" />
+    <CreatorPackageDependency Include="com.unity.ugui" Version="2.0.0" />
+  </ItemGroup>
+
+  <UsingTask TaskName="WriteCreatorPackageManifest" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Path ParameterType="System.String" Required="true" />
+      <Version ParameterType="System.String" Required="true" />
+      <Package ParameterType="Microsoft.Build.Framework.ITaskItem" Required="true" />
+      <Keywords ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <Dependencies ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Runtime.Serialization.Json" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        using (var Output = File.Create(Path))
+        using (var Writer = JsonReaderWriterFactory.CreateJsonWriter(Output, new UTF8Encoding(false), false, true))
+        {
+          Writer.WriteStartElement("root");
+          Writer.WriteAttributeString("type", "object");
+          Writer.WriteElementString("name", Package.ItemSpec);
+          Writer.WriteElementString("version", Version);
+          Writer.WriteElementString("unity", Package.GetMetadata("Unity"));
+          Writer.WriteElementString("displayName", Package.GetMetadata("DisplayName"));
+          Writer.WriteElementString("description", Package.GetMetadata("Description"));
+          Writer.WriteStartElement("hideInEditor");
+          Writer.WriteAttributeString("type", "boolean");
+          Writer.WriteValue(bool.Parse(Package.GetMetadata("HideInEditor")));
+          Writer.WriteEndElement();
+          Writer.WriteElementString("license", Package.GetMetadata("License"));
+          Writer.WriteStartElement("keywords");
+          Writer.WriteAttributeString("type", "array");
+          foreach (var Keyword in Keywords) Writer.WriteElementString("item", Keyword.ItemSpec);
+          Writer.WriteEndElement();
+          Writer.WriteStartElement("files");
+          Writer.WriteAttributeString("type", "array");
+          foreach (var PackageFile in Files) Writer.WriteElementString("item", PackageFile.ItemSpec);
+          Writer.WriteEndElement();
+          Writer.WriteStartElement("dependencies");
+          Writer.WriteAttributeString("type", "object");
+          foreach (var Dependency in Dependencies)
+            Writer.WriteElementString(Dependency.ItemSpec, Dependency.GetMetadata("Version"));
+          Writer.WriteEndElement();
+          Writer.WriteStartElement("author");
+          Writer.WriteAttributeString("type", "object");
+          Writer.WriteElementString("name", Package.GetMetadata("Author"));
+          Writer.WriteEndElement();
+          Writer.WriteEndElement();
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(RuntimeSourceRoot)\Assets\Fog\PllFogComposition.hlsl" LogicalName="PLL.Library.Fog.PllFogComposition.hlsl" />
+    <EmbeddedResource Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Shaders\PllLayeredSurface.shader" LogicalName="PLL.Library.Surface.PllLayeredSurface.shader" />
+    <EmbeddedResource Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Shaders\PllLayeredSurface.hlsl" LogicalName="PLL.Library.Surface.PllLayeredSurface.hlsl" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\AudioCurveContract.cs" Link="Authoring\AudioCurveContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\ForceObjectNameContract.cs" Link="Authoring\ForceObjectNameContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllAuthoringValueContract.cs" Link="Authoring\PllAuthoringValueContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\GeneratedPropAssetCatalogCodec.cs" Link="Authoring\GeneratedPropAssetCatalogCodec.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllBiomeGroupContract.cs" Link="Authoring\PllBiomeGroupContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllLayoutCapacityContract.cs" Link="Authoring\PllLayoutCapacityContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllConnectorContract.cs" Link="Authoring\PllConnectorContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\PllStagedLuggageShapeContract.cs" Link="Authoring\PllStagedLuggageShapeContract.cs" />
+    <Compile Include="$(SolutionRoot)creator\Packages\com.aeralis.pll.creator\Editor\Builder\TransformOwnership.cs" Link="Authoring\TransformOwnership.cs" />
+    <Compile Include="$(RuntimeSourceRoot)\Core\MyPluginInfo.cs" Link="Authoring\MyPluginInfo.cs" />
+    <Compile Include="$(RuntimeSourceRoot)\Core\PLLLibrary.cs" Link="Authoring\PLLLibrary.cs" />
+    <Compile Include="$(RuntimeSourceRoot)\Features\PEAK\Authoring\*.cs" Link="Authoring\%(Filename)%(Extension)" />
+    <Compile Include="$(RuntimeSourceRoot)\Features\PEAK\CustomSegmentRuntime.cs" Link="Authoring\CustomSegmentRuntime.cs" />
+    <Compile Include="$(RuntimeSourceRoot)\Features\PEAK\SegmentPort.cs" Link="Authoring\SegmentPort.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Unity.Collections">
+      <HintPath>$(PEAKManagedDir)\Unity.Collections.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(PEAKManagedDir)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PhotonUnityNetworking">
+      <HintPath>$(PEAKManagedDir)\PhotonUnityNetworking.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(PEAKManagedDir)\UnityEngine.AudioModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(PEAKManagedDir)\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(PEAKManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>$(PEAKManagedDir)\UnityEngine.ParticleSystemModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(PEAKManagedDir)\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="ValidateCreatorSdkInputs" BeforeTargets="CoreCompile">
+    <Error Text="RuntimeSourceRoot '$(RuntimeSourceRoot)' does not contain the PLL authoring source." Condition="!Exists('$(RuntimeSourceRoot)\Features\PEAK\Authoring\PllBiomeDefinition.cs')" />
+    <Error Text="PEAKManagedDir must point to PEAK_Data\Managed containing Assembly-CSharp.dll, PhotonUnityNetworking.dll, and required Unity modules." Condition="!Exists('$(PEAKManagedDir)\Assembly-CSharp.dll') Or !Exists('$(PEAKManagedDir)\PhotonUnityNetworking.dll') Or !Exists('$(PEAKManagedDir)\UnityEngine.AnimationModule.dll') Or !Exists('$(PEAKManagedDir)\UnityEngine.CoreModule.dll') Or !Exists('$(PEAKManagedDir)\UnityEngine.PhysicsModule.dll')" />
+  </Target>
+
+  <Target Name="ReadCreatorSdkVersion" BeforeTargets="GetAssemblyVersion;StageCreatorPackage">
+    <XmlPeek XmlInputPath="$(RuntimeProject)" Query="/Project/PropertyGroup/Version/text()">
+      <Output TaskParameter="Result" PropertyName="Version" />
+    </XmlPeek>
+    <Error Text="Runtime project '$(RuntimeProject)' does not declare Version." Condition="'$(Version)' == ''" />
+  </Target>
+
+  <Target Name="StageCreatorPackage" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'" Returns="$(CreatorStagedPackageRoot)">
+    <Error Text="CreatorPackageSourceDirectory is required." Condition="'$(CreatorPackageSourceDirectory)' == ''" />
+    <Error Text="CreatorPackageStageDirectory is required." Condition="'$(CreatorPackageStageDirectory)' == ''" />
+    <PropertyGroup>
+      <CreatorPackageRoot>$([System.IO.Path]::GetFullPath('$(CreatorPackageSourceDirectory)'))</CreatorPackageRoot>
+      <CreatorPackageStageRoot>$([System.IO.Path]::GetFullPath('$(CreatorPackageStageDirectory)'))</CreatorPackageStageRoot>
+      <CreatorStagedPackageRoot>$(CreatorPackageStageRoot)\package</CreatorStagedPackageRoot>
+      <CreatorPayloadRoot>$(CreatorStagedPackageRoot)\Editor\Setup\Payload</CreatorPayloadRoot>
+      <CreatorPayloadAssembly>$(CreatorPayloadRoot)\PLL_Library.dll.bytes</CreatorPayloadAssembly>
+      <CreatorPayloadAssemblyMetaTemplate>$(CreatorPayloadRoot)\PLL_Library.dll.bytes.meta.template</CreatorPayloadAssemblyMetaTemplate>
+    </PropertyGroup>
+    <ItemGroup>
+      <CreatorPackageSource Include="$(CreatorPackageRoot)\**\*" Exclude="$(CreatorPackageRoot)\**\*.dll" />
+    </ItemGroup>
+    <RemoveDir Directories="$(CreatorPackageStageRoot)" Condition="Exists('$(CreatorPackageStageRoot)')" />
+    <MakeDir Directories="$(CreatorStagedPackageRoot);$(CreatorPayloadRoot)" />
+    <Copy SourceFiles="@(CreatorPackageSource)" DestinationFiles="@(CreatorPackageSource -> '$(CreatorStagedPackageRoot)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(CreatorPayloadAssembly)" />
+    <Copy SourceFiles="$(CreatorPayloadAssemblyMetaTemplate)" DestinationFiles="$(CreatorPayloadAssembly).meta" />
+    <Copy SourceFiles="$(RuntimeSourceRoot)\Assets\Fog\PllFogComposition.hlsl" DestinationFiles="$(CreatorStagedPackageRoot)\Shaders\PllFogComposition.hlsl" />
+    <Copy SourceFiles="$(CreatorPackageRoot)\Shaders\PllFogComposition.hlsl.meta.template" DestinationFiles="$(CreatorStagedPackageRoot)\Shaders\PllFogComposition.hlsl.meta" />
+    <Delete Files="$(CreatorPayloadAssemblyMetaTemplate);$(CreatorPayloadAssemblyMetaTemplate).meta;$(CreatorStagedPackageRoot)\Shaders\PllFogComposition.hlsl.meta.template" />
+    <WriteCreatorPackageManifest Path="$(CreatorStagedPackageRoot)\package.json" Version="$(Version)"
+      Package="@(CreatorPackage)" Keywords="@(CreatorPackageKeyword)" Files="@(CreatorPackageFile)" Dependencies="@(CreatorPackageDependency)" />
+  </Target>
+
+  <Target Name="CreateCreatorPackage" DependsOnTargets="StageCreatorPackage" Returns="$(TargetPath)">
+    <Error Text="CreatorPackageOutputDirectory is required." Condition="'$(CreatorPackageOutputDirectory)' == ''" />
+    <Error Text="CreatorNpmCacheDirectory is required." Condition="'$(CreatorNpmCacheDirectory)' == ''" />
+    <PropertyGroup>
+      <CreatorPackageOutputRoot>$([System.IO.Path]::GetFullPath('$(CreatorPackageOutputDirectory)'))</CreatorPackageOutputRoot>
+      <CreatorNpmCacheRoot>$([System.IO.Path]::GetFullPath('$(CreatorNpmCacheDirectory)'))</CreatorNpmCacheRoot>
+      <CreatorArchiveStageRoot>$(CreatorPackageStageRoot)\archive</CreatorArchiveStageRoot>
+      <CreatorStagedPackageArchive>$(CreatorArchiveStageRoot)\$(CreatorPackageName)-$(Version).tgz</CreatorStagedPackageArchive>
+      <CreatorFinalPackageArchive>$(CreatorPackageOutputRoot)\$(CreatorPackageName)-$(Version).tgz</CreatorFinalPackageArchive>
+    </PropertyGroup>
+    <MakeDir Directories="$(CreatorNpmCacheRoot);$(CreatorArchiveStageRoot)" />
+    <Exec Command="npm.cmd pack &quot;$(CreatorStagedPackageRoot)&quot; --pack-destination &quot;$(CreatorArchiveStageRoot)&quot;" EnvironmentVariables="npm_config_cache=$(CreatorNpmCacheRoot)" />
+    <Error Text="Creator package '$(CreatorStagedPackageArchive)' was not produced." Condition="!Exists('$(CreatorStagedPackageArchive)')" />
+    <MakeDir Directories="$(CreatorPackageOutputRoot)" />
+    <Copy SourceFiles="$(CreatorStagedPackageArchive)" DestinationFiles="$(CreatorFinalPackageArchive)" />
+  </Target>
+
+  <Target Name="PackCreatorPackage" AfterTargets="Build" Condition="'$(PackPackagesOnBuild)' == 'true'" DependsOnTargets="CreateCreatorPackage" />
+</Project>

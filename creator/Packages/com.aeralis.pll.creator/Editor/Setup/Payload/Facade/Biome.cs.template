@@ -1,0 +1,25 @@
+ public class Biome : UnityEngine.MonoBehaviour
+ {
+
+     public enum BiomeType : int
+     {
+        Shore = 0,
+        Tropics = 1,
+        Alpine = 2,
+        Volcano = 3,
+        Peak = 5,
+        Mesa = 6,
+        Roots = 7,
+        Swamp = 8,
+        Temple = 9,
+        Grasslands = 10,
+        Ocean = 11,
+        Skyblock = 12,
+        Hell = 13,
+        Heaven = 14,
+        Mars = 15,
+        Wisconsin = 16,
+        Void = 17
+     }
+ }
+

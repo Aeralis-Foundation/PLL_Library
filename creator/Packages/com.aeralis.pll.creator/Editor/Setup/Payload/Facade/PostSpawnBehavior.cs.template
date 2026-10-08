@@ -1,0 +1,10 @@
+#pragma warning disable 0169
+[System.Serializable]
+ public abstract class PostSpawnBehavior
+ {
+    [UnityEngine.SerializeField]
+    private DeferredStepTiming _timing;
+    public bool mute;
+    public abstract void RunBehavior(System.Collections.Generic.IEnumerable<UnityEngine.GameObject> values);
+ }
+

@@ -1,0 +1,45 @@
+#pragma warning disable 0169, 0414
+ public class PropSpawner : LevelGenStep
+ {
+    public float rayNearCutoff;
+    public UnityEngine.Vector2 area;
+    public UnityEngine.Vector3 rayDirectionOffset;
+    public float rayLength = 5000f;
+    public bool raycastPosition = true;
+    public int nrOfSpawns = 500;
+    public bool randomSpawns;
+    public int minSpawnCount;
+    public float chanceToUseSpawner = 1f;
+    public int currentSpawns;
+    public UnityEngine.GameObject[] props;
+    public bool overrideProps;
+    public Peak.GameObjectList overridePropsList;
+    public bool syncTransforms = true;
+    public HelperFunctions.LayerType layerType = HelperFunctions.LayerType.TerrainMap;
+    [UnityEngine.SerializeReference]
+    public System.Collections.Generic.List<PropSpawnerMod> modifiers = new();
+    [UnityEngine.SerializeReference]
+    public System.Collections.Generic.List<PropSpawnerConstraint> constraints = new();
+    [UnityEngine.SerializeReference]
+    public System.Collections.Generic.List<PropSpawnerConstraintPost> postConstraints = new();
+    [UnityEngine.SerializeReference]
+    public System.Collections.Generic.List<PostSpawnBehavior> postSpawnBehaviors = new();
+    [UnityEngine.SerializeReference]
+    private System.Collections.Generic.List<IValidationConstraint> validationConstraints = new();
+    [UnityEngine.SerializeField]
+    private bool _madeDummyData;
+    [UnityEngine.SerializeReference]
+    private PropSpawnData _propSpawnData = new();
+    public override System.Collections.IEnumerator Execute() { return null; }
+    public override void ExecuteImmediately() { }
+    public override void Clear() { }
+
+    [System.Serializable]
+     public class SpawnData
+     {
+        public UnityEngine.Transform spawnerTransform;
+        public UnityEngine.Vector3 pos;
+        public UnityEngine.RaycastHit hit;
+     }
+ }
+

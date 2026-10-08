@@ -1,0 +1,8 @@
+ public class FogSphereOrigin : UnityEngine.MonoBehaviour
+ {
+    public float size = 650f;
+    public float moveOnHeight;
+    public float moveOnForward;
+    public bool disableFog;
+ }
+

@@ -1,0 +1,8 @@
+ public class FogCutoutZone : UnityEngine.MonoBehaviour
+ {
+    public float min = 10f;
+    public float max = 100f;
+    public float amount = 1f;
+    public float transitionPoint;
+ }
+

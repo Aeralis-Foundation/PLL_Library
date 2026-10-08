@@ -1,0 +1,7 @@
+namespace Peak
+{
+     public class SpawnedItemTracker : UnityEngine.MonoBehaviour
+     {
+     }
+}
+

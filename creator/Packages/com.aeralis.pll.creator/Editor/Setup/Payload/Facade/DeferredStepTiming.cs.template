@@ -1,0 +1,8 @@
+ public enum DeferredStepTiming : int
+ {
+    None = 0,
+    AfterCurrentStep = 1,
+    AfterCurrentGroupTiming = 2,
+    AfterDone = 3
+ }
+

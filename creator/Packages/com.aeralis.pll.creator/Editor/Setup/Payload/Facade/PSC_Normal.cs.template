@@ -1,0 +1,6 @@
+public class PSC_Normal : PropSpawnerConstraint
+{
+    public float minAngle;
+    public float maxAngle;
+    public override bool CheckConstraint(PropSpawner.SpawnData spawnData) => true;
+}

@@ -1,0 +1,7 @@
+[System.Serializable]
+public class ThemeWithRarity
+{
+    public UnityEngine.Material[] mats;
+    public float rarity;
+    public string name;
+}

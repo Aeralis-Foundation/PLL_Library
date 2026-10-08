@@ -1,0 +1,4 @@
+public class PSCP_Custom : PropSpawnerConstraintPost
+{
+    public override bool CheckConstraint(UnityEngine.GameObject spawned, PropSpawner.SpawnData spawnData) => true;
+}

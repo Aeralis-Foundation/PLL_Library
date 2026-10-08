@@ -1,0 +1,5 @@
+ public class PSM_ChildSpawners : PropSpawnerMod
+ {
+    public override void ModifyObject(UnityEngine.GameObject value, PropSpawner.SpawnData data) { }
+ }
+

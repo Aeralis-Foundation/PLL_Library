@@ -1,0 +1,12 @@
+ public class MountainProgressHandler : Zorro.Core.Singleton<MountainProgressHandler>
+ {
+
+    [System.Serializable]
+     public class ProgressPoint
+     {
+        public UnityEngine.Transform transform;
+        public string title;
+        public UnityEngine.AudioClip clip;
+     }
+ }
+

@@ -1,0 +1,7 @@
+public class RopeAnchorWithRope : Photon.Pun.MonoBehaviourPunCallbacks
+{
+    public float ropeSegmentLength;
+    public float spoolOutTime;
+    public UnityEngine.GameObject ropePrefab;
+    public RopeAnchor anchor;
+}

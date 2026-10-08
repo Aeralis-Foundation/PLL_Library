@@ -1,0 +1,11 @@
+public class PSM_NormalOffset : PropSpawnerMod
+{
+    public float minOffset;
+    public float maxOffset;
+    public float randomPow;
+    public bool useAngleBasedAdditives;
+    public float angleBasedAdditiveUp;
+    public float angleBasedAdditiveSide;
+    public float angleBasedAdditiveDown;
+    public override void ModifyObject(UnityEngine.GameObject spawned, PropSpawner.SpawnData spawnData) { }
+}

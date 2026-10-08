@@ -1,0 +1,14 @@
+ public class VariantObject : UnityEngine.MonoBehaviour
+ {
+    public float spawnChance = 0.5f;
+    public VariantObject.Group group;
+
+     public enum Group : int
+     {
+        Default = 0,
+        One = 1,
+        Two = 2,
+        Three = 3
+     }
+ }
+

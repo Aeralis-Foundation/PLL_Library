@@ -1,0 +1,15 @@
+<Project>
+  <Target Name="GeneratePluginVersion" BeforeTargets="CoreCompile" DependsOnTargets="GetAssemblyVersion"
+          Condition="'$(MSBuildProjectName)' == 'PLL_Library' Or '$(MSBuildProjectName)' == 'PLL_Library.CreatorSdk'">
+    <PropertyGroup>
+      <GeneratedPluginVersionPath>$(IntermediateOutputPath)MyPluginInfo.Version.g.cs</GeneratedPluginVersionPath>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(GeneratedPluginVersionPath)"
+      Lines="namespace PLL.Library%3B&#x0A;public static partial class MyPluginInfo { public const string PLUGIN_VERSION = &quot;$(Version)&quot;%3B }"
+      Encoding="UTF-8" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(GeneratedPluginVersionPath)" />
+      <FileWrites Include="$(GeneratedPluginVersionPath)" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -1,0 +1,29 @@
+ public class Campfire : UnityEngine.MonoBehaviour
+ {
+    public Segment advanceToSegment;
+    public UnityEngine.GameObject enableWhenLit;
+    public UnityEngine.GameObject disableWhenLit;
+    [UnityEngine.Serialization.FormerlySerializedAs("litTime")]
+    public float burnsFor = 180f;
+    public float cookTime = 5f;
+    public UnityEngine.Transform logRoot;
+    public UnityEngine.Vector2 endSize = new UnityEngine.Vector2(0.1f, 0.2f);
+    public float endRot = 3f;
+    [UnityEngine.Serialization.FormerlySerializedAs("litTimeElapsed")]
+    public float beenBurningFor;
+    public UnityEngine.ParticleSystem fireParticles;
+    public UnityEngine.ParticleSystem smokeParticlesOff;
+    public UnityEngine.ParticleSystem smokeParticlesLit;
+    public float moraleBoostRadius;
+    public float moraleBoostBaseline;
+    public float moraleBoostPerAdditionalScout;
+    public float injuryReduction = 0.2f;
+    public SFX_Instance[] fireStart;
+    public SFX_Instance[] extinguish;
+    public SFX_Instance[] moraleBoost;
+    public UnityEngine.AudioSource loop;
+    public string nameOverride;
+    public bool disableFogFakeMountain;
+    public bool forceLit;
+ }
+

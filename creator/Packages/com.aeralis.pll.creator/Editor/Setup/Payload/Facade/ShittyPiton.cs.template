@@ -1,0 +1,7 @@
+public class ShittyPiton : Photon.Pun.MonoBehaviourPunCallbacks
+{
+    public UnityEngine.GameObject crack;
+    public UnityEngine.GameObject vfx;
+    public SFX_Instance[] cracKSFX;
+    public SFX_Instance[] breakSFX;
+}

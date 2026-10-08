@@ -1,0 +1,16 @@
+ public class HelperFunctions : UnityEngine.MonoBehaviour
+ {
+
+     public enum LayerType : int
+     {
+        AllPhysical = 0,
+        TerrainMap = 1,
+        Terrain = 2,
+        Map = 3,
+        Default = 4,
+        AllPhysicalExceptCharacter = 5,
+        CharacterAndDefault = 6,
+        AllPhysicalExceptDefault = 7
+     }
+ }
+

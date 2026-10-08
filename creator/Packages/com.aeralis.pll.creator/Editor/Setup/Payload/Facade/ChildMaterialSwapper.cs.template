@@ -1,0 +1,6 @@
+public class ChildMaterialSwapper : UnityEngine.MonoBehaviour
+{
+    public System.Collections.Generic.List<ThemeWithRarity> themes;
+    public bool forceDisable;
+    public ThemeWithRarity chosenTheme;
+}

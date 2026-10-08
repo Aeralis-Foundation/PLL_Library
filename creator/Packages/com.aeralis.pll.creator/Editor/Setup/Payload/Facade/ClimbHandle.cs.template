@@ -1,0 +1,4 @@
+public class ClimbHandle : UnityEngine.MonoBehaviour
+{
+    public bool isPickaxe;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "PLL.Creator.Editor",
+  "rootNamespace": "PLL.Creator.Editor",
+  "references": [
+    "PLL.Creator.Setup"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "PLL_CREATOR_BUILDER_PACKAGE_SOURCE_DISABLED"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

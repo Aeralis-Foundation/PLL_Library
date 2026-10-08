@@ -1,0 +1,5 @@
+ public class Campfire_Set_Segment : PropSpawnerMod
+ {
+    public override void ModifyObject(UnityEngine.GameObject value, PropSpawner.SpawnData data) { }
+ }
+

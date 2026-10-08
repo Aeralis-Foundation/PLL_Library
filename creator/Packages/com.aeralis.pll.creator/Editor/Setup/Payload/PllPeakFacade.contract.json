@@ -1,0 +1,4345 @@
+{
+  "schemaVersion": 2,
+  "sourceAssembly": "Assembly-CSharp",
+  "serializedFieldCount": 239,
+  "types": [
+    {
+      "name": "AudioLoop", "metadataName": "AudioLoop", "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour", "isAbstract": false, "isSerializable": false,
+      "serializedSurface": true, "enumUnderlyingType": "", "enumValues": [],
+      "fields": [
+        { "name": "loop", "typeName": "UnityEngine.AudioSource", "serialized": true, "serializeReference": false, "isPublic": true, "formerNames": [] },
+        { "name": "volume", "typeName": "System.Single", "serialized": true, "serializeReference": false, "isPublic": true, "formerNames": [] },
+        { "name": "pitch", "typeName": "System.Single", "serialized": true, "serializeReference": false, "isPublic": true, "formerNames": [] }
+      ]
+    },
+    {
+      "name": "PSM_PitonNormal",
+      "metadataName": "PSM_PitonNormal",
+      "kind": "class",
+      "baseType": "PropSpawnerMod",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "AnimatedShaderParameters",
+      "metadataName": "AnimatedShaderParameters",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "parameter",
+          "typeName": "DayNightManager.ShaderParams",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "paramValue",
+          "typeName": "UnityEngine.AnimationCurve",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Biome",
+      "metadataName": "Biome",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "Biome.BiomeType",
+      "metadataName": "Biome/BiomeType",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "Shore",
+          "value": "0"
+        },
+        {
+          "name": "Tropics",
+          "value": "1"
+        },
+        {
+          "name": "Alpine",
+          "value": "2"
+        },
+        {
+          "name": "Volcano",
+          "value": "3"
+        },
+        {
+          "name": "Peak",
+          "value": "5"
+        },
+        {
+          "name": "Mesa",
+          "value": "6"
+        },
+        {
+          "name": "Roots",
+          "value": "7"
+        },
+        {
+          "name": "Swamp",
+          "value": "8"
+        },
+        {
+          "name": "Temple",
+          "value": "9"
+        },
+        {
+          "name": "Grasslands",
+          "value": "10"
+        },
+        {
+          "name": "Ocean",
+          "value": "11"
+        },
+        {
+          "name": "Skyblock",
+          "value": "12"
+        },
+        {
+          "name": "Hell",
+          "value": "13"
+        },
+        {
+          "name": "Heaven",
+          "value": "14"
+        },
+        {
+          "name": "Mars",
+          "value": "15"
+        },
+        {
+          "name": "Wisconsin",
+          "value": "16"
+        },
+        {
+          "name": "Void",
+          "value": "17"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "Campfire",
+      "metadataName": "Campfire",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "advanceToSegment",
+          "typeName": "Segment",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "enableWhenLit",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "disableWhenLit",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "burnsFor",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": [
+            "litTime"
+          ]
+        },
+        {
+          "name": "cookTime",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "logRoot",
+          "typeName": "UnityEngine.Transform",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "endSize",
+          "typeName": "UnityEngine.Vector2",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "endRot",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "beenBurningFor",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": [
+            "litTimeElapsed"
+          ]
+        },
+        {
+          "name": "fireParticles",
+          "typeName": "UnityEngine.ParticleSystem",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "smokeParticlesOff",
+          "typeName": "UnityEngine.ParticleSystem",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "smokeParticlesLit",
+          "typeName": "UnityEngine.ParticleSystem",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "moraleBoostRadius",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "moraleBoostBaseline",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "moraleBoostPerAdditionalScout",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "injuryReduction",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "fireStart",
+          "typeName": "SFX_Instance[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "extinguish",
+          "typeName": "SFX_Instance[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "moraleBoost",
+          "typeName": "SFX_Instance[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "loop",
+          "typeName": "UnityEngine.AudioSource",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "nameOverride",
+          "typeName": "System.String",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "disableFogFakeMountain",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "forceLit",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Campfire_Set_Segment",
+      "metadataName": "Campfire_Set_Segment",
+      "kind": "class",
+      "baseType": "PropSpawnerMod",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "Character",
+      "metadataName": "Character",
+      "kind": "class",
+      "baseType": "Photon.Pun.MonoBehaviourPun",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "CharacterAfflictions",
+      "metadataName": "CharacterAfflictions",
+      "kind": "class",
+      "baseType": "Photon.Pun.MonoBehaviourPunCallbacks",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "CharacterAfflictions.STATUSTYPE",
+      "metadataName": "CharacterAfflictions/STATUSTYPE",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "Injury",
+          "value": "0"
+        },
+        {
+          "name": "Hunger",
+          "value": "1"
+        },
+        {
+          "name": "Cold",
+          "value": "2"
+        },
+        {
+          "name": "Poison",
+          "value": "3"
+        },
+        {
+          "name": "Crab",
+          "value": "4"
+        },
+        {
+          "name": "Curse",
+          "value": "5"
+        },
+        {
+          "name": "Drowsy",
+          "value": "6"
+        },
+        {
+          "name": "Weight",
+          "value": "7"
+        },
+        {
+          "name": "Hot",
+          "value": "8"
+        },
+        {
+          "name": "Thorns",
+          "value": "9"
+        },
+        {
+          "name": "Spores",
+          "value": "10"
+        },
+        {
+          "name": "Web",
+          "value": "11"
+        },
+        {
+          "name": "Arrow",
+          "value": "12"
+        },
+        {
+          "name": "Petrify",
+          "value": "13"
+        },
+        {
+          "name": "FlyTrap",
+          "value": "14"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "ClimbHandle",
+      "metadataName": "ClimbHandle",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "isPickaxe",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "ClimbModifierSurface",
+      "metadataName": "ClimbModifierSurface",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "onlySlideDown",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "speedMultiplier",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "slipModifier",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "staminaUsageMultiplier",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "applyStatus",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "statusType",
+          "typeName": "CharacterAfflictions.STATUSTYPE",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "applyPetrify",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "statusAmount",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "statusCooldown",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "staticClimbCost",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "DayNightManager",
+      "metadataName": "DayNightManager",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "CollisionModifier",
+      "metadataName": "CollisionModifier",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "applyEffects",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "applyPetrify",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "statusType",
+          "typeName": "CharacterAfflictions.STATUSTYPE",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "damage",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "cooldown",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "knockback",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "ragdolledKnockback",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "knockbackTowardsFwdVector",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "staminaBackOnBounce",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "knockbackOnlyWhenStanding",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "preventFallDamageIfKnockback",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "DayNightManager.ShaderParams",
+      "metadataName": "DayNightManager/ShaderParams",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "AirDistortion",
+          "value": "0"
+        },
+        {
+          "name": "RimFresnel",
+          "value": "1"
+        },
+        {
+          "name": "LavaAlpha",
+          "value": "2"
+        },
+        {
+          "name": "BandFog",
+          "value": "3"
+        },
+        {
+          "name": "SunSize",
+          "value": "4"
+        },
+        {
+          "name": "HeightFogAmount",
+          "value": "5"
+        },
+        {
+          "name": "HeightFogHeight",
+          "value": "6"
+        },
+        {
+          "name": "HeightFogColor",
+          "value": "7"
+        },
+        {
+          "name": "HeightFogSoften",
+          "value": "8"
+        },
+        {
+          "name": "InSpace",
+          "value": "9"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "DayNightProfile",
+      "metadataName": "DayNightProfile",
+      "kind": "class",
+      "baseType": "UnityEngine.ScriptableObject",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "sunIntensity",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "moonIntensity",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "sunGradient",
+          "typeName": "UnityEngine.Gradient",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "skyTopGradient",
+          "typeName": "UnityEngine.Gradient",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "skyMidGradient",
+          "typeName": "UnityEngine.Gradient",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "skyBottomGradient",
+          "typeName": "UnityEngine.Gradient",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "fogGradient",
+          "typeName": "UnityEngine.Gradient",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "globalShaderFloats",
+          "typeName": "ShaderParameters[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "globalStaticShaderFloats",
+          "typeName": "ShaderParameters[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "globalStaticShaderColors",
+          "typeName": "ShaderParametersColors[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": [
+            "globalStaticShaderValues"
+          ]
+        },
+        {
+          "name": "animatedGlobalShaderFloats",
+          "typeName": "AnimatedShaderParameters[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "DeferredStepTiming",
+      "metadataName": "DeferredStepTiming",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "None",
+          "value": "0"
+        },
+        {
+          "name": "AfterCurrentStep",
+          "value": "1"
+        },
+        {
+          "name": "AfterCurrentGroupTiming",
+          "value": "2"
+        },
+        {
+          "name": "AfterDone",
+          "value": "3"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "DisableBasedOnRunSettings",
+      "metadataName": "DisableBasedOnRunSettings",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "disableIfSettingDisabled",
+          "typeName": "RunSettings.SETTINGTYPE",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "FogCutoutZone",
+      "metadataName": "FogCutoutZone",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "min",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "max",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "amount",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "transitionPoint",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "FogSphereOrigin",
+      "metadataName": "FogSphereOrigin",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "size",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "moveOnHeight",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "moveOnForward",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "disableFog",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "HelperFunctions",
+      "metadataName": "HelperFunctions",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "HelperFunctions.LayerType",
+      "metadataName": "HelperFunctions/LayerType",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "AllPhysical",
+          "value": "0"
+        },
+        {
+          "name": "TerrainMap",
+          "value": "1"
+        },
+        {
+          "name": "Terrain",
+          "value": "2"
+        },
+        {
+          "name": "Map",
+          "value": "3"
+        },
+        {
+          "name": "Default",
+          "value": "4"
+        },
+        {
+          "name": "AllPhysicalExceptCharacter",
+          "value": "5"
+        },
+        {
+          "name": "CharacterAndDefault",
+          "value": "6"
+        },
+        {
+          "name": "AllPhysicalExceptDefault",
+          "value": "7"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "Item",
+      "metadataName": "Item",
+      "kind": "class",
+      "baseType": "Photon.Pun.MonoBehaviourPunCallbacks",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "itemID",
+          "typeName": "System.UInt16",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "ICollisionModifierEvent",
+      "metadataName": "ICollisionModifierEvent",
+      "kind": "interface",
+      "baseType": "",
+      "isAbstract": true,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "ISpawner",
+      "metadataName": "ISpawner",
+      "kind": "interface",
+      "baseType": "",
+      "isAbstract": true,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "IValidationConstraint",
+      "metadataName": "IValidationConstraint",
+      "kind": "interface",
+      "baseType": "",
+      "isAbstract": true,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "LevelGenStep",
+      "metadataName": "LevelGenStep",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": true,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "Luggage",
+      "metadataName": "Luggage",
+      "kind": "class",
+      "baseType": "Spawner",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "displayName",
+          "typeName": "System.String",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "state",
+          "typeName": "Luggage.LuggageState",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": false,
+          "formerNames": []
+        },
+        {
+          "name": "timeToOpen",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "activateOnOpen",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Luggage.LuggageState",
+      "metadataName": "Luggage/LuggageState",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "Closed",
+          "value": "0"
+        },
+        {
+          "name": "Open",
+          "value": "1"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "MountainProgressHandler",
+      "metadataName": "MountainProgressHandler",
+      "kind": "class",
+      "baseType": "Zorro.Core.Singleton<MountainProgressHandler>",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "MountainProgressHandler.ProgressPoint",
+      "metadataName": "MountainProgressHandler/ProgressPoint",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "transform",
+          "typeName": "UnityEngine.Transform",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "title",
+          "typeName": "System.String",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "clip",
+          "typeName": "UnityEngine.AudioClip",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Peak.DictionaryContainer`2",
+      "metadataName": "Peak.DictionaryContainer`2",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": true,
+      "isSerializable": true,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "Peak.GameObjectList",
+      "metadataName": "Peak.GameObjectList",
+      "kind": "class",
+      "baseType": "UnityEngine.ScriptableObject",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "gameObjects",
+          "typeName": "UnityEngine.GameObject[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Peak.SpawnedItemTracker",
+      "metadataName": "Peak.SpawnedItemTracker",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PostSpawnBehavior",
+      "metadataName": "PostSpawnBehavior",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": true,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "_timing",
+          "typeName": "DeferredStepTiming",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": false,
+          "formerNames": []
+        },
+        {
+          "name": "mute",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PropGrouper",
+      "metadataName": "PropGrouper",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "timing",
+          "typeName": "PropGrouper.PropGrouperTiming",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "ValidateAfterwards",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": false,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PropGrouper.PropGrouperTiming",
+      "metadataName": "PropGrouper/PropGrouperTiming",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "Early",
+          "value": "0"
+        },
+        {
+          "name": "Late",
+          "value": "1"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "PropSpawnData",
+      "metadataName": "PropSpawnData",
+      "kind": "class",
+      "baseType": "Peak.DictionaryContainer<UnityEngine.GameObject,PropSpawner.SpawnData>",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PropSpawner",
+      "metadataName": "PropSpawner",
+      "kind": "class",
+      "baseType": "LevelGenStep",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "rayNearCutoff",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "area",
+          "typeName": "UnityEngine.Vector2",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "rayDirectionOffset",
+          "typeName": "UnityEngine.Vector3",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "rayLength",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "raycastPosition",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "nrOfSpawns",
+          "typeName": "System.Int32",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "randomSpawns",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "minSpawnCount",
+          "typeName": "System.Int32",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "chanceToUseSpawner",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "currentSpawns",
+          "typeName": "System.Int32",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "props",
+          "typeName": "UnityEngine.GameObject[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "overrideProps",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "overridePropsList",
+          "typeName": "Peak.GameObjectList",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "syncTransforms",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "layerType",
+          "typeName": "HelperFunctions.LayerType",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "modifiers",
+          "typeName": "System.Collections.Generic.List<PropSpawnerMod>",
+          "serialized": true,
+          "serializeReference": true,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "constraints",
+          "typeName": "System.Collections.Generic.List<PropSpawnerConstraint>",
+          "serialized": true,
+          "serializeReference": true,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "postConstraints",
+          "typeName": "System.Collections.Generic.List<PropSpawnerConstraintPost>",
+          "serialized": true,
+          "serializeReference": true,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "postSpawnBehaviors",
+          "typeName": "System.Collections.Generic.List<PostSpawnBehavior>",
+          "serialized": true,
+          "serializeReference": true,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "validationConstraints",
+          "typeName": "System.Collections.Generic.List<IValidationConstraint>",
+          "serialized": true,
+          "serializeReference": true,
+          "isPublic": false,
+          "formerNames": []
+        },
+        {
+          "name": "_madeDummyData",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": false,
+          "formerNames": []
+        },
+        {
+          "name": "_propSpawnData",
+          "typeName": "PropSpawnData",
+          "serialized": true,
+          "serializeReference": true,
+          "isPublic": false,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PropSpawner.SpawnData",
+      "metadataName": "PropSpawner/SpawnData",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "spawnerTransform",
+          "typeName": "UnityEngine.Transform",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "pos",
+          "typeName": "UnityEngine.Vector3",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "hit",
+          "typeName": "UnityEngine.RaycastHit",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PropSpawner_Line",
+      "metadataName": "PropSpawner_Line",
+      "kind": "class",
+      "baseType": "PropSpawner",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "height",
+          "typeName": "System.Single",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "coreWidth",
+          "typeName": "System.Single",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "RayWiggle",
+          "typeName": "System.Single",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "rayCastSpawn",
+          "typeName": "System.Boolean",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PropSpawner_Sphere",
+      "metadataName": "PropSpawner_Sphere",
+      "kind": "class",
+      "baseType": "PropSpawner",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "rayCastSpawn",
+          "typeName": "System.Boolean",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PropSpawnerConstraint",
+      "metadataName": "PropSpawnerConstraint",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": true,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "mute",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PropSpawnerConstraintPost",
+      "metadataName": "PropSpawnerConstraintPost",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": true,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "mute",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PropSpawnerMod",
+      "metadataName": "PropSpawnerMod",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": true,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "mute",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PSB_ChildSpawners",
+      "metadataName": "PSB_ChildSpawners",
+      "kind": "class",
+      "baseType": "PostSpawnBehavior",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PSM_ChildSpawners",
+      "metadataName": "PSM_ChildSpawners",
+      "kind": "class",
+      "baseType": "PropSpawnerMod",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PSM_SetForwardRotationToNormal",
+      "metadataName": "PSM_SetForwardRotationToNormal",
+      "kind": "class",
+      "baseType": "PropSpawnerMod",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PSM_SetUpRotationToNormal",
+      "metadataName": "PSM_SetUpRotationToNormal",
+      "kind": "class",
+      "baseType": "PropSpawnerMod",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PSM_SnapPosition",
+      "metadataName": "PSM_SnapPosition",
+      "kind": "class",
+      "baseType": "PropSpawnerMod",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PSM_SpecificRotation",
+      "metadataName": "PSM_SpecificRotation",
+      "kind": "class",
+      "baseType": "PropSpawnerMod",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "RespawnChest",
+      "metadataName": "RespawnChest",
+      "kind": "class",
+      "baseType": "Luggage",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "skeleton",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "RopeAnchor",
+      "metadataName": "RopeAnchor",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "ghostPart",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "normalPart",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "anchorPoint",
+          "typeName": "UnityEngine.Transform",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "photonView",
+          "typeName": "Photon.Pun.PhotonView",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "RopeAnchorWithRope",
+      "metadataName": "RopeAnchorWithRope",
+      "kind": "class",
+      "baseType": "Photon.Pun.MonoBehaviourPunCallbacks",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "ropeSegmentLength",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spoolOutTime",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "ropePrefab",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "anchor",
+          "typeName": "RopeAnchor",
+          "serialized": false,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "RunSettings",
+      "metadataName": "RunSettings",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": true,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "RunSettings.SETTINGTYPE",
+      "metadataName": "RunSettings/SETTINGTYPE",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "Fog",
+          "value": "100"
+        },
+        {
+          "name": "HungerRate",
+          "value": "200"
+        },
+        {
+          "name": "FallDamage",
+          "value": "300"
+        },
+        {
+          "name": "EtcDamage",
+          "value": "400"
+        },
+        {
+          "name": "PetrificationDamage",
+          "value": "450"
+        },
+        {
+          "name": "ColdNight",
+          "value": "500"
+        },
+        {
+          "name": "ItemWeight",
+          "value": "600"
+        },
+        {
+          "name": "FlaresAtPeak",
+          "value": "700"
+        },
+        {
+          "name": "ClimbingStaminaUsage",
+          "value": "800"
+        },
+        {
+          "name": "RevivalAllowed",
+          "value": "900"
+        },
+        {
+          "name": "Hazard_Jellyfish",
+          "value": "1000"
+        },
+        {
+          "name": "Hazard_Urchins",
+          "value": "1100"
+        },
+        {
+          "name": "Hazard_ExplodingMushrooms",
+          "value": "1200"
+        },
+        {
+          "name": "Hazard_Rain",
+          "value": "1250"
+        },
+        {
+          "name": "Hazard_Bees",
+          "value": "1300"
+        },
+        {
+          "name": "Hazard_Zombies",
+          "value": "1400"
+        },
+        {
+          "name": "Hazard_Beetles",
+          "value": "1500"
+        },
+        {
+          "name": "Hazard_Spiders",
+          "value": "1600"
+        },
+        {
+          "name": "Hazard_SporeClouds",
+          "value": "1700"
+        },
+        {
+          "name": "Hazard_Wind",
+          "value": "1800"
+        },
+        {
+          "name": "Hazard_Storm",
+          "value": "1900"
+        },
+        {
+          "name": "Hazard_FlashPlant",
+          "value": "1950"
+        },
+        {
+          "name": "Hazard_Geysers",
+          "value": "2000"
+        },
+        {
+          "name": "Hazard_Tornado",
+          "value": "2100"
+        },
+        {
+          "name": "Hazard_Scorpions",
+          "value": "2125"
+        },
+        {
+          "name": "Hazard_Antlion",
+          "value": "2150"
+        },
+        {
+          "name": "Hazard_Tumbleweeds",
+          "value": "2175"
+        },
+        {
+          "name": "Hazard_Thorns",
+          "value": "2200"
+        },
+        {
+          "name": "Hazard_Dynamite",
+          "value": "2300"
+        },
+        {
+          "name": "Hazard_Heat",
+          "value": "2400"
+        },
+        {
+          "name": "Hazard_NapberryHypno",
+          "value": "2500"
+        },
+        {
+          "name": "Hazard_Mandrake",
+          "value": "2600"
+        },
+        {
+          "name": "Hazard_Scoutmaster",
+          "value": "2700"
+        },
+        {
+          "name": "Hazard_Condors",
+          "value": "2750"
+        },
+        {
+          "name": "Hazard_TheLavaRises",
+          "value": "2800"
+        },
+        {
+          "name": "Hazard_TheGloomRises",
+          "value": "2850"
+        },
+        {
+          "name": "Hazard_SleepyGloom",
+          "value": "2900"
+        },
+        {
+          "name": "Hazard_FrogTongues",
+          "value": "3000"
+        },
+        {
+          "name": "Hazard_Ravens",
+          "value": "3100"
+        },
+        {
+          "name": "Hazard_BigGhost",
+          "value": "3200"
+        },
+        {
+          "name": "Hazard_Flytraps",
+          "value": "3300"
+        },
+        {
+          "name": "Hazard_ArrowTraps",
+          "value": "3400"
+        },
+        {
+          "name": "Hazard_SpikeTraps",
+          "value": "3500"
+        },
+        {
+          "name": "Hazard_SwingingSpikeballs",
+          "value": "3600"
+        },
+        {
+          "name": "Hazard_Sawblades",
+          "value": "3700"
+        },
+        {
+          "name": "Hazard_SpinnySpikes",
+          "value": "3750"
+        },
+        {
+          "name": "Hazard_EtcTraps",
+          "value": "3775"
+        },
+        {
+          "name": "Hazard_PetrifyingStones",
+          "value": "3800"
+        },
+        {
+          "name": "Hazard_TrapChest",
+          "value": "3900"
+        },
+        {
+          "name": "MiniRun",
+          "value": "10000"
+        },
+        {
+          "name": "MiniRunBiome",
+          "value": "10050"
+        },
+        {
+          "name": "GameMode",
+          "value": "10100"
+        },
+        {
+          "name": "HelpingHand",
+          "value": "10200"
+        },
+        {
+          "name": "GrappleMode",
+          "value": "20000"
+        },
+        {
+          "name": "ChaosItems",
+          "value": "20010"
+        },
+        {
+          "name": "TimeScale",
+          "value": "30000"
+        },
+        {
+          "name": "Hazard_Monkey",
+          "value": "60030"
+        },
+        {
+          "name": "Hazard_Octopus",
+          "value": "60040"
+        },
+        {
+          "name": "Hazard_Deer",
+          "value": "60050"
+        },
+        {
+          "name": "Hazard_Demon",
+          "value": "60060"
+        },
+        {
+          "name": "Hazard_OreVein",
+          "value": "60070"
+        },
+        {
+          "name": "Romance_BingBong",
+          "value": "80000"
+        },
+        {
+          "name": "Romance_Scoutmaster",
+          "value": "80010"
+        },
+        {
+          "name": "Firearms",
+          "value": "80020"
+        },
+        {
+          "name": "MonkeyMode",
+          "value": "80030"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "Segment",
+      "metadataName": "Segment",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Byte",
+      "enumValues": [
+        {
+          "name": "Beach",
+          "value": "0"
+        },
+        {
+          "name": "Tropics",
+          "value": "1"
+        },
+        {
+          "name": "Alpine",
+          "value": "2"
+        },
+        {
+          "name": "Caldera",
+          "value": "3"
+        },
+        {
+          "name": "TheKiln",
+          "value": "4"
+        },
+        {
+          "name": "Peak",
+          "value": "5"
+        },
+        {
+          "name": "Void",
+          "value": "6"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "SFX_Instance",
+      "metadataName": "SFX_Instance",
+      "kind": "class",
+      "baseType": "UnityEngine.ScriptableObject",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "ShaderParameters",
+      "metadataName": "ShaderParameters",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "parameter",
+          "typeName": "DayNightManager.ShaderParams",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "paramValue",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "ShaderParametersColors",
+      "metadataName": "ShaderParametersColors",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "parameter",
+          "typeName": "DayNightManager.ShaderParams",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "paramValue",
+          "typeName": "UnityEngine.Color",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Spawner",
+      "metadataName": "Spawner",
+      "kind": "class",
+      "baseType": "Photon.Pun.MonoBehaviourPunCallbacks",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "playersInRoomRequirement",
+          "typeName": "System.Int32",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "belowAscentRequirement",
+          "typeName": "System.Int32",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "normalRunsOnly",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnMode",
+          "typeName": "Spawner.SpawnMode",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnPointMode",
+          "typeName": "Spawner.SpawnPointMode",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": [
+            "spawnCountMode"
+          ]
+        },
+        {
+          "name": "baseSpawnChance",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnedObjectPrefab",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawns",
+          "typeName": "SpawnList",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnPool",
+          "typeName": "SpawnPool",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "canRepeatSpawns",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnSpots",
+          "typeName": "System.Collections.Generic.List<UnityEngine.Transform>",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "weightedSpawnSpots",
+          "typeName": "System.Collections.Generic.List<Spawner.WeightedSpawnPointEntry>",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnUpTowardsTarget",
+          "typeName": "UnityEngine.Transform",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnTransformIsSpawnerTransform",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnAwayFromUpTarget",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "centerItemsVisually",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnOnStart",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "isKinematic",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnWithForce",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnForce",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "spawnTorque",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "heightBasedSpawnPools",
+          "typeName": "System.Collections.Generic.List<Spawner.HeightBasedSpawnListEntry>",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "fallbackSpawn",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Spawner.HeightBasedSpawnListEntry",
+      "metadataName": "Spawner/HeightBasedSpawnListEntry",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "spawnPool",
+          "typeName": "SpawnPool",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "minimumHeight",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "minimumZ",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "hasBiomeRequirement",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "biomeRequirement",
+          "typeName": "Biome.BiomeType",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Spawner.SpawnMode",
+      "metadataName": "Spawner/SpawnMode",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "SingleItem",
+          "value": "0"
+        },
+        {
+          "name": "SpawnPool",
+          "value": "1"
+        },
+        {
+          "name": "HeightBasedSpawnPools",
+          "value": "2"
+        },
+        {
+          "name": "Guidebook",
+          "value": "3"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "Spawner.SpawnPointMode",
+      "metadataName": "Spawner/SpawnPointMode",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "SingleList",
+          "value": "0"
+        },
+        {
+          "name": "WeightedLists",
+          "value": "1"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "Spawner.WeightedSpawnPointEntry",
+      "metadataName": "Spawner/WeightedSpawnPointEntry",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "spawnSpots",
+          "typeName": "System.Collections.Generic.List<UnityEngine.Transform>",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "weight",
+          "typeName": "System.Int32",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "percentageOdds",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": false,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "SpawnList",
+      "metadataName": "SpawnList",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "SpawnPoint",
+      "metadataName": "SpawnPoint",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "SpawnPool",
+      "metadataName": "SpawnPool",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "None",
+          "value": "0"
+        },
+        {
+          "name": "Unused1",
+          "value": "1"
+        },
+        {
+          "name": "Unused2",
+          "value": "2"
+        },
+        {
+          "name": "MushroomCluster",
+          "value": "4"
+        },
+        {
+          "name": "BerryBushBeach",
+          "value": "8"
+        },
+        {
+          "name": "BerryBushJungle",
+          "value": "16"
+        },
+        {
+          "name": "SpikyVine",
+          "value": "32"
+        },
+        {
+          "name": "CoconutTree",
+          "value": "64"
+        },
+        {
+          "name": "WillowTreeJungle",
+          "value": "128"
+        },
+        {
+          "name": "JungleVine",
+          "value": "256"
+        },
+        {
+          "name": "WinterberryTree",
+          "value": "512"
+        },
+        {
+          "name": "LuggageBeach",
+          "value": "1024"
+        },
+        {
+          "name": "LuggageJungle",
+          "value": "2048"
+        },
+        {
+          "name": "LuggageTundra",
+          "value": "4096"
+        },
+        {
+          "name": "LuggageCaldera",
+          "value": "8192"
+        },
+        {
+          "name": "LuggageClimber",
+          "value": "16384"
+        },
+        {
+          "name": "LuggageAncient",
+          "value": "32768"
+        },
+        {
+          "name": "LuggageCursed",
+          "value": "65536"
+        },
+        {
+          "name": "RespawnCoffin",
+          "value": "131072"
+        },
+        {
+          "name": "Nest",
+          "value": "262144"
+        },
+        {
+          "name": "GuidebookPageBeach",
+          "value": "524288"
+        },
+        {
+          "name": "GuidebookPageTropics",
+          "value": "1048576"
+        },
+        {
+          "name": "GuidebookPageAlpine",
+          "value": "2097152"
+        },
+        {
+          "name": "Cactus",
+          "value": "4194304"
+        },
+        {
+          "name": "Redwood",
+          "value": "8388608"
+        },
+        {
+          "name": "LuggageMesa",
+          "value": "16777216"
+        },
+        {
+          "name": "Campfire",
+          "value": "33554432"
+        },
+        {
+          "name": "LuggageRoots",
+          "value": "67108864"
+        },
+        {
+          "name": "All",
+          "value": "134217728"
+        },
+        {
+          "name": "LuggageGloom",
+          "value": "268435456"
+        },
+        {
+          "name": "LuggageCitadel",
+          "value": "536870912"
+        },
+        {
+          "name": "LuggageClown",
+          "value": "1073741824"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "StatusEmitter",
+      "metadataName": "StatusEmitter",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "statusType",
+          "typeName": "CharacterAfflictions.STATUSTYPE",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "amount",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "radius",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "outerFade",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "innerFade",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "minAmount",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "inZoneWarning",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "extraWarningTime",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "randomStart",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "debug",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "preventOverlap",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "overlapIdentifier",
+          "typeName": "System.String",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "isOverlapPriority",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "emitterDisabledByWind",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "VariantObject",
+      "metadataName": "VariantObject",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "spawnChance",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "group",
+          "typeName": "VariantObject.Group",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "VariantObject.Group",
+      "metadataName": "VariantObject/Group",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "Default",
+          "value": "0"
+        },
+        {
+          "name": "One",
+          "value": "1"
+        },
+        {
+          "name": "Two",
+          "value": "2"
+        },
+        {
+          "name": "Three",
+          "value": "3"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "VariantObjectSelector",
+      "metadataName": "VariantObjectSelector",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "VariationSwapper",
+      "metadataName": "VariationSwapper",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "WaterZone",
+      "metadataName": "WaterZone",
+      "kind": "class",
+      "baseType": "Sirenix.OdinInspector.SerializedMonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "waterPlane",
+          "typeName": "UnityEngine.MeshRenderer",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "waterDepth",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "zoneBounds",
+          "typeName": "UnityEngine.Bounds",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "movementModifierShallow",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "movementModifierDeep",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "movementModifierJumping",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "jumpMultiplier",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "disableSprintJump",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "waterVFX",
+          "typeName": "UnityEngine.ParticleSystem",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "animModDeep",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "animModShallow",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "WaterZone.InWaterState",
+      "metadataName": "WaterZone/InWaterState",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": false,
+      "enumUnderlyingType": "System.Int32",
+      "enumValues": [
+        {
+          "name": "NONE",
+          "value": "0"
+        },
+        {
+          "name": "Shallow",
+          "value": "1"
+        },
+        {
+          "name": "Deep",
+          "value": "2"
+        }
+      ],
+      "fields": []
+    },
+    {
+      "name": "WindAffectedStatusEmitter",
+      "metadataName": "WindAffectedStatusEmitter",
+      "kind": "class",
+      "baseType": "StatusEmitter",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "extraWindDisableTime",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "WindChillZone",
+      "metadataName": "WindChillZone",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "StormProgress",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "timeUntilStorm",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "grabStaminaMultiplierDuringWind",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "windTimeRangeOn",
+          "typeName": "UnityEngine.Vector2",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "windTimeRangeOff",
+          "typeName": "UnityEngine.Vector2",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "lightVolumeSampleThreshold_lower",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "lightVolumeSampleThreshold_margin",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "statusType",
+          "typeName": "CharacterAfflictions.STATUSTYPE",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "windZoneBounds",
+          "typeName": "UnityEngine.Bounds",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "forceRadius",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "delayBeforeForce",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "ragdolledWindForceMult",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "windMovesItems",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "statusApplicationPerSecond",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": [
+            "windChillPerSecond"
+          ]
+        },
+        {
+          "name": "windForce",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "setSlippy",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "localCharacterInsideBounds",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": [
+            "characterInsideBounds"
+          ]
+        },
+        {
+          "name": "observedCharacterInsideBounds",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": [
+            "characterInsideBounds"
+          ]
+        },
+        {
+          "name": "windActive",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "windPlayerFactor",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "debubEnable",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "windItemFactor",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "windIntensity",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "windIntensityCurve",
+          "typeName": "UnityEngine.AnimationCurve",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "useIntensityCurve",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "useRaycast",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "maxRaycastDistance",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "minRaycastDistance",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "disableIfSettingDisabled",
+          "typeName": "RunSettings.SETTINGTYPE",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "Peak.PropSpawner_AmuletStatues",
+      "metadataName": "Peak.PropSpawner_AmuletStatues",
+      "kind": "class",
+      "baseType": "PropSpawner",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "ReplaceMaterial",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "replaceThis",
+          "typeName": "UnityEngine.Material",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "statueIndex",
+          "typeName": "System.Int32",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "ILevelGenFinalizer",
+      "metadataName": "ILevelGenFinalizer",
+      "kind": "interface",
+      "baseType": "",
+      "isAbstract": true,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PSM_NormalOffset",
+      "metadataName": "PSM_NormalOffset",
+      "kind": "class",
+      "baseType": "PropSpawnerMod",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "minOffset",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "maxOffset",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "randomPow",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "useAngleBasedAdditives",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "angleBasedAdditiveUp",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "angleBasedAdditiveSide",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "angleBasedAdditiveDown",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PSC_Normal",
+      "metadataName": "PSC_Normal",
+      "kind": "class",
+      "baseType": "PropSpawnerConstraint",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "minAngle",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "maxAngle",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PSC_RequiredMaterial",
+      "metadataName": "PSC_RequiredMaterial",
+      "kind": "class",
+      "baseType": "PropSpawnerConstraint",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "RequiredMaterial",
+          "typeName": "UnityEngine.Material[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PSC_Embedded",
+      "metadataName": "PSC_Embedded",
+      "kind": "class",
+      "baseType": "PropSpawnerConstraint",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "LayerType",
+          "typeName": "HelperFunctions.LayerType",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "Deadzone",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": false,
+          "formerNames": []
+        },
+        {
+          "name": "RaycastDistance",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "DesiredResult",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "PostSpawnTransformName",
+          "typeName": "System.String",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PSCP_Custom",
+      "metadataName": "PSCP_Custom",
+      "kind": "class",
+      "baseType": "PropSpawnerConstraintPost",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": []
+    },
+    {
+      "name": "PSCP_LateConstraintCheck",
+      "metadataName": "PSCP_LateConstraintCheck",
+      "kind": "class",
+      "baseType": "PropSpawnerConstraintPost",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "Constraint",
+          "typeName": "PropSpawnerConstraint",
+          "serialized": true,
+          "serializeReference": true,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "PSB_FailGenerationIfSpawnFailed",
+      "metadataName": "PSB_FailGenerationIfSpawnFailed",
+      "kind": "class",
+      "baseType": "PostSpawnBehavior",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "minimumSpawnsToPass",
+          "typeName": "System.Int32",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "ChildMaterialSwapper",
+      "metadataName": "ChildMaterialSwapper",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "themes",
+          "typeName": "System.Collections.Generic.List<ThemeWithRarity>",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "forceDisable",
+          "typeName": "System.Boolean",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "chosenTheme",
+          "typeName": "ThemeWithRarity",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "RockMaterialSwapper",
+      "metadataName": "RockMaterialSwapper",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "parents",
+          "typeName": "UnityEngine.Transform[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "mat",
+          "typeName": "UnityEngine.Material",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "ThemeWithRarity",
+      "metadataName": "ThemeWithRarity",
+      "kind": "class",
+      "baseType": "System.Object",
+      "isAbstract": false,
+      "isSerializable": true,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "mats",
+          "typeName": "UnityEngine.Material[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "rarity",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "name",
+          "typeName": "System.String",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "BreakableRopeAnchor",
+      "metadataName": "BreakableRopeAnchor",
+      "kind": "class",
+      "baseType": "UnityEngine.MonoBehaviour",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "breakAnimTime",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "breakableTimeMinMax",
+          "typeName": "UnityEngine.Vector2",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "dropSegments",
+          "typeName": "System.Single",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    },
+    {
+      "name": "ShittyPiton",
+      "metadataName": "ShittyPiton",
+      "kind": "class",
+      "baseType": "Photon.Pun.MonoBehaviourPunCallbacks",
+      "isAbstract": false,
+      "isSerializable": false,
+      "serializedSurface": true,
+      "enumUnderlyingType": "",
+      "enumValues": [],
+      "fields": [
+        {
+          "name": "crack",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "vfx",
+          "typeName": "UnityEngine.GameObject",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "cracKSFX",
+          "typeName": "SFX_Instance[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        },
+        {
+          "name": "breakSFX",
+          "typeName": "SFX_Instance[]",
+          "serialized": true,
+          "serializeReference": false,
+          "isPublic": true,
+          "formerNames": []
+        }
+      ]
+    }
+  ],
+  "methods": [
+    {
+      "declaringType": "PSM_PitonNormal",
+      "name": ".ctor",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": false
+    },
+    {
+      "declaringType": "PSM_PitonNormal",
+      "name": "ModifyObject",
+      "returnType": "System.Void",
+      "parameterTypes": ["UnityEngine.GameObject", "PropSpawner.SpawnData"],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "ICollisionModifierEvent",
+      "name": "OnBouncedCharacter",
+      "returnType": "System.Void",
+      "parameterTypes": [
+        "Character"
+      ],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "MountainProgressHandler.ProgressPoint",
+      "name": ".ctor",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": false
+    },
+    {
+      "declaringType": "Luggage",
+      "name": "get_IsOpen",
+      "returnType": "System.Boolean",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": false
+    },
+    {
+      "declaringType": "PSM_ChildSpawners",
+      "name": ".ctor",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": false
+    },
+    {
+      "declaringType": "PSB_ChildSpawners",
+      "name": ".ctor",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": false
+    },
+    {
+      "declaringType": "PropSpawnerMod",
+      "name": ".ctor",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "visibility": "family",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": false
+    },
+    {
+      "declaringType": "PropSpawnerConstraint",
+      "name": ".ctor",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "visibility": "family",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": false
+    },
+    {
+      "declaringType": "PropSpawnerMod",
+      "name": "ModifyObject",
+      "returnType": "System.Void",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "PropSpawnerConstraint",
+      "name": "CheckConstraint",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "PropSpawner.SpawnData"
+      ],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "PropSpawnerConstraintPost",
+      "name": "CheckConstraint",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "PostSpawnBehavior",
+      "name": "RunBehavior",
+      "returnType": "System.Void",
+      "parameterTypes": [
+        "System.Collections.Generic.IEnumerable<UnityEngine.GameObject>"
+      ],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "ISpawner",
+      "name": "TrySpawnItems",
+      "returnType": "System.Collections.Generic.List<Photon.Pun.PhotonView>",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "Spawner",
+      "name": "TrySpawnItems",
+      "returnType": "System.Collections.Generic.List<Photon.Pun.PhotonView>",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "IValidationConstraint",
+      "name": "get_Muted",
+      "returnType": "System.Boolean",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "IValidationConstraint",
+      "name": "Validate",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "LevelGenStep",
+      "name": "Execute",
+      "returnType": "System.Collections.IEnumerator",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "LevelGenStep",
+      "name": "ExecuteImmediately",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "LevelGenStep",
+      "name": "Clear",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "visibility": "public",
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true
+    },
+    {
+      "declaringType": "Peak.PropSpawner_AmuletStatues",
+      "name": "OnLevelGenFinished",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "ILevelGenFinalizer",
+      "name": "OnLevelGenFinished",
+      "returnType": "System.Void",
+      "parameterTypes": [],
+      "isStatic": false,
+      "isAbstract": true,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PSM_NormalOffset",
+      "name": "ModifyObject",
+      "returnType": "System.Void",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PSC_Normal",
+      "name": "CheckConstraint",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PSC_RequiredMaterial",
+      "name": "CheckConstraint",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PSC_Embedded",
+      "name": "CheckConstraint",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PSC_Embedded",
+      "name": "Validate",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PSCP_Custom",
+      "name": "CheckConstraint",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PSCP_LateConstraintCheck",
+      "name": "CheckConstraint",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PSB_FailGenerationIfSpawnFailed",
+      "name": "RunBehavior",
+      "returnType": "System.Void",
+      "parameterTypes": [
+        "System.Collections.Generic.IEnumerable<UnityEngine.GameObject>"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PropSpawnerConstraint",
+      "name": "Validate",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    },
+    {
+      "declaringType": "PropSpawnerConstraintPost",
+      "name": "Validate",
+      "returnType": "System.Boolean",
+      "parameterTypes": [
+        "UnityEngine.GameObject",
+        "PropSpawner.SpawnData"
+      ],
+      "isStatic": false,
+      "isAbstract": false,
+      "isVirtual": true,
+      "visibility": "public"
+    }
+  ],
+  "scripts": [
+    { "typeName": "AudioLoop", "template": "AudioLoop.cs.template" },
+    {
+      "typeName": "CollisionModifier",
+      "template": "CollisionModifier.cs.template"
+    },
+    {
+      "typeName": "ChildMaterialSwapper",
+      "template": "ChildMaterialSwapper.cs.template"
+    },
+    {
+      "typeName": "RockMaterialSwapper",
+      "template": "RockMaterialSwapper.cs.template"
+    },
+    {
+      "typeName": "Campfire",
+      "template": "Campfire.cs.template"
+    },
+    {
+      "typeName": "ClimbHandle",
+      "template": "ClimbHandle.cs.template"
+    },
+    {
+      "typeName": "ClimbModifierSurface",
+      "template": "ClimbModifierSurface.cs.template"
+    },
+    {
+      "typeName": "DayNightProfile",
+      "template": "DayNightProfile.cs.template"
+    },
+    {
+      "typeName": "DisableBasedOnRunSettings",
+      "template": "DisableBasedOnRunSettings.cs.template"
+    },
+    {
+      "typeName": "FogCutoutZone",
+      "template": "FogCutoutZone.cs.template"
+    },
+    {
+      "typeName": "FogSphereOrigin",
+      "template": "FogSphereOrigin.cs.template"
+    },
+    {
+      "typeName": "Luggage",
+      "template": "Luggage.cs.template"
+    },
+    {
+      "typeName": "Peak.SpawnedItemTracker",
+      "template": "SpawnedItemTracker.cs.template"
+    },
+    {
+      "typeName": "PropGrouper",
+      "template": "PropGrouper.cs.template"
+    },
+    {
+      "typeName": "PropSpawner",
+      "template": "PropSpawner.cs.template"
+    },
+    {
+      "typeName": "RespawnChest",
+      "template": "RespawnChest.cs.template"
+    },
+    {
+      "typeName": "Spawner",
+      "template": "Spawner.cs.template"
+    },
+    {
+      "typeName": "VariantObject",
+      "template": "VariantObject.cs.template"
+    },
+    {
+      "typeName": "VariantObjectSelector",
+      "template": "VariantObjectSelector.cs.template"
+    },
+    {
+      "typeName": "WaterZone",
+      "template": "WaterZone.cs.template"
+    },
+    {
+      "typeName": "WindAffectedStatusEmitter",
+      "template": "WindAffectedStatusEmitter.cs.template"
+    },
+    {
+      "typeName": "WindChillZone",
+      "template": "WindChillZone.cs.template"
+    },
+    {
+      "typeName": "Peak.PropSpawner_AmuletStatues",
+      "template": "PropSpawner_AmuletStatues.cs.template"
+    },
+    {
+      "typeName": "BreakableRopeAnchor",
+      "template": "BreakableRopeAnchor.cs.template"
+    },
+    {
+      "typeName": "ShittyPiton",
+      "template": "ShittyPiton.cs.template"
+    }
+  ],
+  "layers": [
+    {
+      "name": "Terrain",
+      "index": 20
+    },
+    {
+      "name": "Map",
+      "index": 21
+    },
+    {
+      "name": "InvisWall",
+      "index": 22
+    }
+  ],
+  "dependencyRoots": [
+    "PhotonUnityNetworking",
+    "Sirenix.Serialization",
+    "Zorro.Core.Runtime"
+  ]
+}
