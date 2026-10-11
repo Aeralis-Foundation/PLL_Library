@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ExitGames.Client.Photon;
 using Photon.Pun;
 using Photon.Realtime;
@@ -54,11 +55,15 @@ internal sealed class MapNetworkSession
 
     internal void ReleaseState()
     {
-        ReleaseBridge();
-        ViewBatches.ReleaseState();
-        RunProperties.CancelAll();
-        GenerationBarrier.ReleaseState();
-        DeferredOperations.Clear();
+        List<Exception>? Failures = null;
+        CleanupOperations.Capture(ref Failures, ReleaseBridge);
+        CleanupOperations.Capture(ref Failures, ViewBatches.ReleaseState);
+        CleanupOperations.Capture(ref Failures, RunProperties.CancelAll);
+        CleanupOperations.Capture(ref Failures, GenerationBarrier.ReleaseState);
+        CleanupOperations.Capture(ref Failures, DeferredOperations.Clear);
+        if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
+        if (Failures is not null)
+            throw new AggregateException("Map network state release failed.", Failures);
     }
 }
 

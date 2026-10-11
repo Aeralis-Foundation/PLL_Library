@@ -98,9 +98,15 @@ internal static class NativeFixtures
             this.PrimarySpawn = PrimarySpawn;
             SourceAnchor = new Pose(PrimarySpawn.position, PrimarySpawn.rotation);
             var Components = Spawns.Value.GetComponentsInChildren<SpawnPoint>(true);
-            SpawnPoints = Array.ConvertAll(Components, Value => Value.transform);
-            SpawnPositions = Array.ConvertAll(SpawnPoints, Value => Value.localPosition);
-            SpawnRotations = Array.ConvertAll(SpawnPoints, Value => Value.localRotation);
+            SpawnPoints = new Transform[Components.Length];
+            SpawnPositions = new Vector3[Components.Length];
+            SpawnRotations = new Quaternion[Components.Length];
+            for (var i = 0; i < Components.Length; i++)
+            {
+                var Point = SpawnPoints[i] = Components[i].transform;
+                SpawnPositions[i] = Point.localPosition;
+                SpawnRotations[i] = Point.localRotation;
+            }
         }
 
         internal DetachedFixture Plane { get; }

@@ -566,20 +566,6 @@ internal sealed class SpawnTrackerTransaction
         return Root ? Root.GetComponentInChildren<global::Campfire>(true) : null;
     }
 
-    internal static int PreviousCampfireSlot(Segment Reached)
-    {
-        if (!Map.HasPublishedLayout) return (int)Reached - 1;
-        int Index;
-        if (!NavigationRoles.TryDecode(Reached, out Index) || Index >= Map.Slots.Length)
-        {
-            if (Reached != Segment.Void) return -1;
-            Index = Map.Slots.Length;
-        }
-        for (Index--; Index >= 0; Index--)
-            if (Map.Slots[Index].Segment.segmentCampfire) return Index;
-        return -1;
-    }
-
     internal static bool TryResolveBaseCheckpoint(
         int TargetSlot,
         IReadOnlyList<byte>? RestoredPeakStates,

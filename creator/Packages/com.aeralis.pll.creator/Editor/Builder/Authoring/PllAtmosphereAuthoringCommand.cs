@@ -15,7 +15,8 @@ namespace PLL.Creator.Editor
         {
             try
             {
-                var Root = RequireSelectedBiomeRoot();
+                var Root = Selection.activeGameObject;
+                RequireCurrentBiomeRoot(Root);
                 var Existing = Root.GetComponent<PllAtmosphereAuthoring>();
                 if (Existing)
                 {
@@ -93,12 +94,6 @@ namespace PLL.Creator.Editor
                     "The selected Prefab Mode root has an invalid PllBiomeRoot binding.");
         }
 
-        static GameObject RequireSelectedBiomeRoot()
-        {
-            var Root = Selection.activeGameObject;
-            RequireCurrentBiomeRoot(Root);
-            return Root;
-        }
     }
 
     internal sealed class PllAtmosphereAuthoringWindow : EditorWindow
@@ -129,7 +124,7 @@ namespace PLL.Creator.Editor
                 typeof(Texture2D),
                 false);
             EditorGUILayout.HelpBox(
-                "Assign at least one persistent project or package asset. PLL references the assets without modifying them.",
+                "Assign at least one saved project or package asset. PLL uses it without modifying it.",
                 MessageType.Info);
 
             using (new EditorGUI.DisabledScope(!Root || !SkyboxMaterial && !FogTexture))

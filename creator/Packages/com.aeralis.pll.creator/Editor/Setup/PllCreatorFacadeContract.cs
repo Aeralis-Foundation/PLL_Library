@@ -140,10 +140,13 @@ namespace PLL.Creator.Editor
             return true;
         }
 
-        internal static string TemplateName(string metadataName)
+        internal static string TemplateName(string MetadataName)
         {
-            var topLevel = metadataName.Split('/')[0];
-            return topLevel.Substring(topLevel.LastIndexOf('.') + 1).Split('`')[0] + ".cs.template";
+            var End = MetadataName.IndexOf('/');
+            var TopLevel = End < 0 ? MetadataName : MetadataName.Substring(0, End);
+            var Start = TopLevel.LastIndexOf('.') + 1;
+            var Generic = TopLevel.IndexOf('`', Start);
+            return TopLevel.Substring(Start, (Generic < 0 ? TopLevel.Length : Generic) - Start) + ".cs.template";
         }
 
         internal bool TryValidatePeak(

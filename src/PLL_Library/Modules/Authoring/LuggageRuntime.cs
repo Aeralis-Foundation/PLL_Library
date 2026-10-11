@@ -166,7 +166,7 @@ internal static class LuggageRuntime
             var State = States[i];
             if (State.Resolved.Authoring) continue;
             States.RemoveAt(i);
-            AuthoringCleanup.Capture(ref CleanupFailures, State.Restore);
+            CleanupOperations.Capture(ref CleanupFailures, State.Restore);
         }
         if (CleanupFailures is { Count: 1 }) ExceptionPropagation.Throw(CleanupFailures[0]);
         if (CleanupFailures is { Count: > 1 })
@@ -384,8 +384,8 @@ internal static class LuggageRuntime
 
         List<Exception>? Failures = null;
         foreach (var Owner in NativeOwners)
-            AuthoringCleanup.Capture(ref Failures, Owner.Restore);
-        foreach (var State in States) AuthoringCleanup.Capture(ref Failures, State.Restore);
+            CleanupOperations.Capture(ref Failures, Owner.Restore);
+        foreach (var State in States) CleanupOperations.Capture(ref Failures, State.Restore);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Luggage cleanup failed.", Failures);
@@ -585,15 +585,15 @@ internal static class LuggageRuntime
         internal void Restore()
         {
             List<Exception>? Failures = null;
-            AuthoringCleanup.Capture(ref Failures, Suspend);
+            CleanupOperations.Capture(ref Failures, Suspend);
             if (Resolved.Luggage)
-                AuthoringCleanup.Capture(
+                CleanupOperations.Capture(
                     ref Failures, () => InitialContents.Restore(Resolved.Luggage));
             if (Resolved.Root)
-                AuthoringCleanup.Capture(
+                CleanupOperations.Capture(
                     ref Failures, () => Resolved.Root.SetActive(InitialActive));
             if (ListManaged && Resolved.Luggage)
-                AuthoringCleanup.Capture(
+                CleanupOperations.Capture(
                     ref Failures,
                     () => SetListCount(Resolved.Luggage, InitialListCount));
             if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);

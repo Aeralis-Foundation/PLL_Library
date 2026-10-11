@@ -572,11 +572,11 @@ internal static class SpecialDayProjection
         catch (Exception Failure)
         {
             List<Exception>? Failures = null;
-            AuthoringCleanup.Capture(ref Failures, RestoreContributions);
+            CleanupOperations.Capture(ref Failures, RestoreContributions);
             Contributions.RemoveAll(Value => Value.Root == Root);
             if (Zone && Owner) Owner.zones = Remove(Owner.zones, Zone);
-            AuthoringCleanup.Capture(ref Failures, () => ReleaseAdapter(Root, Zone));
-            if (Map.HasPublishedLayout) AuthoringCleanup.Capture(ref Failures, Refresh);
+            CleanupOperations.Capture(ref Failures, () => ReleaseAdapter(Root, Zone));
+            if (Map.HasPublishedLayout) CleanupOperations.Capture(ref Failures, Refresh);
             if (Failures is not null)
             {
                 Failures.Insert(0, Failure);
@@ -774,7 +774,7 @@ internal static class SpecialDayProjection
             AddFailure(ref Failures, Exception);
         }
         foreach (var Contribution in ReleasedContributions)
-            AuthoringCleanup.Capture(ref Failures, () => ReleaseAdapter(Contribution.Root, Contribution.Zone));
+            CleanupOperations.Capture(ref Failures, () => ReleaseAdapter(Contribution.Root, Contribution.Zone));
         ThrowFailures(Failures, "Special-day projection release failed.");
     }
 

@@ -421,6 +421,9 @@ namespace PLL.Creator.Editor
                     Context + " has invalid MeshFilter bounds.");
             var Vertices = new List<Vector3>(VertexCount);
             Mesh.GetVertices(Vertices);
+            foreach (var Vertex in Vertices)
+                if (!ManifestNumber(Vertex.x) || !ManifestNumber(Vertex.y) || !ManifestNumber(Vertex.z))
+                    throw new InvalidOperationException(Context + " has a nonfinite or out-of-range mesh vertex.");
             var Indices = new List<int>();
             var HasSolidTriangle = false;
             for (var Index = 0; Index < SubMeshCount; Index++)

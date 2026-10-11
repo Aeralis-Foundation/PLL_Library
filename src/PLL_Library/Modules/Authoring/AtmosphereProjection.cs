@@ -70,12 +70,12 @@ internal static class AtmosphereProjection
         List<Exception>? Failures = null;
         if (HadSkybox && SkyboxOwnerValue
             && ReferenceEquals(SkyboxOwnerValue!.skyboxMaterial, AppliedSkyboxValue))
-            AuthoringCleanup.Capture(
+            CleanupOperations.Capture(
                 ref Failures,
                 () => SkyboxOwnerValue!.skyboxMaterial = RestoreSkyboxValue);
         if (HadFogTexture
             && ReferenceEquals(Shader.GetGlobalTexture(FogTextureId), AppliedFogTextureValue))
-            AuthoringCleanup.Capture(
+            CleanupOperations.Capture(
                 ref Failures,
                 () => Shader.SetGlobalTexture(FogTextureId, RestoreFogTextureValue));
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);

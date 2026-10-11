@@ -20,7 +20,35 @@ namespace PLL.Creator.Editor
                 .Validate(identity, generation, fixtures);
             var CollisionGeometry = PllCollisionAuthoringValidator.Capture(identity, presentation);
             PllGenerationAuthoringValidator.ValidateNoPropCoverage(generation, CollisionGeometry);
-            return new DefinitionCatalog(identity, ClimbSurfaces, CollisionGeometry, generation, fixtures, presentation);
+            var Catalog = new DefinitionCatalog(identity, ClimbSurfaces, CollisionGeometry, generation, fixtures, presentation);
+            PllNativeSpawnerCompiler.Validate(identity, Catalog.NativeSpawners);
+            var NativeSlots = new HashSet<(Renderer, int)>();
+            foreach (var Material in Catalog.NativeMaterials)
+            {
+                var Selection = Material.Capture();
+                var Node = OwnerNode(identity.Graph, Material, "Native Material");
+                RequireStableOwned(Node.SourceRoot.transform, Material.transform, "Native Material");
+                if (Node.IsRoot) RequireFeatureOwned(Material.transform, identity.Floor, identity.Campfire, "Native Material");
+                if (!NativeSlots.Add((Selection.Renderer, Selection.Slot)))
+                    throw new InvalidOperationException("Native Material assigns a renderer slot more than once.");
+                foreach (var Surface in Catalog.SurfaceTextures)
+                    for (var Index = 0; Index < Surface.Renderers.Count; Index++)
+                        if (Surface.Renderers[Index] == Selection.Renderer && Surface.Slots[Index] == Selection.Slot)
+                            throw new InvalidOperationException("Native Material and Surface Textures cannot own the same renderer slot.");
+                foreach (var Visual in Catalog.Visuals)
+                    if (Visual.PropertyName.Length != 0 && Visual.Root
+                        && TransformOwnership.Contains(Visual.Root.transform, Selection.Renderer.transform))
+                        throw new InvalidOperationException("Native Material cannot replace a Shader Visual property target.");
+                foreach (var Flow in Catalog.NativeResolvers)
+                {
+                    if (Flow.SurfaceRenderer == Selection.Renderer && Selection.Slot == 0)
+                        throw new InvalidOperationException("Native Material cannot replace an owned fluid surface.");
+                    for (var Index = 0; Index < Flow.SurfaceRenderers.Count; Index++)
+                        if (Flow.SurfaceRenderers[Index] == Selection.Renderer && Flow.SurfaceSlots[Index] == Selection.Slot)
+                            throw new InvalidOperationException("Native Material cannot replace an owned fluid surface.");
+                }
+            }
+            return Catalog;
         }
 
         internal DefinitionCatalog ValidateSelected(PllBiomeDefinition Definition)
@@ -210,6 +238,8 @@ namespace PLL.Creator.Editor
             AmuletSpawners = generation.AmuletSpawners;
             HookedProps = presentation.HookedProps;
             SurfaceTextures = DiscoverGraphComponents<PllSurfaceTextureAuthoring>(Graph);
+            NativeMaterials = DiscoverGraphComponents<PllNativeMaterialAuthoring>(Graph);
+            NativeSpawners = DiscoverGraphComponents<PllNativeSpawnerAuthoring>(Graph);
             BreakableProps = DiscoverGraphComponents<PllBreakablePropAuthoring>(Graph);
             SwingingProps = DiscoverGraphComponents<PllSwingingPropAuthoring>(Graph);
             Vines = DiscoverGraphComponents<PllVineAuthoring>(Graph);
@@ -253,6 +283,8 @@ namespace PLL.Creator.Editor
         internal PllAmuletSpawnerAuthoring[] AmuletSpawners { get; }
         internal PLLHookedProp[] HookedProps { get; }
         internal PllSurfaceTextureAuthoring[] SurfaceTextures { get; }
+        internal PllNativeMaterialAuthoring[] NativeMaterials { get; }
+        internal PllNativeSpawnerAuthoring[] NativeSpawners { get; }
         internal PllBreakablePropAuthoring[] BreakableProps { get; }
         internal PllSwingingPropAuthoring[] SwingingProps { get; }
         internal PllVineAuthoring[] Vines { get; }
@@ -275,17 +307,19 @@ namespace PLL.Creator.Editor
 
     sealed class PrefabNode
     {
-        internal PrefabNode(GameObject sourceRoot, string sourcePath, bool isRoot)
+        internal PrefabNode(GameObject SourceRoot, string SourcePath, bool IsRoot)
         {
-            SourceRoot = sourceRoot;
-            SourcePath = sourcePath;
-            IsRoot = isRoot;
+            this.SourceRoot = SourceRoot;
+            this.SourcePath = SourcePath;
+            this.IsRoot = IsRoot;
+            Components = Array.AsReadOnly(DiscoverComponents<Component>(SourceRoot));
             Edges = new List<PrefabEdge>();
         }
 
         internal GameObject SourceRoot { get; }
         internal string SourcePath { get; }
         internal bool IsRoot { get; }
+        internal IReadOnlyList<Component> Components { get; }
         internal List<PrefabEdge> Edges { get; }
     }
 

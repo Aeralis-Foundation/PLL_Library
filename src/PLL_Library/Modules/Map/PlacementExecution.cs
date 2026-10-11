@@ -579,6 +579,9 @@ internal static class PlacementExecution
                     NativeCampfireSupport,
                     NativeCampfireSurface,
                     CustomResolved,
+                    CustomAuthoring is { Modifiers: var Modifiers }
+                        && (Modifiers.NightCold || Modifiers.MesaHeatstroke)
+                        ? new NativeModifierRuntime(Modifiers) : null,
                     Frame,
                     IsClone,
                     !Configuration.Layout.ReplaceGenerated

@@ -469,19 +469,13 @@ internal static class FogCutoutProjection
         Captured = false;
 
         List<Exception>? Failures = null;
-        void Attempt(Action Operation)
-        {
-            try { Operation(); }
-            catch (Exception Exception) { (Failures ??= new()).Add(Exception); }
-        }
-
         try
         {
             Publishing = true;
-            if (Root) Attempt(() => UnityEngine.Object.DestroyImmediate(Root));
+            if (Root) CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(Root));
             if (RestoreNative && HadCapture && Handler)
-                Attempt(() => ApplyHandler(Handler, State));
-            if (HadCapture) Attempt(State.Shader.Apply);
+                CleanupOperations.Capture(ref Failures, () => ApplyHandler(Handler, State));
+            if (HadCapture) CleanupOperations.Capture(ref Failures, State.Shader.Apply);
         }
         finally
         {

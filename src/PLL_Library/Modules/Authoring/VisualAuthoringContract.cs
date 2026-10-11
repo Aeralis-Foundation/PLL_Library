@@ -174,7 +174,7 @@ internal sealed class VisualAuthoringContract
     {
         var Value = AuthoringBinding.Resolve(RuntimeRoot, Biome, "visual authoring");
         var VisualRoot = Root.Resolve(RuntimeRoot, Biome, "visual root");
-        var ActivationRoot = StagedActivationRootBinding?.Resolve(RuntimeRoot, Biome, "effect presentation root");
+        StagedActivationRootBinding?.Resolve(RuntimeRoot, Biome, "effect presentation root");
         ValidateComponents(VisualRoot, Value, Biome, false);
         var ResolvedRenderers = new Renderer[RendererBindings.Length];
         for (var Index = 0; Index < ResolvedRenderers.Length; Index++)
@@ -184,11 +184,9 @@ internal sealed class VisualAuthoringContract
                 throw new InvalidOperationException($"Biome '{Biome}' runtime visual renderer state does not match its registered contract.");
         }
         var ResolvedTarget = PropertyRendererBinding?.Resolve(RuntimeRoot, Biome, "visual property renderer");
-        if (!Discoverable(RuntimeRoot, VisualRoot.transform, ActivationRoot ? ActivationRoot.transform : null)
-            || TransformOwnership.HasPropSpawnerInPath(RuntimeRoot, Value.transform)
+        if (TransformOwnership.HasPropSpawnerInPath(RuntimeRoot, Value.transform)
             || TransformOwnership.HasPropSpawnerInPath(RuntimeRoot, VisualRoot.transform)
-            || Array.Exists(ResolvedRenderers, RendererValue => !Discoverable(RuntimeRoot, RendererValue.transform, ActivationRoot ? ActivationRoot.transform : null)
-                || TransformOwnership.HasPropSpawnerInPath(RuntimeRoot, RendererValue.transform))
+            || Array.Exists(ResolvedRenderers, RendererValue => TransformOwnership.HasPropSpawnerInPath(RuntimeRoot, RendererValue.transform))
             || PllAuthoringValueContract.DestroyedReference(ShaderValue)
             || PllAuthoringValueContract.DestroyedReference(MaterialValue)
             || PllAuthoringValueContract.DestroyedReference(TargetMaterial)

@@ -51,7 +51,7 @@ namespace PLL.Creator.Editor
                 Plugin.PluginGuid = EditorGUILayout.TextField("Installed Plugin", Plugin.PluginGuid);
                 Plugin.FactoryId = EditorGUILayout.TextField("Factory", Plugin.FactoryId);
                 Plugin.Revision = EditorGUILayout.TextField("Revision", Plugin.Revision);
-                EditorGUILayout.HelpBox("Use a compatible installed fixed-instance factory. Keep the definition root empty apart from Entity and put the code-free model in a separate child. Instances regenerate on Continue; source disabling retires them permanently.", MessageType.Info);
+                EditorGUILayout.HelpBox("Install the matching plugin factory. Keep only Entity on the definition root and put the model in a separate child without scripts. Continue recreates instances. Disabling the source removes them permanently.", MessageType.Info);
             }
             else if (Behavior is PllMushroomZombieBehavior)
                 EditorGUILayout.HelpBox("Zombie uses native appearance and spawning rules. Choose an empty model root; custom Zombie rigs are not supported.", MessageType.Info);
@@ -94,7 +94,7 @@ namespace PLL.Creator.Editor
                     "Persistent Artist Renderer", ArtistRenderer, typeof(SkinnedMeshRenderer), false);
                 if (EditorGUI.EndChangeCheck())
                 {
-                    BoneSlots = ArtistRenderer ? new int[ArtistRenderer.bones.Length] : Array.Empty<int>();
+                    BoneSlots = new int[ArtistRenderer && ArtistRenderer.sharedMesh ? ArtistRenderer.sharedMesh.bindposeCount : 0];
                     Array.Fill(BoneSlots, -1);
                     if (ArtistRenderer) LocalBounds = ArtistRenderer.localBounds;
                 }
@@ -114,7 +114,7 @@ namespace PLL.Creator.Editor
                         catch (Exception Failure) when (Failure is ArgumentException or InvalidOperationException)
                         { EditorUtility.DisplayDialog("PLL Creator", Failure.Message, "Close"); }
                 }
-                EditorGUILayout.HelpBox("Native appearance needs an empty model root. Custom Beetle or Condor visuals need an explicitly mapped compatible mesh and native bindposes. PEAK retains its body, skeleton, animation and attack sockets; do not add another Rigidbody or animator.", MessageType.Info);
+                EditorGUILayout.HelpBox("Use an empty model root for native appearance. For custom Beetle or Condor visuals, map a mesh with compatible bindposes to the native bones. PEAK keeps its body, skeleton and animation; do not add another Rigidbody or Animator.", MessageType.Info);
             }
             using (new EditorGUI.DisabledScope(!Target || !Model))
                 if (GUILayout.Button("Create Entity"))
@@ -183,7 +183,7 @@ namespace PLL.Creator.Editor
             serializedObject.ApplyModifiedProperties();
             if (PllEntityValueContract.Failure((PllEntityAuthoring)target) is string Failure)
                 EditorGUILayout.HelpBox(Failure, MessageType.Error);
-            EditorGUILayout.HelpBox("Use Create Entity to import and map custom Beetle or Condor visuals before creating a definition. Native recipes keep native body and run rules. Installed fixed behavior regenerates on Continue and cannot be reversibly disabled.", MessageType.Info);
+            EditorGUILayout.HelpBox("Use Create Entity to map custom Beetle or Condor visuals. Native entities keep the game's body and behavior. Continue recreates plugin instances; disabling them is permanent for the current run.", MessageType.Info);
         }
     }
 }

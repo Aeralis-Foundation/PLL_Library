@@ -47,11 +47,9 @@ namespace PLL.Creator.Editor
             Root = (GameObject)EditorGUILayout.ObjectField(
                 "Target Biome", Root, typeof(GameObject), true);
             EditorGUILayout.HelpBox(
-                "Replaces the target environment with the referenced biome's current profile, color, audio catalogs, "
-                + "atmosphere, fog, native visuals, custom particles, weather and complete authored campsite. "
-                + "The target campsite anchor pose, biome identity, behavior and terrain stay unchanged. "
-                + "References outside a replaced source owner block replacement. Source assets stay unchanged; "
-                + "the composition is one Undo operation.", MessageType.Info);
+                "Copies the source biome's current lighting profile, color, audio, atmosphere, fog, native visuals, particles, weather and campsite. "
+                + "The target's campsite transform, biome identity, behavior and terrain stay unchanged. "
+                + "Remove references from other objects to components being replaced. Source assets stay unchanged; you can undo the changes together.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Root || !Preset))
                 if (GUILayout.Button("Apply Configured Environment Preset"))
                 {

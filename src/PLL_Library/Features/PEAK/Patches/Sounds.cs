@@ -42,26 +42,22 @@ internal static class Sounds
             RunIdentity = Owner.RunIdentity;
             SlotIndex = Owner.SlotIndex;
             var Values = new List<AudioSource>();
-            var Seen = new HashSet<int>();
             var Animator = Ambience.ambienceVolumes;
             if (Animator)
-                foreach (var Source in Animator.GetComponentsInChildren<AudioSource>(true)) Add(Source);
+                foreach (var Source in Animator.GetComponentsInChildren<AudioSource>(true))
+                {
+                    if (!Source || ReferenceEquals(Source, Ambience.mainMusic)
+                        || ReferenceEquals(Source, Ambience.stingerSource)
+                        || Ambience.voice
+                            && TransformOwnership.Contains(Ambience.voice, Source.transform)) continue;
+                    Values.Add(Source);
+                }
             Sources = Values.ToArray();
             OriginalMute = new bool[Sources.Length];
             for (var Index = 0; Index < Sources.Length; Index++)
                 OriginalMute[Index] = Sources[Index].mute;
             SetMuted(Owner.Source is CustomLayoutSegmentSource
                 { Behavior: PllBiomeBehavior.Authored });
-
-            void Add(AudioSource? Source)
-            {
-                if (!Source || ReferenceEquals(Source, Ambience.mainMusic)
-                    || ReferenceEquals(Source, Ambience.stingerSource)
-                    || Ambience.voice
-                        && TransformOwnership.Contains(Ambience.voice, Source.transform)
-                    || !Seen.Add(Source.GetInstanceID())) return;
-                Values.Add(Source);
-            }
         }
 
         internal long RunIdentity { get; }
@@ -408,7 +404,7 @@ internal static class Sounds
             try { CaptureRouteProvider(__instance); }
             catch (Exception exception)
             {
-                if (!Map.TryGetPublishedRun(out var run) || !run.Active) return;
+                if (!Map.TryGetPublishedRun(out var run) || !run.Active) throw;
                 try { AuthoringRuntime.ClearStingerRoute(); }
                 catch (Exception cleanup)
                 {

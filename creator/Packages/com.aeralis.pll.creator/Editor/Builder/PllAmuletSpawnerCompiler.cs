@@ -12,8 +12,6 @@ namespace PLL.Creator.Editor
         {
             foreach (var Source in Sources)
             {
-                PllGenerationAuthoringValidator.ValidateZoneVolume(Source.Volume, "Amulet spawner");
-                if (Source.Presentation is PllCustomAmuletPedestal Custom) Custom.RequireValid();
                 var Target = PllBuildArtifacts.MapComponent(SourceRoot, StagedRoot, Source, "amulet spawner");
                 var Sampler = new GameObject("__PLL_AmuletGenerator");
                 Sampler.transform.SetParent(Target.transform, false);

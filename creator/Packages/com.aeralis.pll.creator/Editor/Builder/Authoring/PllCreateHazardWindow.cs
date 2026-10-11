@@ -45,7 +45,7 @@ namespace PLL.Creator.Editor
                 EditorGUILayout.PropertyField(Serialized.FindProperty("Behavior"), true);
                 Serialized.ApplyModifiedPropertiesWithoutUndo();
             }
-            EditorGUILayout.HelpBox("The definition owns behavior, not population. Contact Injury uses an owned solid collider and native per-victim cooldown. Moving and networked profiles require their declared bindings. Installed plugin instances regenerate on Continue and do not support reversible source actions.", MessageType.Info);
+            EditorGUILayout.HelpBox("This defines hazard behavior, not population. Contact Injury needs a solid collider and applies a cooldown per player. Moving and networked profiles need their listed bindings. Continue recreates plugin instances; disabling them is permanent for the current run.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Target || !Model))
                 if (GUILayout.Button("Create Hazard"))
                     try { Create(Target, Model, InitiallyEnabled, Behavior); Close(); }
@@ -108,7 +108,7 @@ namespace PLL.Creator.Editor
             serializedObject.ApplyModifiedProperties();
             if (PllHazardValueContract.Failure((PllHazardAuthoring)target) is string Failure)
                 EditorGUILayout.HelpBox(Failure, MessageType.Error);
-            EditorGUILayout.HelpBox("Injury Amount is applied per native contact, not per second. Cooldown uses native scaled time. Contact support collision remains intact when behavior is disabled. Continue recreates native contact cooldown.", MessageType.Info);
+            EditorGUILayout.HelpBox("Injury Amount applies per contact, not per second. Cooldown follows game time and resets on Continue. Disabling the behavior leaves solid collision in place.", MessageType.Info);
         }
     }
 }

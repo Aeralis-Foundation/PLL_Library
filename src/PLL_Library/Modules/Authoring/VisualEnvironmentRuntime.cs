@@ -85,9 +85,9 @@ internal sealed class VisualEnvironmentRuntime
         {
             List<Exception>? cleanup = null;
             for (var i = createdTracked - 1; i >= 0; i--)
-                AuthoringCleanup.Capture(ref cleanup, CustomTrackedRoots[i].Stop);
+                CleanupOperations.Capture(ref cleanup, CustomTrackedRoots[i].Stop);
             for (var i = createdSegments - 1; i >= 0; i--)
-                AuthoringCleanup.Capture(ref cleanup, segmentRoots[i].Stop);
+                CleanupOperations.Capture(ref cleanup, segmentRoots[i].Stop);
 
             if (cleanup is not null)
             {
@@ -160,8 +160,8 @@ internal sealed class VisualEnvironmentRuntime
     internal void Release()
     {
         List<Exception>? Failures = null;
-        AuthoringCleanup.Capture(ref Failures, StopParticles);
-        AuthoringCleanup.Capture(ref Failures, ClearEnvironment);
+        CleanupOperations.Capture(ref Failures, StopParticles);
+        CleanupOperations.Capture(ref Failures, ClearEnvironment);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Visual-particle and environment cleanup failed.", Failures);
@@ -177,7 +177,7 @@ internal sealed class VisualEnvironmentRuntime
         for (var i = segmentRoots.Length - 1; i >= 0; i--)
         {
             var root = segmentRoots[i];
-            AuthoringCleanup.Capture(ref failures, root.Stop);
+            CleanupOperations.Capture(ref failures, root.Stop);
         }
         ReleaseNativeParticles(ref failures);
         if (failures is { Count: 1 }) ExceptionPropagation.Throw(failures[0]);
@@ -240,8 +240,8 @@ internal sealed class VisualEnvironmentRuntime
         List<Exception>? Failures = null;
         NativeTransition.Complete(false);
         ZoneFogCoverage = 0f;
-        AuthoringCleanup.Capture(ref Failures, () => SpecialDayProjection.Clear(Slot));
-        AuthoringCleanup.Capture(
+        CleanupOperations.Capture(ref Failures, () => SpecialDayProjection.Clear(Slot));
+        CleanupOperations.Capture(
             ref Failures, () => FogCutoutProjection.SetEnvironmentFog(Slot, 0f));
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is not null)
@@ -282,11 +282,11 @@ internal sealed class VisualEnvironmentRuntime
         {
             List<Exception>? CleanupFailures = null;
             for (var Index = Created - 1; Index >= 0; Index--)
-                AuthoringCleanup.Capture(ref CleanupFailures, Roots[Index].Stop);
+                CleanupOperations.Capture(ref CleanupFailures, Roots[Index].Stop);
             if (Parent)
             {
-                AuthoringCleanup.Capture(ref CleanupFailures, () => Parent.SetActive(false));
-                AuthoringCleanup.Capture(ref CleanupFailures, () => UnityEngine.Object.Destroy(Parent));
+                CleanupOperations.Capture(ref CleanupFailures, () => Parent.SetActive(false));
+                CleanupOperations.Capture(ref CleanupFailures, () => UnityEngine.Object.Destroy(Parent));
             }
             if (CleanupFailures is not null)
             {
@@ -310,9 +310,9 @@ internal sealed class VisualEnvironmentRuntime
     {
         if (NativeTrackedRoots is { } NativeRoots)
             for (var Index = NativeRoots.Length - 1; Index >= 0; Index--)
-                AuthoringCleanup.Capture(ref Failures, NativeRoots[Index].Stop);
+                CleanupOperations.Capture(ref Failures, NativeRoots[Index].Stop);
         for (var Index = CustomTrackedRoots.Length - 1; Index >= 0; Index--)
-            AuthoringCleanup.Capture(ref Failures, CustomTrackedRoots[Index].Stop);
+            CleanupOperations.Capture(ref Failures, CustomTrackedRoots[Index].Stop);
     }
 
     void ReleaseNativeParticles(ref List<Exception>? Failures)
@@ -321,8 +321,8 @@ internal sealed class VisualEnvironmentRuntime
         var Parent = NativeParent;
         NativeParent = null;
         if (!Parent) return;
-        AuthoringCleanup.Capture(ref Failures, () => Parent.SetActive(false));
-        AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.Destroy(Parent));
+        CleanupOperations.Capture(ref Failures, () => Parent.SetActive(false));
+        CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.Destroy(Parent));
     }
 
 }
@@ -518,16 +518,16 @@ internal sealed class ParticleRoot
         {
             var particle = allParticles[i];
             if (!particle) continue;
-            AuthoringCleanup.Capture(ref failures,
+            CleanupOperations.Capture(ref failures,
                 () => particle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear));
         }
-        if (root) AuthoringCleanup.Capture(ref failures, () => root.SetActive(false));
+        if (root) CleanupOperations.Capture(ref failures, () => root.SetActive(false));
         for (var i = 0; i < EmissionTime.Length; i++)
         {
             var Particle = allParticles[i];
             var TimeRate = EmissionTime[i];
             var DistanceRate = EmissionDistance[i];
-            if (Particle) AuthoringCleanup.Capture(ref failures, () =>
+            if (Particle) CleanupOperations.Capture(ref failures, () =>
             {
                 var Emission = Particle.emission;
                 Emission.rateOverTimeMultiplier = TimeRate;

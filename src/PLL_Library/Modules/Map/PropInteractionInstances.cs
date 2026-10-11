@@ -85,8 +85,8 @@ internal sealed class PropInteractionInstances
             if (Released) return;
             Released = true;
             List<Exception>? Failures = null;
-            AuthoringCleanup.Capture(ref Failures, Registration.Dispose);
-            AuthoringCleanup.Capture(ref Failures, Runtime.Dispose);
+            CleanupOperations.Capture(ref Failures, Registration.Dispose);
+            CleanupOperations.Capture(ref Failures, Runtime.Dispose);
             Occurrence.GeometryBudget.ReleaseNativeOutput(this);
             GeneratedGeometryBudget.ThrowFailures(Failures);
         }
@@ -183,7 +183,7 @@ internal sealed class PropInteractionInstances
         foreach (var Pair in Entries)
             if (!Pair.Key || TransformOwnership.Contains(Root.transform, Pair.Key))
             {
-                AuthoringCleanup.Capture(ref Failures, Pair.Value.Dispose); Removed.Add(Pair.Key!);
+                CleanupOperations.Capture(ref Failures, Pair.Value.Dispose); Removed.Add(Pair.Key!);
                 Pending.Remove(Pair.Value);
             }
         foreach (var Source in Removed) Entries.Remove(Source);
@@ -194,7 +194,7 @@ internal sealed class PropInteractionInstances
     internal void Clear()
     {
         List<Exception>? Failures = null;
-        foreach (var Entry in Entries.Values) AuthoringCleanup.Capture(ref Failures, Entry.Dispose);
+        foreach (var Entry in Entries.Values) CleanupOperations.Capture(ref Failures, Entry.Dispose);
         Entries.Clear(); FixedOccurrences.Clear(); Pending.Clear(); GeneratedGeometryBudget.ThrowFailures(Failures);
     }
 

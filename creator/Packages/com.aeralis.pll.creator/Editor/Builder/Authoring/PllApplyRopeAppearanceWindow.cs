@@ -14,11 +14,18 @@ namespace PLL.Creator.Editor
         int[] BoneSlots = Array.Empty<int>();
 
         [MenuItem("PLL/Climbing/Apply Custom Rope Appearance", priority = 28)]
-        static void Open()
+        static void Open() => Open(null);
+
+        internal static void Open(NativeContentRig Rig)
         {
             var Window = GetWindow<PllApplyRopeAppearanceWindow>("Custom Rope Appearance");
             Window.Source = Selection.activeGameObject
                 ? Selection.activeGameObject.GetComponent<PllHangingRopeAuthoring>() : null;
+            if (Rig != null)
+            {
+                Window.Rig = Rig;
+                Array.Fill(Window.BoneSlots, -1);
+            }
             Window.Show();
         }
 
@@ -65,7 +72,7 @@ namespace PLL.Creator.Editor
                     typeof(SkinnedMeshRenderer), false);
                 if (EditorGUI.EndChangeCheck())
                 {
-                    BoneSlots = new int[ArtistSkin && ArtistSkin.sharedMesh ? ArtistSkin.sharedMesh.bindposes.Length : 0];
+                    BoneSlots = new int[ArtistSkin && ArtistSkin.sharedMesh ? ArtistSkin.sharedMesh.bindposeCount : 0];
                     Array.Fill(BoneSlots, -1);
                 }
                 if (Rig != null && Rig.Skins.Length == 1)
@@ -104,6 +111,7 @@ namespace PLL.Creator.Editor
                 throw new InvalidOperationException("Compatible Rope appearance requires one captured RopeDynamic skin.");
             var Owner = PllSourceIdentityValidator.ResolveEditableOwner(Source.gameObject, Action);
             PllSourceIdentityValidator.RequireEditableTarget(Owner, Source.transform, Action);
+            if (!ArtistSkin) throw new InvalidOperationException("Choose an artist renderer.");
             var Appearance = PllApplyEntityAppearanceWindow.BuildAppearance(Rig, Rig.Skins[0], ArtistSkin,
                 BoneSlots, ArtistSkin.localBounds, null);
             if (PllNativeEntityAppearanceValueContract.Failure(Appearance) is { } Failure)

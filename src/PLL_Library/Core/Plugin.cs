@@ -81,33 +81,28 @@ public sealed class Plugin : BaseUnityPlugin, IInRoomCallbacks, IMatchmakingCall
     {
         if (teardownStarted) return;
         teardownStarted = true;
-        var failures = new List<Exception>();
-        void Release(Action action)
-        {
-            try { action(); }
-            catch (Exception exception) { failures.Add(exception); }
-        }
-
-        Release(() => NativeContentTools.Cancel("The plugin stopped before the native content request completed."));
-        Release(() => ReleaseMapOwnership(Map.ReleaseCurrentRun));
-        Release(LightVolumeHarmonyAdapter.Shutdown);
-        Release(Map.ClearTransientPreflight);
-        Release(() => SceneManager.sceneUnloaded -= OnSceneUnloaded);
-        Release(() => PhotonNetwork.NetworkingClient.StateChanged -= OnNetworkStateChanged);
-        Release(() => PhotonNetwork.RemoveCallbackTarget(this));
-        Release(LobbyAdmission.Shutdown);
-        Release(PllSettingsSurface.Shutdown);
-        Release(MenuVersionMark.Shutdown);
-        Release(MainMenuDeveloperBar.Shutdown);
-        Release(TerminalLayoutSelector.Shutdown);
-        Release(TerminalLayoutSelection.Shutdown);
-        Release(() => harmony?.UnpatchSelf());
+        List<Exception>? Failures = null;
+        CleanupOperations.Capture(ref Failures, () => NativeContentTools.Cancel(
+            "The plugin stopped before the native content request completed."));
+        CleanupOperations.Capture(ref Failures, () => ReleaseMapOwnership(Map.ReleaseCurrentRun));
+        CleanupOperations.Capture(ref Failures, LightVolumeHarmonyAdapter.Shutdown);
+        CleanupOperations.Capture(ref Failures, Map.ClearTransientPreflight);
+        CleanupOperations.Capture(ref Failures, () => SceneManager.sceneUnloaded -= OnSceneUnloaded);
+        CleanupOperations.Capture(ref Failures, () => PhotonNetwork.NetworkingClient.StateChanged -= OnNetworkStateChanged);
+        CleanupOperations.Capture(ref Failures, () => PhotonNetwork.RemoveCallbackTarget(this));
+        CleanupOperations.Capture(ref Failures, LobbyAdmission.Shutdown);
+        CleanupOperations.Capture(ref Failures, PllSettingsSurface.Shutdown);
+        CleanupOperations.Capture(ref Failures, MenuVersionMark.Shutdown);
+        CleanupOperations.Capture(ref Failures, MainMenuDeveloperBar.Shutdown);
+        CleanupOperations.Capture(ref Failures, TerminalLayoutSelector.Shutdown);
+        CleanupOperations.Capture(ref Failures, TerminalLayoutSelection.Shutdown);
+        CleanupOperations.Capture(ref Failures, () => harmony?.UnpatchSelf());
         harmony = null;
-        Release(BiomeRegistration.ClearLiveCatalogs);
-        Release(AuthoringRuntime.Shutdown);
+        CleanupOperations.Capture(ref Failures, BiomeRegistration.ClearLiveCatalogs);
+        CleanupOperations.Capture(ref Failures, AuthoringRuntime.Shutdown);
         if (instance == this) instance = null!;
-        if (failures.Count == 1) ExceptionPropagation.Throw(failures[0]);
-        if (failures.Count != 0) throw new AggregateException("PLL Library teardown failed.", failures);
+        if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
+        if (Failures is not null) throw new AggregateException("PLL Library teardown failed.", Failures);
     }
 
     Coroutine StartMapRoutine(IEnumerator routine)
@@ -160,19 +155,13 @@ public sealed class Plugin : BaseUnityPlugin, IInRoomCallbacks, IMatchmakingCall
         if (failure is not null) ExceptionPropagation.Throw(failure);
     }
 
-    void ReleaseMapOwnership(Action release)
+    void ReleaseMapOwnership(Action Release)
     {
-        var failures = new List<Exception>();
-        void Try(Action action)
-        {
-            try { action(); }
-            catch (Exception exception) { failures.Add(exception); }
-        }
-
-        Try(release);
-        Try(StopMapRoutines);
-        if (failures.Count == 1) ExceptionPropagation.Throw(failures[0]);
-        if (failures.Count != 0) throw new AggregateException("Map ownership release failed.", failures);
+        List<Exception>? Failures = null;
+        CleanupOperations.Capture(ref Failures, Release);
+        CleanupOperations.Capture(ref Failures, StopMapRoutines);
+        if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
+        if (Failures is not null) throw new AggregateException("Map ownership release failed.", Failures);
     }
 
     void ReleaseScene(Scene scene)

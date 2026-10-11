@@ -457,7 +457,8 @@ internal static class SegmentRegistry
             foreach (var Biome in Biomes) Biome.WriteManifest(Writer);
             Writer.Write(Items.Length);
             foreach (var Item in Items) Item.WriteManifest(Writer);
-            WriteGroupManifest(Writer, Groups);
+            Writer.Write(Groups.Length);
+            foreach (var Group in Groups) Group.WriteManifest(Writer);
             if (External)
             {
                 BiomeAuthoringCatalog.WriteManifest(Writer);
@@ -481,8 +482,6 @@ internal sealed class RegisteredBiome
 
     RegisteredBiome(CustomBiomeDefinition Definition)
     {
-        if (!Definition.DayNightProfile)
-            throw new ArgumentException("The custom biome day/night profile was destroyed.", nameof(Definition));
         this.Definition = Definition;
         Id = Definition.Id;
         Revision = Definition.Revision;

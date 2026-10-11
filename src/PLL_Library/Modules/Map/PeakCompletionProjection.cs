@@ -228,7 +228,7 @@ internal sealed class PeakCompletionProjection
                 PeakRewardState.OpeningRevive => State == PeakRewardState.OpeningRevive
                     && Actor == PreviousActor || State == PeakRewardState.Spent && Actor == PreviousActor,
                 PeakRewardState.Spent => State == PeakRewardState.Spent && Actor == PreviousActor,
-                _ => false
+                _ => throw new InvalidOperationException($"Peak reward state {PreviousState} is unsupported.")
             };
             if (!Valid) return false;
         }

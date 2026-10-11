@@ -665,7 +665,8 @@ internal sealed class LazySlotGenerator
             Add(Candidate.PeakAttachment ? Candidate.PeakAttachment.gameObject : null);
         }
         Add(Occurrence.Container.gameObject);
-        var States = Objects.ConvertAll(Value => Value.activeSelf).ToArray();
+        var States = new bool[Objects.Count];
+        for (var i = 0; i < Objects.Count; i++) States[i] = Objects[i].activeSelf;
         var Queue = PhotonNetwork.IsMessageQueueRunning;
         var RandomState = UnityEngine.Random.state;
         try

@@ -24,7 +24,7 @@ namespace PLL.Creator.Editor
             Target = (GameObject)EditorGUILayout.ObjectField("Source", Target, typeof(GameObject), true);
             GenerateOnLoad = EditorGUILayout.Toggle("Generate on Load", GenerateOnLoad);
             EmitHook = EditorGUILayout.TextField("Emit Hook", EmitHook);
-            EditorGUILayout.HelpBox("Choose one configured spawner leaf or a source grouper. Candidates remain persistent prefab assets, never permanent children of spawner output. Disable Generate on Load to allow an owning Effect Zone to request generation on Enter/Exit.", MessageType.Info);
+            EditorGUILayout.HelpBox("Choose a configured spawner or source group. Candidate prefabs must be saved assets, not children of a spawner. Disable Generate on Load to trigger generation from an Effect Zone when players enter or leave.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Target || !PllAuthoringValueContract.IsHook(EmitHook)))
                 if (GUILayout.Button("Add Hooked Generation"))
                 {

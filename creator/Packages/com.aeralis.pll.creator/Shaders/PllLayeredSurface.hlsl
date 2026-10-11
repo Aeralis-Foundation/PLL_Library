@@ -267,14 +267,10 @@ Surface Evaluate(Varyings Input)
     }
     return Result;
 }
-void ClipSurface(float Alpha)
-{
-    if (_SurfaceMode == 1) clip(Alpha - _Cutoff);
-}
 half4 DepthFragment(Varyings Input) : SV_Target
 {
     UNITY_SETUP_INSTANCE_ID(Input);
-    ClipSurface(Evaluate(Input).Albedo.a);
+    if (_SurfaceMode == 1) clip(Evaluate(Input).Albedo.a - _Cutoff);
     return Input.PositionCS.z;
 }
 half4 Fragment(Varyings Input) : SV_Target
@@ -282,7 +278,7 @@ half4 Fragment(Varyings Input) : SV_Target
     UNITY_SETUP_INSTANCE_ID(Input);
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(Input);
     Surface Value = Evaluate(Input);
-    ClipSurface(Value.Albedo.a);
+    if (_SurfaceMode == 1) clip(Value.Albedo.a - _Cutoff);
     InputData Lighting = (InputData)0;
     Lighting.positionWS = Input.PositionWS;
     Lighting.normalWS = Value.NormalWS;

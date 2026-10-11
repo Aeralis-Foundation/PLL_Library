@@ -37,7 +37,7 @@ namespace PLL.Creator.Editor
             Count = EditorGUILayout.IntField("Maximum Spawns", Count);
             RayLength = EditorGUILayout.FloatField("Ray Length", RayLength);
             PllAuthoringCommands.DrawReferences("Candidate", Candidates, false);
-            EditorGUILayout.HelpBox("Candidates remain persistent prefab assets. The new source owns only runtime-generated children and casts down onto Terrain and Map collision.", MessageType.Info);
+            EditorGUILayout.HelpBox("Use saved prefab assets as candidates. The spawner places them by casting down onto Terrain and Map colliders. Do not add permanent children to the spawner.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Parent || Candidates.Count == 0))
                 if (GUILayout.Button("Create Prop Spawner"))
                 {
@@ -111,7 +111,7 @@ namespace PLL.Creator.Editor
             Chance = EditorGUILayout.Slider("Chance per Point", Chance, 0f, 1f);
             PllAuthoringCommands.DrawReferences("Point", Points, true);
             PllAuthoringCommands.DrawReferences("Candidate", Candidates, false);
-            EditorGUILayout.HelpBox("Points are distinct empty child objects of the source. Candidates are active persistent prefab assets; no candidate is stored beneath a PropSpawner.", MessageType.Info);
+            EditorGUILayout.HelpBox("Use separate empty child objects as points and active saved prefab assets as candidates. Do not put candidates beneath a PropSpawner.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Target || Points.Count == 0 || Candidates.Count == 0))
                 if (GUILayout.Button("Add Child Props"))
                 {
@@ -188,7 +188,7 @@ namespace PLL.Creator.Editor
             Scroll = EditorGUILayout.BeginScrollView(Scroll);
             Target = (GameObject)EditorGUILayout.ObjectField("Source", Target, typeof(GameObject), true);
             ObjectName = EditorGUILayout.TextField("Native Object Name", ObjectName);
-            EditorGUILayout.HelpBox("Use an exact native object name. PEAK resolves the source during live compatibility sealing; the Creator does not copy game assets.", MessageType.Info);
+            EditorGUILayout.HelpBox("Enter the exact native object name. PEAK finds the source when loading the biome; Creator does not copy game assets.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Target || !ForceObjectNameContract.IsValid(ObjectName)))
                 if (GUILayout.Button("Add Force Spawner"))
                 {

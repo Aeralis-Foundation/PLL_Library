@@ -8,6 +8,15 @@ namespace PLL.Creator.Editor
 {
     internal sealed class PllCreateNativeResolverWindow : EditorWindow
     {
+        static readonly PLLNativeResolverKind[] Kinds =
+        {
+            PLLNativeResolverKind.Water, PLLNativeResolverKind.Lava,
+            PLLNativeResolverKind.Rain, PLLNativeResolverKind.Wind,
+            PLLNativeResolverKind.Snow, PLLNativeResolverKind.SporeCloud
+        };
+        static readonly string[] KindLabels = Array.ConvertAll(Kinds, Value => ObjectNames.NicifyVariableName(Value.ToString()));
+        static readonly PllNativeFlowProfile[] Profiles = { PllNativeFlowProfile.SimulatedSpline, PllNativeFlowProfile.RayWaterfall };
+        static readonly string[] ProfileLabels = Array.ConvertAll(Profiles, Value => ObjectNames.NicifyVariableName(Value.ToString()));
         GameObject Target;
         PLLNativeResolverKind Kind = PLLNativeResolverKind.Water;
         readonly PllAuthoringVolume Volume = new PllAuthoringVolume();
@@ -23,7 +32,7 @@ namespace PLL.Creator.Editor
 
         internal static void Open(PLLNativeResolverKind Kind)
         {
-            if (Kind == PLLNativeResolverKind.None || !Enum.IsDefined(typeof(PLLNativeResolverKind), Kind))
+            if (Array.IndexOf(Kinds, Kind) < 0)
                 throw new InvalidOperationException("Choose Water, Lava, Rain, Wind, Snow or SporeCloud.");
             var Window = GetWindow<PllCreateNativeResolverWindow>("Add Native Resolver");
             Window.Target = Selection.activeGameObject;
@@ -35,14 +44,14 @@ namespace PLL.Creator.Editor
         void OnGUI()
         {
             Target = (GameObject)EditorGUILayout.ObjectField("Source", Target, typeof(GameObject), true);
-            Kind = (PLLNativeResolverKind)EditorGUILayout.EnumPopup("Native Kind", Kind);
+            Kind = Kinds[EditorGUILayout.Popup("Native Kind", Array.IndexOf(Kinds, Kind), KindLabels)];
             if (Kind is PLLNativeResolverKind.Water or PLLNativeResolverKind.Lava)
                 Form = (PllNativeResolverForm)EditorGUILayout.EnumPopup("Form", Form);
             else Form = PllNativeResolverForm.Zone;
             if (Form == PllNativeResolverForm.Source)
             {
                 if (Kind == PLLNativeResolverKind.Water)
-                    Profile = (PllNativeFlowProfile)EditorGUILayout.EnumPopup("Profile", Profile);
+                    Profile = Profiles[EditorGUILayout.Popup("Profile", Array.IndexOf(Profiles, Profile), ProfileLabels)];
                 else Profile = PllNativeFlowProfile.SimulatedSpline;
                 if (Profile == PllNativeFlowProfile.RayWaterfall)
                 {
@@ -53,7 +62,7 @@ namespace PLL.Creator.Editor
             Volume.Shape = Kind == PLLNativeResolverKind.SporeCloud ? PllZoneShape.Sphere : PllZoneShape.Box;
             Volume.Draw();
             if (Form == PllNativeResolverForm.Source && Profile == PllNativeFlowProfile.SimulatedSpline)
-                EditorGUILayout.HelpBox("The sealed native provider supplies the source mesh, material, contact graph, and optional output bindings. Source settings remain editable in the Inspector.", MessageType.Info);
+                EditorGUILayout.HelpBox("PEAK supplies the mesh, material and collision setup. Edit the source settings in the Inspector.", MessageType.Info);
             else if (Kind is PLLNativeResolverKind.Water or PLLNativeResolverKind.Lava)
             {
                 Surface = (MeshRenderer)EditorGUILayout.ObjectField("Surface Renderer Child", Surface, typeof(MeshRenderer), true);
@@ -61,17 +70,17 @@ namespace PLL.Creator.Editor
                     SurfaceMaterial = (Material)EditorGUILayout.ObjectField("Generated Surface Material", SurfaceMaterial, typeof(Material), false);
                 else SurfaceMaterial = null;
                 EditorGUILayout.HelpBox(Form == PllNativeResolverForm.Source
-                    ? "Choose the owned ray-fitted surface renderer. The command creates its ray anchors; runtime builds the native recipe."
+                    ? "Choose a surface renderer inside this source. PLL creates its ray anchors and builds the native flow in PEAK."
                     : Kind == PLLNativeResolverKind.Water
                         ? "Choose one surface renderer or material. Water Zone requires a world-upright box."
-                        : "Choose the owned lava surface renderer. Runtime derives local heat bounds from placed geometry.", MessageType.Info);
+                        : "Choose a lava surface renderer inside this source. PLL uses its placed geometry to set the heat bounds.", MessageType.Info);
             }
             else
             {
                 Presentation = (PllEffectAuthoring)EditorGUILayout.ObjectField("Zone Presentation Child", Presentation, typeof(PllEffectAuthoring), true);
-                EditorGUILayout.HelpBox("Choose an existing Zone-mode effect child. SporeCloud uses duration zero and must match the native source's live world radius; compatibility sealing verifies the native handle.", MessageType.Info);
+                EditorGUILayout.HelpBox("Choose a child effect in Zone mode. SporeCloud needs duration zero and a radius matching the native source in PEAK.", MessageType.Info);
             }
-            using (new EditorGUI.DisabledScope(!Target || Kind == PLLNativeResolverKind.None))
+            using (new EditorGUI.DisabledScope(!Target))
                 if (GUILayout.Button("Add Native Resolver"))
                 {
                     try
@@ -102,7 +111,7 @@ namespace PLL.Creator.Editor
             if ((!Owner.IsBiomeRoot && Form != PllNativeResolverForm.Source)
                 || Target.transform == Owner.Floor || Target.transform == Owner.Campfire)
                 throw new InvalidOperationException("Native Resolver requires its own child root in the biome.");
-            if (Kind == PLLNativeResolverKind.None || !Enum.IsDefined(typeof(PLLNativeResolverKind), Kind))
+            if (Array.IndexOf(Kinds, Kind) < 0)
                 throw new InvalidOperationException("Choose Water, Lava, Rain, Wind, Snow or SporeCloud.");
             Volume.RequireValid();
             if (Volume.Shape != (Kind == PLLNativeResolverKind.SporeCloud ? PllZoneShape.Sphere : PllZoneShape.Box))
@@ -131,7 +140,7 @@ namespace PLL.Creator.Editor
                         throw new InvalidOperationException("Ray anchor positions must be finite and distinct.");
                 }
                 else if (Profile != PllNativeFlowProfile.SimulatedSpline || Surface)
-                    throw new InvalidOperationException("Simulated flow uses its sealed provider surface.");
+                    throw new InvalidOperationException("Simulated flow uses the surface supplied by PEAK.");
             }
             else if (Kind == PLLNativeResolverKind.Lava)
             {
@@ -145,7 +154,7 @@ namespace PLL.Creator.Editor
                 if ((bool)Surface == (bool)SurfaceMaterial || Presentation)
                     throw new InvalidOperationException("Water requires exactly one surface renderer or material and no Zone presentation.");
                 if (SurfaceMaterial && !EditorUtility.IsPersistent(SurfaceMaterial))
-                    throw new InvalidOperationException("Water surface material must be a persistent asset.");
+                    throw new InvalidOperationException("Save the water surface material as an asset.");
                 if (Surface)
                 {
                     if (Surface.transform == Target.transform || !Surface.transform.IsChildOf(Target.transform))
@@ -156,7 +165,7 @@ namespace PLL.Creator.Editor
                         throw new InvalidOperationException("Water surface renderer requires a mesh and material slots.");
                     foreach (var Material in Surface.sharedMaterials)
                         if (!Material || !EditorUtility.IsPersistent(Material))
-                            throw new InvalidOperationException("Water surface renderer requires persistent materials in every slot.");
+                            throw new InvalidOperationException("Every water surface material slot needs a saved material asset.");
                 }
             }
             else

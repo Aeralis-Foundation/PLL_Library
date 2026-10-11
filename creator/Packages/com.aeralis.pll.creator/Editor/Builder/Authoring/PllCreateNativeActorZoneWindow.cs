@@ -100,7 +100,9 @@ namespace PLL.Creator.Editor
                     DrawPositions(ref Tumbleweed.Positions);
                     break;
             }
-            EditorGUILayout.HelpBox("Creates an empty source child; PEAK owns native generation and separate output. Ground placement uses the volume; native movement is not confined. Points, nest and spawn offsets use zone-local coordinates. Zero population/chance produces no actors; maximum population is a limit, not a promised count. Hazards retain sealed native timing. Use Apply Entity Appearance for artist geometry.", MessageType.Info);
+            EditorGUILayout.HelpBox("The volume limits where actors spawn, not where they move. Points, nests and offsets use zone-local coordinates. "
+                + "Zero population or chance prevents spawning; the maximum population is a cap, not a guaranteed count. "
+                + "Hazards keep PEAK's timing. Use Apply Entity Appearance for custom models.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Parent))
                 if (GUILayout.Button("Create Native Actor Zone"))
                 {

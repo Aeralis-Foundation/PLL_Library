@@ -95,9 +95,9 @@ internal sealed class VisualState
         IsActive = false;
         Transition.Complete(false);
         List<Exception>? Failures = null;
-        AuthoringCleanup.Capture(ref Failures, RestoreProperty);
+        CleanupOperations.Capture(ref Failures, RestoreProperty);
         for (var i = 0; i < Renderers.Length; i++)
-            AuthoringCleanup.Capture(ref Failures, () =>
+            CleanupOperations.Capture(ref Failures, () =>
             {
                 if (Renderers[i]) Renderers[i].enabled = RendererStates[i];
             });

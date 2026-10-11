@@ -71,6 +71,8 @@ internal sealed class NativeVisualSeal
 
     internal void PrepareFogRendering(IEnumerable<PllFogShaderAdapter> ContentShaders) =>
         NativeFogRenderRuntime.Prepare(Inventory.Scene, ContentShaders);
+
+    internal NativeMaterialCatalog Materials => Inventory.Materials;
 }
 
 internal sealed class NativeVisualSources

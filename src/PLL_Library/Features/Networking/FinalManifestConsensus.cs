@@ -12,20 +12,17 @@ internal sealed class FinalManifestConfirmation
 
     internal FinalManifestConfirmation(
         Room Room,
-        ResolvedRunConfiguration Configuration,
         string Revision,
         int LocalActor,
         int[] Actors)
     {
         this.Room = Room;
-        this.Configuration = Configuration;
         this.Revision = Revision;
         this.LocalActor = LocalActor;
         this.Actors = (int[])Actors.Clone();
     }
 
     internal Room Room { get; }
-    internal ResolvedRunConfiguration Configuration { get; }
     internal string Revision { get; }
     internal int LocalActor { get; }
     internal int[] SnapshotActors() => (int[])Actors.Clone();
@@ -146,21 +143,21 @@ internal static class FinalManifestConsensus
         }
         if (!Room.BroadcastPropertiesChangeToAll)
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library cannot verify the final custom-content manifest without server property echoes.");
+                "The server does not confirm room settings. Custom content cannot be synchronized.");
         if (PhotonNetwork.NetworkClientState != ClientState.Joined)
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library lost its Photon room before final custom-content validation.");
+                "The Photon room changed before custom content was confirmed.");
         var Master = PhotonNetwork.MasterClient;
         if (Master is null || Master.ActorNumber <= 0 || !Room.Players.ContainsKey(Master.ActorNumber))
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library could not identify the authoritative player for final custom-content validation.");
+                "The custom content host is unavailable.");
         var LocalActor = PhotonNetwork.LocalPlayer.ActorNumber;
         if (LocalActor <= 0 || !Room.Players.ContainsKey(LocalActor))
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library could not identify the local player for final custom-content validation.");
+                "The local player is unavailable for custom content synchronization.");
         if (!TryCurrentActors(Room, out var Actors))
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library found an invalid player set during final custom-content validation.");
+                "The room player list is invalid.");
 
         var Consensus = CurrentRound is OnlineRound Existing
             && ReferenceEquals(Existing.Room, Room) && Existing.LocalActor == LocalActor
@@ -175,11 +172,11 @@ internal static class FinalManifestConsensus
             {
                 if (ReferenceEquals(CurrentRound, Consensus)) CurrentRound = null;
                 throw PhotonRoomRejection.Disconnect(
-                    "PLL Library lost its Photon room before final custom-content validation.");
+                    "The Photon room changed before custom content was confirmed.");
             }
             if (!Consensus.Room.BroadcastPropertiesChangeToAll)
                 throw PhotonRoomRejection.Disconnect(
-                    "PLL Library cannot verify the final custom-content manifest without server property echoes.");
+                    "The server does not confirm room settings. Custom content cannot be synchronized.");
             if (TryMaintainAndConfirm(Consensus)) yield break;
             yield return null;
         }
@@ -196,7 +193,7 @@ internal static class FinalManifestConsensus
                 && SameIdentity(Offline, Configuration, Revision)) return;
             CurrentRound = null;
             throw new InvalidOperationException(
-                "PLL Library's final custom-content manifest is not confirmed.");
+                "The custom content list has not been confirmed.");
         }
         if (CurrentRound is not OnlineRound Consensus
             || !ReferenceEquals(Consensus.Room, Room)
@@ -205,11 +202,11 @@ internal static class FinalManifestConsensus
         {
             CurrentRound = null;
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library's final custom-content manifest is not confirmed.");
+                "The custom content list has not been confirmed.");
         }
         if (!TryMaintainAndConfirm(Consensus))
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library's final custom-content manifest confirmation is no longer valid.");
+                "The confirmed custom content list changed.");
     }
 
     internal static FinalManifestConfirmation? CaptureConfirmation(
@@ -219,7 +216,6 @@ internal static class FinalManifestConsensus
         if (CurrentRound is not OnlineRound Consensus) return null;
         return new FinalManifestConfirmation(
             Consensus.Room,
-            Configuration,
             Consensus.Revision,
             Consensus.LocalActor,
             Consensus.Actors);
@@ -238,7 +234,7 @@ internal static class FinalManifestConsensus
             || !ReferenceEquals(Consensus.Configuration, Configuration)
             || !IsCurrent(Consensus))
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library's final custom-content manifest is not confirmed for initial generation.");
+                "The custom content list has not been confirmed for map generation.");
         return TryMaintainAndConfirm(Consensus);
     }
 
@@ -343,7 +339,7 @@ internal static class FinalManifestConsensus
             Consensus.Room,
             Consensus.LocalReadyKey,
             Consensus.ReadyValue,
-            "PLL Library could not publish its final custom-content manifest.");
+            "The custom content list could not be sent.");
         return true;
     }
 
@@ -368,7 +364,7 @@ internal static class FinalManifestConsensus
             Consensus.Room,
             CommitKey,
             Consensus.DesiredCommit,
-            "PLL Library could not publish the final custom-content manifest release.");
+            "The custom content confirmation could not be sent.");
     }
 
     static string? PublicationFailure(OnlineRound Consensus) =>
@@ -454,13 +450,13 @@ internal static class FinalManifestConsensus
             || Fields[2] is not string CandidateRevision || Fields[3] is not int CandidateMaster
             || Fields[4] is not int[] Actors)
             throw PhotonRoomRejection.Disconnect(
-                "The host published a malformed final custom-content manifest release.");
+                "The host sent an invalid custom content confirmation.");
         if (CandidateMaster != Consensus.MasterActor) return false;
         if (!string.Equals(CandidateProtocol, Protocol, StringComparison.Ordinal))
             throw PhotonRoomRejection.Disconnect(
-                "The host uses an incompatible final custom-content protocol.");
+                "The host uses an incompatible custom content protocol.");
         if (!string.Equals(CandidateRevision, Consensus.Revision, StringComparison.Ordinal))
-            throw PhotonRoomRejection.Disconnect("The host has different surviving PLL content.");
+            throw PhotonRoomRejection.Disconnect("The host has different accepted PLL content.");
         if (Actors.Length != Consensus.Actors.Length) return false;
         for (var i = 0; i < Actors.Length; i++)
             if (Actors[i] != Consensus.Actors[i]) return false;

@@ -477,11 +477,11 @@ internal static class NativeFogRenderRuntime
         {
             List<Exception>? Failures = null;
             if (View is not null)
-                AuthoringCleanup.Capture(ref Failures, () => Shader.SetGlobalConstantBuffer(ViewProperty, (GraphicsBuffer)null!, 0, 0));
+                CleanupOperations.Capture(ref Failures, () => Shader.SetGlobalConstantBuffer(ViewProperty, (GraphicsBuffer)null!, 0, 0));
             foreach (var Effect in Effects.Keys)
             {
                 if (!Effect) continue;
-                AuthoringCleanup.Capture(ref Failures, () =>
+                CleanupOperations.Capture(ref Failures, () =>
                 {
                     for (var i = 0; i < Effect.currentEffects.Count; i++)
                         if (Leases.TryGetValue(Effect.currentEffects[i], out var Lease) && Lease.Source)
@@ -491,7 +491,7 @@ internal static class NativeFogRenderRuntime
             foreach (var Renderer in Renderers.Keys)
             {
                 if (!Renderer) continue;
-                AuthoringCleanup.Capture(ref Failures, () =>
+                CleanupOperations.Capture(ref Failures, () =>
                 {
                     var Materials = Renderer.sharedMaterials;
                     var Changed = false;
@@ -501,15 +501,15 @@ internal static class NativeFogRenderRuntime
                     if (Changed) Renderer.sharedMaterials = Materials;
                 });
             }
-            foreach (var Lease in Leases.Values) AuthoringCleanup.Capture(ref Failures, Lease.Release);
+            foreach (var Lease in Leases.Values) CleanupOperations.Capture(ref Failures, Lease.Release);
             Leases.Clear(); Aliases.Clear(); Renderers.Clear(); Effects.Clear();
-            if (ContributionHandle is { } Handle) AuthoringCleanup.Capture(ref Failures, Handle.Release);
-            if (Contributions) AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.Destroy(Contributions));
-            if (View is { } AllocatedView) AuthoringCleanup.Capture(ref Failures, AllocatedView.Dispose);
-            if (ZeroView is { } AllocatedZero) AuthoringCleanup.Capture(ref Failures, AllocatedZero.Dispose);
-            if (Opaque) AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.Destroy(Opaque));
-            if (Bundle) AuthoringCleanup.Capture(ref Failures, () => Bundle.Unload(true));
-            AuthoringCleanup.Capture(ref Failures, BundleStream.Dispose);
+            if (ContributionHandle is { } Handle) CleanupOperations.Capture(ref Failures, Handle.Release);
+            if (Contributions) CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.Destroy(Contributions));
+            if (View is { } AllocatedView) CleanupOperations.Capture(ref Failures, AllocatedView.Dispose);
+            if (ZeroView is { } AllocatedZero) CleanupOperations.Capture(ref Failures, AllocatedZero.Dispose);
+            if (Opaque) CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.Destroy(Opaque));
+            if (Bundle) CleanupOperations.Capture(ref Failures, () => Bundle.Unload(true));
+            CleanupOperations.Capture(ref Failures, BundleStream.Dispose);
             if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
             if (Failures is { Count: > 1 }) throw new AggregateException("Fog rendering cleanup failed.", Failures);
         }
@@ -675,14 +675,14 @@ internal static class NativeFogRenderRuntime
         [HarmonyTargetMethods]
         static IEnumerable<MethodBase> TargetMethods()
         {
-            var ModifyParameters = new[] { typeof(GameObject), typeof(PropSpawner.SpawnData) };
-            var ConstraintParameters = new[] { typeof(PropSpawner.SpawnData) };
-            yield return AccessTools.DeclaredMethod(typeof(PSM_ReplaceMaterial), nameof(PSM_ReplaceMaterial.ModifyObject), ModifyParameters);
-            yield return AccessTools.DeclaredMethod(typeof(PSM_ReplaceMaterialWithRayTargetMaterial), nameof(PSM_ReplaceMaterialWithRayTargetMaterial.ModifyObject), ModifyParameters);
-            yield return AccessTools.DeclaredMethod(typeof(PSM_MatchMaterial), nameof(PSM_MatchMaterial.ModifyObject), ModifyParameters);
-            yield return AccessTools.DeclaredMethod(typeof(PSC_RequiredMaterial), nameof(PSC_RequiredMaterial.CheckConstraint), ConstraintParameters);
-            yield return AccessTools.DeclaredMethod(typeof(PSC_BannedMaterial), nameof(PSC_BannedMaterial.CheckConstraint), ConstraintParameters);
-            yield return SymbolExtensions.GetMethodInfo(() => ((Peak.PropSpawner_AmuletStatues)null!).OnLevelGenFinished());
+            yield return AccessTools.DeclaredMethod(typeof(PSM_ReplaceMaterial), nameof(PSM_ReplaceMaterial.ModifyObject));
+            yield return AccessTools.DeclaredMethod(typeof(PSM_ReplaceMaterialWithRayTargetMaterial),
+                nameof(PSM_ReplaceMaterialWithRayTargetMaterial.ModifyObject));
+            yield return AccessTools.DeclaredMethod(typeof(PSM_MatchMaterial), nameof(PSM_MatchMaterial.ModifyObject));
+            yield return AccessTools.DeclaredMethod(typeof(PSC_RequiredMaterial), nameof(PSC_RequiredMaterial.CheckConstraint));
+            yield return AccessTools.DeclaredMethod(typeof(PSC_BannedMaterial), nameof(PSC_BannedMaterial.CheckConstraint));
+            yield return AccessTools.DeclaredMethod(typeof(Peak.PropSpawner_AmuletStatues),
+                nameof(Peak.PropSpawner_AmuletStatues.OnLevelGenFinished));
         }
         [HarmonyTranspiler]
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> Instructions)

@@ -106,10 +106,11 @@ internal static class DeterministicObjectIdentity
                 path.Add(current.GetSiblingIndex());
                 current = current.parent;
             }
-            var roots = scene.GetRootGameObjects();
-            var root = Array.FindIndex(roots, value => value.transform == current);
-            if (root < 0) throw new InvalidOperationException($"A {name} root could not be canonically identified.");
-            writer.Write(root);
+            var RootName = current.name;
+            foreach (var Root in scene.GetRootGameObjects())
+                if (Root.transform != current && string.Equals(Root.name, RootName, StringComparison.Ordinal))
+                    throw new InvalidOperationException($"Scene '{sceneName}' has more than one root named '{RootName}' for {name} synchronization.");
+            writer.Write(RootName);
             writer.Write(path.Count);
             for (var i = path.Count - 1; i >= 0; i--) writer.Write(path[i]);
 

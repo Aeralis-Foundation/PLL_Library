@@ -1252,13 +1252,13 @@ internal abstract class NativeFlowRuntime : IDisposable
         if (Released) return;
         Transition.Complete(false);
         List<Exception>? Failures = null;
-        AuthoringCleanup.Capture(ref Failures, () => SetGameplay(false));
-        AuthoringCleanup.Capture(ref Failures, ApplyCoverage);
+        CleanupOperations.Capture(ref Failures, () => SetGameplay(false));
+        CleanupOperations.Capture(ref Failures, ApplyCoverage);
         foreach (var Particle in Particles)
-            if (Particle) AuthoringCleanup.Capture(ref Failures,
+            if (Particle) CleanupOperations.Capture(ref Failures,
                 () => Particle.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear));
         foreach (var AudioSource in Audio)
-            if (AudioSource) AuthoringCleanup.Capture(ref Failures, AudioSource.Stop);
+            if (AudioSource) CleanupOperations.Capture(ref Failures, AudioSource.Stop);
         GeneratedGeometryBudget.ThrowFailures(Failures);
     }
 
@@ -1529,7 +1529,7 @@ internal abstract class NativeFlowRuntime : IDisposable
         {
             List<Exception>? Failures = null;
             foreach (var Handle in SoundHandles)
-                AuthoringCleanup.Capture(ref Failures, () => StopSound(Handle));
+                CleanupOperations.Capture(ref Failures, () => StopSound(Handle));
             SoundHandles.Clear(); GeneratedGeometryBudget.ThrowFailures(Failures);
         }
     }
@@ -1861,54 +1861,54 @@ internal abstract class NativeFlowRuntime : IDisposable
         if (Released) return; Released = true;
         Transition.Complete(false);
         List<Exception>? Failures = null;
-        AuthoringCleanup.Capture(ref Failures, () => SetGameplay(false));
-        foreach (var Source in Audio) if (Source) AuthoringCleanup.Capture(ref Failures, Source.Stop);
-        if (Graph) AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRoot(Graph));
+        CleanupOperations.Capture(ref Failures, () => SetGameplay(false));
+        foreach (var Source in Audio) if (Source) CleanupOperations.Capture(ref Failures, Source.Stop);
+        if (Graph) CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRoot(Graph));
         else foreach (var Entry in Renderers)
-            AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRenderer(Entry.Renderer));
+            CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRenderer(Entry.Renderer));
         if (Surface is not null)
-            AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRenderer(Surface));
-        if (EmitterModel) AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRoot(EmitterModel));
+            CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRenderer(Surface));
+        if (EmitterModel) CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRoot(EmitterModel));
         foreach (var Material in OwnedMaterials)
-            AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireMaterial(Material));
+            CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireMaterial(Material));
         foreach (var Surface in AuthoredSurfaces)
             if (Surface.Renderer)
             {
-                AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRenderer(Surface.Renderer));
-                AuthoringCleanup.Capture(ref Failures, () => Surface.Renderer.sharedMaterials = Surface.Materials);
-                AuthoringCleanup.Capture(ref Failures, () => Surface.Renderer.enabled = Surface.Enabled);
+                CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRenderer(Surface.Renderer));
+                CleanupOperations.Capture(ref Failures, () => Surface.Renderer.sharedMaterials = Surface.Materials);
+                CleanupOperations.Capture(ref Failures, () => Surface.Renderer.enabled = Surface.Enabled);
                 if (Surface.Properties is not null)
                 {
-                    AuthoringCleanup.Capture(ref Failures, () => Surface.Renderer.SetPropertyBlock(Surface.Properties));
+                    CleanupOperations.Capture(ref Failures, () => Surface.Renderer.SetPropertyBlock(Surface.Properties));
                     for (var i = 0; i < Surface.Slots.Length; i++)
                     {
                         var Slot = i;
-                        AuthoringCleanup.Capture(ref Failures, () => Surface.Renderer.SetPropertyBlock(Surface.Slots[Slot], Slot));
+                        CleanupOperations.Capture(ref Failures, () => Surface.Renderer.SetPropertyBlock(Surface.Slots[Slot], Slot));
                     }
                 }
             }
         if (EmitterModel)
             foreach (var (Renderer, Hidden) in Renderers)
                 if (Renderer && TransformOwnership.Contains(EmitterModel.transform, Renderer.transform))
-                    AuthoringCleanup.Capture(ref Failures, () => Renderer.forceRenderingOff = Hidden);
-        foreach (var Binding in SurfaceBindings) AuthoringCleanup.Capture(ref Failures, Binding.Dispose);
+                    CleanupOperations.Capture(ref Failures, () => Renderer.forceRenderingOff = Hidden);
+        foreach (var Binding in SurfaceBindings) CleanupOperations.Capture(ref Failures, Binding.Dispose);
         SurfaceBindings.Clear();
         if (Graph)
         {
-            AuthoringCleanup.Capture(ref Failures, () => Graph.SetActive(false));
-            AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(Graph));
+            CleanupOperations.Capture(ref Failures, () => Graph.SetActive(false));
+            CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(Graph));
         }
-        AuthoringCleanup.Capture(ref Failures, ReleaseNativeInputs);
-        if (OwnedMesh) AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(OwnedMesh));
+        CleanupOperations.Capture(ref Failures, ReleaseNativeInputs);
+        if (OwnedMesh) CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(OwnedMesh));
         if (Surface && InitialSurfaceProperties is not null)
         {
-            AuthoringCleanup.Capture(ref Failures, () => Surface.SetPropertyBlock(InitialSurfaceProperties));
-            AuthoringCleanup.Capture(ref Failures, () => Surface.SetPropertyBlock(InitialSurfaceSlotProperties, 0));
-            AuthoringCleanup.Capture(ref Failures, () => Surface.sharedMaterial = InitialSurfaceMaterial);
-            AuthoringCleanup.Capture(ref Failures, () => Surface.enabled = true);
+            CleanupOperations.Capture(ref Failures, () => Surface.SetPropertyBlock(InitialSurfaceProperties));
+            CleanupOperations.Capture(ref Failures, () => Surface.SetPropertyBlock(InitialSurfaceSlotProperties, 0));
+            CleanupOperations.Capture(ref Failures, () => Surface.sharedMaterial = InitialSurfaceMaterial);
+            CleanupOperations.Capture(ref Failures, () => Surface.enabled = true);
         }
         foreach (var Material in OwnedMaterials)
-            if (Material) AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(Material));
+            if (Material) CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(Material));
         OwnedMaterials.Clear(); BoundMaterials.Clear(); CoverageBlocks.Clear();
         if (Lifetime) Lifetime.Owner = null;
         Budget.Release(this); GeneratedGeometryBudget.ThrowFailures(Failures);
@@ -2017,7 +2017,8 @@ internal abstract class NativeFlowRuntime : IDisposable
             Container.Spline = Spline;
             foreach (var Frame in River.frames)
             {
-                if (!Finite(Frame.position) || !Finite(Frame.forward) || !Finite(Frame.up)
+                if (!UnityValueContract.Finite(Frame.position)
+                    || !UnityValueContract.Finite(Frame.forward) || !UnityValueContract.Finite(Frame.up)
                     || Frame.forward.sqrMagnitude < 0.000001f || Frame.up.sqrMagnitude < 0.000001f)
                     throw new FlowPlacementFailure();
                 Spline.Add(new BezierKnot(Frame.position, float3.zero, float3.zero,
@@ -2218,9 +2219,6 @@ internal abstract class NativeFlowRuntime : IDisposable
             NativeFlowProvider.WriteScalars(Writer, Zone.heatRate, Zone.heat, Zone.height); Writer.Write(Zone.isKiln);
         }
     }
-
-    static bool Finite(Vector3 Value) => float.IsFinite(Value.x) && float.IsFinite(Value.y) && float.IsFinite(Value.z);
-
     [HarmonyPatch(typeof(LavaRiver), nameof(LavaRiver.Apply))]
     static class FlowMeshPatch
     {

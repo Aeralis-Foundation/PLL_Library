@@ -491,12 +491,9 @@ namespace PLL.Creator.Editor
             }
             if (!string.IsNullOrEmpty(Published.InstalledBundlePath))
                 EditorGUILayout.LabelField("Installed bundle (recorded)", Published.InstalledBundlePath);
-            EditorGUILayout.HelpBox("Inspection checks only the selected runtime DLL's metadata and BepInEx core identity. "
-                + "Game and dependency compatibility remain unverified. "
-                + "Other mods and duplicate runtimes are not inspected or changed. Installation preserves the build report bytes. "
-                + "Runtime results match the bundle hash and selected DLL's module MVID, not its full-file hash. "
-                + "Sealed means a recorded final compatibility seal, not a current running-game or gameplay test. "
-                + "Close PEAK before reading its recorded log.", MessageType.Info);
+            EditorGUILayout.HelpBox("Checks the selected runtime DLL and BepInEx version, not game compatibility, dependencies or other mods. "
+                + "Installation keeps the build report unchanged. Recorded results identify the bundle hash and runtime module ID, not the full DLL hash. "
+                + "Sealed records a completed compatibility check; it does not confirm gameplay. Close PEAK before reading its log.", MessageType.Info);
         }
 
         internal static void SaveOpenPrefab(PllAuthoringFailure Failure)

@@ -49,10 +49,11 @@ namespace PLL.Creator.Editor
                 using (new EditorGUI.DisabledScope(true))
                     EditorGUILayout.ObjectField("Spawner", Spawner, typeof(PropSpawner), true);
                 var Cause = FindStaticZeroCause(Spawner);
-                EditorGUILayout.HelpBox(Cause ?? "No supported static zero cause found.",
+                EditorGUILayout.HelpBox(Cause ?? "No zero-spawn cause found in these checks.",
                     Cause == null ? MessageType.None : MessageType.Warning);
             }
-            EditorGUILayout.HelpBox("These checks read configured candidates and constraints. The separate sampling-bounds preview does not prove a zero result. Override candidates, physics hits, material/embedded/post constraints and native seeded generation require native testing.", MessageType.Info);
+            EditorGUILayout.HelpBox("These checks cover candidates and slope limits. Test spawning in PEAK to check overrides, "
+                + "raycasts, other constraints and seeded placement. A bounds preview does not confirm that props will spawn.", MessageType.Info);
         }
 
         internal static string FindStaticZeroCause(PropSpawner Spawner)

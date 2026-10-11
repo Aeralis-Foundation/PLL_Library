@@ -120,7 +120,7 @@ internal sealed class BoardingPassLayoutSelector : MonoBehaviour
             || (contentPanel != boardingPass.transform
                 && !contentPanel.IsChildOf(boardingPass.transform)))
         {
-            failure = "PLL Library could not add the boarding-pass layout controls because PEAK's boarding-pass content panel is unavailable.";
+            failure = "PEAK's boarding-pass panel is missing. PLL layout controls could not be added.";
             return false;
         }
 
@@ -154,7 +154,7 @@ internal sealed class BoardingPassLayoutSelector : MonoBehaviour
             || !nativeMultiText || !nativeMultiButtonRect || !nativeToggle || !nativeCheck
             || !nativeBox)
         {
-            failure = "PLL Library could not add the boarding-pass layout controls because PEAK's native selector or toggle template is unavailable.";
+            failure = "PEAK's selector or toggle template is missing. PLL layout controls could not be added.";
             return false;
         }
 
@@ -166,7 +166,7 @@ internal sealed class BoardingPassLayoutSelector : MonoBehaviour
                 customOptionsRect,
                 out var contentSlot))
         {
-            failure = "PLL Library could not add the boarding-pass layout controls because PEAK's boarding-pass content panel has no usable control slot.";
+            failure = "PEAK's boarding-pass panel has no room for PLL layout controls.";
             return false;
         }
 
@@ -208,7 +208,7 @@ internal sealed class BoardingPassLayoutSelector : MonoBehaviour
             : 0f;
         if (!TryCalculateControlBounds(contentPanel, contentSlot, out var ControlBounds))
         {
-            failure = "PLL Library could not add the boarding-pass layout controls because PEAK's boarding-pass content panel has no usable control slot.";
+            failure = "PEAK's boarding-pass panel has no room for PLL layout controls.";
             return false;
         }
 
@@ -255,14 +255,14 @@ internal sealed class BoardingPassLayoutSelector : MonoBehaviour
             || !template.GetComponent<ScrollRectAutoScroller>()
             || !item.GetComponent<ScrollRectAutoScrollerElement>())
         {
-            failure = "PLL Library could not add the boarding-pass layout selector because PEAK's native dropdown is incomplete.";
+            failure = "PEAK's dropdown is incomplete. The PLL layout selector could not be added.";
             return false;
         }
         var itemHeight = item.rect.height;
         var availableListHeight = contentPanel.rect.yMax - ControlBounds.yMax;
         if (itemHeight <= 0f || availableListHeight < itemHeight)
         {
-            failure = "PLL Library could not add the boarding-pass layout selector because the boarding pass has no usable list viewport.";
+            failure = "PEAK's boarding pass has no usable list panel. The PLL layout selector could not be added.";
             return false;
         }
         var IndicatorColumnWidth = RowHeight;

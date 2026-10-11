@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Security;
 using System.Text;
@@ -55,50 +56,15 @@ namespace PLL.Creator.Editor
         internal bool TryPlanDependencies(
             IReadOnlyList<string> Paths, out PllCreatorAssemblyPlan[] Plans, out string Failure)
         {
+            var Sources = new PllCreatorManagedAssembly[Paths.Count];
             try
             {
-                var Result = new List<PllCreatorAssemblyPlan>(Paths.Count);
-                var Conflicts = new List<string>();
-                foreach (var Path in Paths)
+                for (var Index = 0; Index < Paths.Count; Index++)
                 {
-                    var IoPath = ExtendedPath(Path);
-                    var Source = new PllCreatorManagedAssembly(
-                        AssemblyName.GetAssemblyName(IoPath), Path, Sha256(IoPath));
-                    PllCreatorAssemblyCandidate[] Found;
-                    IReadOnlyList<PllCreatorAssemblyCandidate> Candidates = CandidatesByName.TryGetValue(
-                        Source.Identity.Name, out Found)
-                        ? Found : Array.Empty<PllCreatorAssemblyCandidate>();
-                    PllCreatorAssemblyCandidate Active;
-                    if (!TrySelectDependencyProvider(Candidates, out Active)
-                        || Active != null && !CanReuseDependency(Source, Active))
-                    {
-                        Conflicts.Add(DependencyConflict(Source, Candidates));
-                        continue;
-                    }
-                    var RequiredPackage = string.Equals(
-                            Source.Identity.Name, "Unity.InputSystem", StringComparison.Ordinal)
-                        ? "com.unity.inputsystem 1.19.0"
-                        : string.Equals(Source.Identity.Name, "UnityEngine.UI", StringComparison.Ordinal)
-                            ? "com.unity.ugui 2.0.0" : null;
-                    if (Active == null && RequiredPackage != null)
-                    {
-                        Conflicts.Add("Assembly '" + Source.Identity.Name
-                            + "' requires the official Unity package provider " + RequiredPackage + ".");
-                        continue;
-                    }
-                    Result.Add(Active == null
-                        ? PllCreatorAssemblyPlan.Copy(Source) : PllCreatorAssemblyPlan.Reuse(Source, Active));
+                    var IoPath = ExtendedPath(Paths[Index]);
+                    Sources[Index] = new PllCreatorManagedAssembly(
+                        AssemblyName.GetAssemblyName(IoPath), Paths[Index], Sha256(IoPath));
                 }
-                if (Conflicts.Count != 0)
-                {
-                    Plans = null;
-                    Failure = "Managed provider conflicts prevent setup:\n- "
-                        + string.Join("\n- ", Conflicts);
-                    return false;
-                }
-                Plans = Result.ToArray();
-                Failure = string.Empty;
-                return true;
             }
             catch (Exception Exception) when (Exception is IOException || Exception is UnauthorizedAccessException
                                               || Exception is SecurityException || Exception is ArgumentException
@@ -108,6 +74,52 @@ namespace PLL.Creator.Editor
                 Failure = "Unity dependency providers could not be inspected: " + Exception.Message;
                 return false;
             }
+            return TryPlanDependencies(Sources, out Plans, out Failure);
+        }
+
+        internal bool TryPlanDependencies(
+            IReadOnlyList<PllCreatorManagedAssembly> Sources, out PllCreatorAssemblyPlan[] Plans, out string Failure)
+        {
+            var Result = new PllCreatorAssemblyPlan[Sources.Count];
+            var Conflicts = new List<string>();
+            for (var Index = 0; Index < Sources.Count; Index++)
+            {
+                var Source = Sources[Index];
+                PllCreatorAssemblyCandidate[] Found;
+                IReadOnlyList<PllCreatorAssemblyCandidate> Candidates = CandidatesByName.TryGetValue(
+                    Source.Identity.Name, out Found)
+                    ? Found : Array.Empty<PllCreatorAssemblyCandidate>();
+                PllCreatorAssemblyCandidate Active;
+                if (!TrySelectDependencyProvider(Candidates, out Active)
+                    || Active != null && !CanReuseDependency(Source, Active))
+                {
+                    Conflicts.Add(DependencyConflict(Source, Candidates));
+                    continue;
+                }
+                var RequiredPackage = string.Equals(
+                        Source.Identity.Name, "Unity.InputSystem", StringComparison.Ordinal)
+                    ? "com.unity.inputsystem 1.19.0"
+                    : string.Equals(Source.Identity.Name, "UnityEngine.UI", StringComparison.Ordinal)
+                        ? "com.unity.ugui 2.0.0" : null;
+                if (Active == null && RequiredPackage != null)
+                {
+                    Conflicts.Add("Assembly '" + Source.Identity.Name
+                        + "' requires the official Unity package provider " + RequiredPackage + ".");
+                    continue;
+                }
+                Result[Index] = Active == null
+                    ? PllCreatorAssemblyPlan.Copy(Source) : PllCreatorAssemblyPlan.Reuse(Source, Active);
+            }
+            if (Conflicts.Count != 0)
+            {
+                Plans = null;
+                Failure = "Assembly conflicts prevent setup:\n- "
+                    + string.Join("\n- ", Conflicts);
+                return false;
+            }
+            Plans = Result;
+            Failure = string.Empty;
+            return true;
         }
 
         internal bool NoConflicts(
@@ -301,9 +313,9 @@ namespace PLL.Creator.Editor
                 && string.Equals(Value.ProviderKind, ImportedPluginProvider, StringComparison.Ordinal)
                 && SameDependencyBinary(Source, Value));
             var Action = ExactImported
-                ? "Enable Auto Reference and Editor + StandaloneWindows64 compatibility on the exact provider, "
+                ? "Enable Auto Reference and compatibility with Editor and Windows 64 for this assembly, "
                     + "or remove it"
-                : "Remove or isolate the existing provider(s)";
+                : "Remove or disable the conflicting assemblies";
             return "Assembly '" + Source.Identity.Name + "' conflicts with PEAK source '" + Source.Path
                 + "'. " + Action + ": " + Actual + ".";
         }
@@ -431,8 +443,11 @@ namespace PLL.Creator.Editor
             if (Getter == null || !Property.PropertyType.IsEnum) return Package => false;
             var FullTrust = Property.PropertyType.GetField("FullTrust", BindingFlags.Public | BindingFlags.Static);
             if (FullTrust == null) return Package => false;
-            var TrustedValue = FullTrust.GetValue(null);
-            return Package => TrustedValue.Equals(Getter.Invoke(Package, null));
+            var Package = Expression.Parameter(typeof(PackageManagerInfo));
+            return Expression.Lambda<Func<PackageManagerInfo, bool>>(
+                Expression.Equal(Expression.Call(Package, Getter),
+                    Expression.Constant(FullTrust.GetValue(null), Property.PropertyType)),
+                Package).Compile();
         }
 
         static bool TrustedOfficialPackage(PackageManagerInfo Package)
@@ -443,15 +458,7 @@ namespace PLL.Creator.Editor
                 if (Registry == null || !Registry.isDefault || !OfficialRegistryUrl(Registry.url)) return false;
             }
             else if (Package.source != UnityEditor.PackageManager.PackageSource.BuiltIn) return false;
-            try
-            {
-                return PackageHasFullTrust(Package);
-            }
-            catch (Exception Exception) when (Exception is TargetException || Exception is TargetInvocationException
-                                              || Exception is MethodAccessException)
-            {
-                return false;
-            }
+            return PackageHasFullTrust(Package);
         }
 
         static bool OfficialRegistryUrl(string Value)

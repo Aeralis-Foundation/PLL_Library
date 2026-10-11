@@ -374,6 +374,7 @@ internal sealed class FeatureGeneration
                     Run.PropInteractions.Enroll(Occurrence,
                         NeedsPlatforms ? NativeFeatureGeneration.CaptureOwnedTreePlatforms() : null, Occurrence.Container);
                     Run.SurfaceTextures.Enroll(Occurrence);
+                    Run.NativeMaterials.Enroll(Occurrence);
                 } : null);
             Routine = NativeFeatureGeneration.Run(Operation);
         }

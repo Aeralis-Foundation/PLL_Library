@@ -34,10 +34,10 @@ internal abstract class ForceSpawnExecution
     internal static ForceSpawnExecution Create(
         PLLForceSpawner Marker,
         string Key,
-        ForceSpawnResolution Resolution) => Resolution switch
+        NativeSpawnResolution Resolution) => Resolution switch
     {
-        ItemForceSpawnResolution Item => new ItemExecution(Marker, Key, Item),
-        PropForceSpawnResolution Prop => new PropExecution(Marker, Key, Prop),
+        NativeItemSpawnResolution Item => new ItemExecution(Marker, Key, Item),
+        NativePropSpawnResolution Prop => new PropExecution(Marker, Key, Prop),
         _ => throw new InvalidOperationException($"Force marker '{Key}' has an unknown sealed resolution.")
     };
 
@@ -101,7 +101,7 @@ internal abstract class ForceSpawnExecution
 
     sealed class ItemExecution : ForceSpawnExecution
     {
-        readonly ItemForceSpawnResolution Resolution;
+        readonly NativeItemSpawnResolution Resolution;
         Spawner? ItemSpawner;
         Peak.SpawnedItemTracker? ItemTracker;
         Hash128 ItemTrackerId;
@@ -109,7 +109,7 @@ internal abstract class ForceSpawnExecution
         internal ItemExecution(
             PLLForceSpawner Marker,
             string Key,
-            ItemForceSpawnResolution ResolutionValue) : base(Marker, Key)
+            NativeItemSpawnResolution ResolutionValue) : base(Marker, Key)
         {
             Resolution = ResolutionValue;
         }
@@ -216,7 +216,7 @@ internal abstract class ForceSpawnExecution
     sealed class PropExecution : ForceSpawnExecution
     {
         static readonly Dictionary<int, PropExecution> CaptureTargets = new();
-        readonly PropForceSpawnResolution Resolution;
+        readonly NativePropSpawnResolution Resolution;
         GameObject[]? Family;
         PropSpawner? PropSpawner;
         GameObject? PropOutput;
@@ -227,7 +227,7 @@ internal abstract class ForceSpawnExecution
         internal PropExecution(
             PLLForceSpawner Marker,
             string Key,
-            PropForceSpawnResolution ResolutionValue) : base(Marker, Key)
+            NativePropSpawnResolution ResolutionValue) : base(Marker, Key)
         {
             Resolution = ResolutionValue;
         }

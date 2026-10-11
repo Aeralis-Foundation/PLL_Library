@@ -39,7 +39,7 @@ namespace PLL.Creator.Editor
             EffectColor = EditorGUILayout.ColorField("Biome Ambient Color", EffectColor);
             Presentation = (GameObject)EditorGUILayout.ObjectField("Presentation Child", Presentation, typeof(GameObject), true);
             NativeParticles = (PllNativeEffectParticles)EditorGUILayout.EnumPopup("Native Particles", NativeParticles);
-            EditorGUILayout.HelpBox("Uses the source's existing particle graph or a standalone native fire/smoke clone, never both. Native selection requires an empty particle graph and no presentation child. Zone effects can be bound to an owning Effect Zone or Native Resolver.", MessageType.Info);
+            EditorGUILayout.HelpBox("Use existing particles or native fire or smoke, not both. Native particles require no custom particles or presentation child. Bind Zone effects to an Effect Zone or Native Resolver.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Target))
                 if (GUILayout.Button("Add Effect"))
                 {
@@ -73,7 +73,7 @@ namespace PLL.Creator.Editor
                 throw new InvalidOperationException("Choose a supported effect mode, valid duration and a hook only for Emit Hook.");
             if (Ambience && !EditorUtility.IsPersistent(Ambience)
                 || Sound && !EditorUtility.IsPersistent(Sound))
-                throw new InvalidOperationException("Effect audio must reference persistent assets.");
+                throw new InvalidOperationException("Effect audio must use saved assets.");
             PllSourceIdentityValidator.ValidateColor(Color, "Effect color");
             if (Presentation)
             {

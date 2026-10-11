@@ -266,7 +266,7 @@ internal static class NativeContentTools
 
     internal static void CaptureForceContent()
     {
-        if (Current is Export Export) ForceSpawnCatalog.ProjectContent(Export.Entries);
+        if (Current is Export Export) NativeSpawnCatalog.ProjectContent(Export.Entries);
     }
 
     internal static void CaptureItemIcon(NativeContentEntry Entry, Texture2D? Icon)

@@ -52,7 +52,7 @@ namespace PLL.Creator.Editor
                 SurfaceMatch = (Material)EditorGUILayout.ObjectField(
                     "Native Surface Match Material", SurfaceMatch, typeof(Material), false);
                 EditorGUILayout.HelpBox(
-                    "Leave the match material empty to keep custom materials. The model needs solid collision and an owned anchor; it cannot contain executable behavior.",
+                    "Leave the match material empty to keep custom materials. The model needs solid collision and a child anchor, with no behavior scripts.",
                     MessageType.Info);
             }
             using (new EditorGUI.DisabledScope(!Link || !Link.Definition
@@ -67,7 +67,7 @@ namespace PLL.Creator.Editor
                             : new PllNativeAmuletPedestal());
                         Close();
                     }
-                    catch (ArgumentException Failure)
+                    catch (Exception Failure) when (Failure is ArgumentException or InvalidOperationException)
                     {
                         EditorUtility.DisplayDialog("PLL Creator", Failure.Message, "Close");
                     }
@@ -77,39 +77,35 @@ namespace PLL.Creator.Editor
         static void Create(GameObject Root, PllAmuletOpportunityCategory Category,
             Placement Timing, PllAmuletPresentation Presentation)
         {
+            PllAtmosphereAuthoringCommand.RequireCurrentBiomeRoot(Root);
             var Link = Root.GetComponent<PllBiomeRoot>();
             PllAmuletSpawnerAuthoring.ResolveCategory(Category, Link.Definition.Behavior);
             if (Presentation is PllCustomAmuletPedestal Custom) Custom.RequireValid();
             const string Action = "Create Amulet Spawner";
-            Undo.IncrementCurrentGroup();
-            var Group = Undo.GetCurrentGroup();
-            Undo.SetCurrentGroupName(Action);
-            var Scope = new GameObject("Amulet Spawner");
-            Undo.RegisterCreatedObjectUndo(Scope, Action);
-            Scope.transform.SetParent(Root.GetComponent<PllBiomePrefabAnchors>().FloorRoot.transform, false);
-            if (Timing == Placement.Late)
-                Undo.AddComponent<PropGrouper>(Scope).timing = PropGrouper.PropGrouperTiming.Late;
-            else if (Timing == Placement.Final)
+            PllAuthoringCommands.Create(Action, () =>
             {
-                Undo.AddComponent<PLLFinalGeneration>(Scope);
-            }
-            var Owner = new GameObject("Amulet Opportunity");
-            Undo.RegisterCreatedObjectUndo(Owner, Action);
-            Owner.transform.SetParent(Scope.transform, false);
-            var Source = Undo.AddComponent<PllAmuletSpawnerAuthoring>(Owner);
-            using (var Serialized = new SerializedObject(Source))
-            {
-                Serialized.FindProperty("CategoryValue").intValue = (int)Category;
-                Serialized.FindProperty("PresentationValue").managedReferenceValue = Presentation;
-                var Volume = Serialized.FindProperty("VolumeValue");
-                Volume.FindPropertyRelative("shape").intValue = (int)PllZoneShape.Box;
-                Volume.FindPropertyRelative("center").vector3Value = new Vector3(0f, 3f, 0f);
-                Volume.FindPropertyRelative("size").vector3Value = new Vector3(5f, 6f, 5f);
-                Serialized.ApplyModifiedPropertiesWithoutUndo();
-            }
-            Undo.CollapseUndoOperations(Group);
-            Selection.activeGameObject = Owner;
-            EditorGUIUtility.PingObject(Owner);
+                var Scope = new GameObject("Amulet Spawner");
+                Undo.RegisterCreatedObjectUndo(Scope, Action);
+                Scope.transform.SetParent(Root.GetComponent<PllBiomePrefabAnchors>().FloorRoot.transform, false);
+                if (Timing == Placement.Late)
+                    Undo.AddComponent<PropGrouper>(Scope).timing = PropGrouper.PropGrouperTiming.Late;
+                else if (Timing == Placement.Final) Undo.AddComponent<PLLFinalGeneration>(Scope);
+                var Owner = new GameObject("Amulet Opportunity");
+                Undo.RegisterCreatedObjectUndo(Owner, Action);
+                Owner.transform.SetParent(Scope.transform, false);
+                var Source = Undo.AddComponent<PllAmuletSpawnerAuthoring>(Owner);
+                using (var Serialized = new SerializedObject(Source))
+                {
+                    Serialized.FindProperty("CategoryValue").intValue = (int)Category;
+                    Serialized.FindProperty("PresentationValue").managedReferenceValue = Presentation;
+                    var Volume = Serialized.FindProperty("VolumeValue");
+                    Volume.FindPropertyRelative("shape").intValue = (int)PllZoneShape.Box;
+                    Volume.FindPropertyRelative("center").vector3Value = new Vector3(0f, 3f, 0f);
+                    Volume.FindPropertyRelative("size").vector3Value = new Vector3(5f, 6f, 5f);
+                    Serialized.ApplyModifiedPropertiesWithoutUndo();
+                }
+                return Source;
+            });
         }
     }
 }

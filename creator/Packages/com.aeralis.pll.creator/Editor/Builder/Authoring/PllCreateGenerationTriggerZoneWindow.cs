@@ -48,7 +48,7 @@ namespace PLL.Creator.Editor
                 Triggers.Add((PllEffectZoneTransition.Enter, null));
                 GUIUtility.ExitGUI();
             }
-            EditorGUILayout.HelpBox("Enter means the first living player enters; Exit means the last living player leaves. Targets must be deferred Hooked sources in this biome and owned by no other zone. Looped is off by default; each declared transition-target pair admits generation once per occurrence. The zone does not activate arbitrary objects.", MessageType.Info);
+            EditorGUILayout.HelpBox("Enter triggers when the first living player enters; Exit triggers when the last leaves. Choose deferred Hooked sources in this biome that are not bound to another zone. With Looped off, each target generates once per transition in each biome occurrence.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Target || Triggers.Count == 0))
                 if (GUILayout.Button("Add Generation Trigger Zone"))
                 {

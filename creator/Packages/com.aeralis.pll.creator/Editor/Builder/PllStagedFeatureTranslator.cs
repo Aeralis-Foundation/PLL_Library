@@ -15,7 +15,6 @@ using static PLL.Creator.Editor.PllSourceIdentityValidator;
 
 namespace PLL.Creator.Editor
 {
-    [InitializeOnLoad]
     internal sealed class PllStagedFeatureTranslator
     {
         const float CampfireMoraleBoostRadius = 12f;
@@ -135,12 +134,13 @@ namespace PLL.Creator.Editor
                 Spawner.modifiers ??= new List<PropSpawnerMod>();
                 Spawner.modifiers.Insert(Insertion.Index, new PllMountedToolInsertionModifier());
             }
-            InjectNoPropConstraints(StagedRoot, Catalog.NoPropSpawn.Length != 0);
-            TranslatePropZones(SourceRoot, StagedRoot, PropZones);
             TranslateNativeResolvers(Stage, Prefix, SourceRoot, StagedRoot,
                 ComponentsInNode(Node, Catalog.NativeResolvers));
             TranslateItemSpawners(SourceRoot, StagedRoot, ItemSpawners);
+            PllNativeSpawnerCompiler.Translate(SourceRoot, StagedRoot, ComponentsInNode(Node, Catalog.NativeSpawners));
             if (Node.IsRoot) TranslateFinalGeneration(SourceRoot, StagedRoot, Catalog.FinalGeneration);
+            InjectNoPropConstraints(StagedRoot, Catalog.NoPropSpawn.Length != 0);
+            TranslatePropZones(SourceRoot, StagedRoot, PropZones);
             NormalizePropSpawners(StagedRoot);
             PllBundleSerialization.SealPrefab(StagedRoot);
         }

@@ -40,6 +40,7 @@ static class PllBundleSerialization
                 case PLLNativeVisualResolver Visual: Visual.SealBundleSerialization(); break;
                 case PllSoundEmitterAuthoring Sound: Sound.SealBundleSerialization(); break;
                 case PllVisualAuthoring Visual: Visual.SealBundleSerialization(); break;
+                case PllNativeMaterialAuthoring Material: Material.SealBundleSerialization(); break;
                 case PLLNativeResolver Resolver: Resolver.SealBundleSerialization(); break;
                 case PllVariationAuthoring Variations: Variations.SealBundleSerialization(); break;
                 case PllLuggageAuthoring Luggage: Luggage.SealBundleSerialization(); break;

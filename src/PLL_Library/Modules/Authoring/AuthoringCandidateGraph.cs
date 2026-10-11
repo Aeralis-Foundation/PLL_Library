@@ -38,23 +38,48 @@ internal sealed class AuthoringCandidateGraph
         var pending = new Queue<GameObject>();
         var seen = new HashSet<GameObject> { template.gameObject };
         var references = new Dictionary<GameObject, GameObject[]>();
-        var parentSpawners = new List<PropSpawner>();
         EnqueueReferences(template.gameObject);
         while (pending.Count != 0) EnqueueReferences(pending.Dequeue());
         ValidateAcyclic(template.gameObject);
-        ValidateChildEdges();
         return new AuthoringCandidateGraph(template.gameObject, ordered.ToArray(), references);
 
         void EnqueueReferences(GameObject owner)
         {
+            if (owner != template.gameObject
+                && owner.GetComponentInChildren<NativeModifiers>(true))
+                throw new ArgumentException(
+                    "NativeModifiers cannot occur in a candidate prefab.", nameof(template));
             var outgoing = new List<GameObject>();
             foreach (var spawner in owner.GetComponentsInChildren<PropSpawner>(true))
             {
                 if (!spawner) throw new ArgumentException($"Biome '{id}' candidate graph contains a destroyed PropSpawner.", nameof(template));
-                parentSpawners.Add(spawner);
                 var Values = NativePrefabContracts.EffectiveProps(spawner);
                 if (Values is null) continue;
-                foreach (var Value in Values) Enqueue(Value, "PropSpawner", outgoing);
+                PllChildPropTiming? Timing = null;
+                foreach (var Value in Values)
+                {
+                    Enqueue(Value, "PropSpawner", outgoing);
+                    var Child = Value.GetComponent<PllChildPropAuthoring>();
+                    if (!Child) continue;
+                    if (Timing.HasValue && Timing.Value != Child.Timing)
+                        throw new ArgumentException($"Biome '{id}' PropSpawner '{spawner.name}' selects child-prop candidates with conflicting timings.", nameof(template));
+                    Timing = Child.Timing;
+                }
+                if (!Timing.HasValue) continue;
+                var Immediate = 0; var Late = 0; var Muted = false;
+                if (spawner.modifiers is { } Modifiers)
+                    foreach (var Modifier in Modifiers)
+                        if (Modifier is PSM_ChildSpawners)
+                        { Immediate++; Muted |= Modifier.mute; }
+                if (spawner.postSpawnBehaviors is { } Behaviors)
+                    foreach (var Behavior in Behaviors)
+                        if (Behavior is PSB_ChildSpawners)
+                        { Late++; Muted |= Behavior.mute; }
+                if (Muted
+                    || Timing == PllChildPropTiming.Immediate && (Immediate != 1 || Late != 0)
+                    || Timing == PllChildPropTiming.Late && (Immediate != 0 || Late != 1)
+                    || Timing is not (PllChildPropTiming.Immediate or PllChildPropTiming.Late))
+                    throw new ArgumentException($"Biome '{id}' PropSpawner '{spawner.name}' has an invalid staged child-spawner mechanism.", nameof(template));
             }
             foreach (var child in owner.GetComponentsInChildren<PllChildPropAuthoring>(true))
             {
@@ -96,66 +121,6 @@ internal sealed class AuthoringCandidateGraph
                 foreach (var candidate in references[value]) Visit(candidate);
                 states[value] = 2;
             }
-        }
-
-        void ValidateChildEdges()
-        {
-            foreach (var spawner in parentSpawners)
-            {
-                var timings = new HashSet<PllChildPropTiming>();
-                var Values = NativePrefabContracts.EffectiveProps(spawner);
-                if (Values is not null)
-                    foreach (var Value in Values)
-                    {
-                        var Child = Value.GetComponent<PllChildPropAuthoring>();
-                        if (Child) timings.Add(Child.Timing);
-                    }
-                if (timings.Count == 0) continue;
-                if (timings.Count != 1)
-                    throw new ArgumentException($"Biome '{id}' PropSpawner '{spawner.name}' selects child-prop candidates with conflicting timings.", nameof(template));
-                var timing = First(timings);
-                var immediate = CountImmediate(spawner.modifiers, out var invalidImmediate);
-                var late = CountLate(spawner.postSpawnBehaviors, out var invalidLate);
-                if (invalidImmediate || invalidLate
-                    || timing == PllChildPropTiming.Immediate && (immediate != 1 || late != 0)
-                    || timing == PllChildPropTiming.Late && (immediate != 0 || late != 1)
-                    || timing is not (PllChildPropTiming.Immediate or PllChildPropTiming.Late))
-                    throw new ArgumentException($"Biome '{id}' PropSpawner '{spawner.name}' has an invalid staged child-spawner mechanism.", nameof(template));
-            }
-        }
-
-        static PllChildPropTiming First(IEnumerable<PllChildPropTiming> values)
-        {
-            foreach (var value in values) return value;
-            throw new InvalidOperationException("A child-prop timing set was unexpectedly empty.");
-        }
-
-        static int CountImmediate(IReadOnlyList<PropSpawnerMod>? values, out bool invalid)
-        {
-            var count = 0;
-            invalid = false;
-            if (values is null) return 0;
-            foreach (var value in values)
-                if (value is PSM_ChildSpawners)
-                {
-                    count++;
-                    invalid |= value.mute;
-                }
-            return count;
-        }
-
-        static int CountLate(IReadOnlyList<PostSpawnBehavior>? values, out bool invalid)
-        {
-            var count = 0;
-            invalid = false;
-            if (values is null) return 0;
-            foreach (var value in values)
-                if (value is PSB_ChildSpawners)
-                {
-                    count++;
-                    invalid |= value.mute;
-                }
-            return count;
         }
     }
 }

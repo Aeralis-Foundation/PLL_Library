@@ -293,8 +293,8 @@ internal sealed class GeneratedPropOutputCapture
         foreach (var Material in Materials)
         {
             Writer.Write((bool)Material);
-            if (Material) Writer.Write(Catalog.MaterialOrdinal(Map.CurrentRun!.SurfaceTextures.CanonicalMaterial(
-                NativeFogRenderRuntime.CanonicalMaterial(Material))));
+            if (Material) Writer.Write(Catalog.MaterialOrdinal(Map.CurrentRun!.NativeMaterials.CanonicalMaterial(
+                Map.CurrentRun.SurfaceTextures.CanonicalMaterial(NativeFogRenderRuntime.CanonicalMaterial(Material)))));
         }
     }
 
@@ -453,6 +453,7 @@ internal sealed class GeneratedPropOutputCapture
                 else __result.AddComponent<PllGeneratedPrefabIdentity>().Bind(__0);
                 var Flows = NativeFeatureGeneration.BindGeneratedFlows(__0, __result);
                 if (Flows.Length != 0) __result.AddComponent<PllNativeFlowCondition>().Bind(__0, Flows);
+                Map.CurrentRun!.NativeSpawners.EnrollGenerated(__0, __result);
                 return null;
             }
             finally { Spawn.Native?.Dispose(); }

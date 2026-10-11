@@ -19,7 +19,7 @@ namespace PLL.Creator.Editor
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
-            EditorGUILayout.HelpBox("The volume limits initial placement, not native movement. Native actor zones retain PEAK's behavior and network graph; hazards retain native timing. Points and nest positions use zone-local coordinates.", MessageType.Info);
+            EditorGUILayout.HelpBox("The volume limits initial placement, not movement. Actors keep PEAK's behavior and networking; hazards use native timing. Points and nest positions use zone-local coordinates.", MessageType.Info);
         }
 
         public override void OnSceneGUI()

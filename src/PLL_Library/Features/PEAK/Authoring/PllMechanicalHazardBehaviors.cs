@@ -125,7 +125,7 @@ static class PllMechanicalHazardValueContract
         var Start = Saw.RailStart.localPosition; var End = Saw.RailEnd.localPosition;
         if (!Start.x.Equals(End.x) || !Start.z.Equals(End.z) || Start.y.Equals(End.y)
             || !Start.x.Equals(Saw.Blade.localPosition.x) || !Start.z.Equals(Saw.Blade.localPosition.z)
-            || !Finite(Start) || !Finite(End))
+            || !PllAuthoringValueContract.CanEncode(Start) || !PllAuthoringValueContract.CanEncode(End))
             return "Saw endpoints must define a finite nonzero rail-local Y path.";
         if (!Nonnegative(Saw.TimeoutSeconds) || !PllAuthoringValueContract.CanEncode(Saw.OscillateSpeed)
             || !Nonnegative(Saw.TraceSpeed) || Saw.TraceSpeed == 0f
@@ -197,6 +197,4 @@ static class PllMechanicalHazardValueContract
 
     static bool Owned(Transform Owner, Transform Value) => Value && TransformOwnership.Contains(Owner, Value);
     static bool Nonnegative(float Value) => Value >= 0f && PllAuthoringValueContract.CanEncode(Value);
-    static bool Finite(Vector3 Value) => PllAuthoringValueContract.CanEncode(Value.x)
-        && PllAuthoringValueContract.CanEncode(Value.y) && PllAuthoringValueContract.CanEncode(Value.z);
 }

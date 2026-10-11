@@ -180,10 +180,10 @@ namespace PLL.Creator.Editor
         }
 
         internal static T[] DiscoverGraphComponents<T>(PrefabGraph Graph) where T : Component =>
-            Graph.Nodes.SelectMany(Node => DiscoverComponents<T>(Node.SourceRoot)).ToArray();
+            Graph.Nodes.SelectMany(Node => Node.Components).OfType<T>().ToArray();
 
-        internal static Component[] DiscoverGraphComponents(PrefabGraph Graph, Type Type) =>
-            Graph.Nodes.SelectMany(Node => DiscoverComponents(Node.SourceRoot, Type)).ToArray();
+        internal static T[] DiscoverComponents<T>(PrefabNode Node) where T : Component =>
+            Node.Components.OfType<T>().ToArray();
 
         internal static T[] ComponentsInNode<T>(PrefabNode Node, IReadOnlyList<T> Values) where T : Component =>
             Values.Where(Value => BelongsToNode(Node, Value)).ToArray();
@@ -359,7 +359,7 @@ namespace PLL.Creator.Editor
                     throw new InvalidOperationException("Reachable candidate '" + Path + "' is not a prefab asset.");
                 var Node = new PrefabNode(Prefab, Path, string.Equals(Path, RootPath, StringComparison.Ordinal));
                 Nodes.Add(Path, Node);
-                foreach (var Spawner in Prefab.GetComponentsInChildren<PropSpawner>(true))
+                foreach (var Spawner in Node.Components.OfType<PropSpawner>())
                 {
                     var Candidates = NativePrefabContracts.EffectiveProps(Spawner);
                     if (Candidates == null) continue;
@@ -370,21 +370,21 @@ namespace PLL.Creator.Editor
                         if (!Nodes.ContainsKey(CandidatePath)) Pending.Add(CandidatePath);
                     }
                 }
-                foreach (var Child in Prefab.GetComponentsInChildren<PllChildPropAuthoring>(true))
+                foreach (var Child in Node.Components.OfType<PllChildPropAuthoring>())
                     for (var i = 0; i < Child.Props.Count; i++)
                     {
                         var CandidatePath = PllSourceIdentityValidator.CandidatePath(Child.Props[i], "PllChildPropAuthoring.Props[" + i + "]");
                         Node.Edges.Add(new PrefabEdge(null, Child, i, CandidatePath));
                         if (!Nodes.ContainsKey(CandidatePath)) Pending.Add(CandidatePath);
                     }
-                foreach (var Zone in Prefab.GetComponentsInChildren<PllEntityZoneAuthoring>(true))
+                foreach (var Zone in Node.Components.OfType<PllEntityZoneAuthoring>())
                     if (Zone.Source is PllAuthoredEntityZoneSource Authored)
                     {
                         var CandidatePath = PllSourceIdentityValidator.CandidatePath(Authored.Prefab, "Authored Entity Zone prefab");
                         Node.Edges.Add(new PrefabEdge(null, null, 0, CandidatePath, Zone));
                         if (!Nodes.ContainsKey(CandidatePath)) Pending.Add(CandidatePath);
                     }
-                foreach (var Zone in Prefab.GetComponentsInChildren<PllHazardZoneAuthoring>(true))
+                foreach (var Zone in Node.Components.OfType<PllHazardZoneAuthoring>())
                     if (Zone.Source is PllAuthoredHazardZoneSource Authored)
                     {
                         var CandidatePath = PllSourceIdentityValidator.CandidatePath(Authored.Prefab, "Authored Hazard Zone prefab");
@@ -431,42 +431,25 @@ namespace PLL.Creator.Editor
             }
         }
 
-        internal static T[] DiscoverComponents<T>(GameObject Root) where T : Component =>
-            SortComponents(Root, Root.GetComponentsInChildren<T>(true));
-
-        static Component[] DiscoverComponents(GameObject Root, Type Type) =>
-            SortComponents(Root, Root.GetComponentsInChildren(Type, true));
-
-        static T[] SortComponents<T>(GameObject Root, T[] Values) where T : Component
+        internal static T[] DiscoverComponents<T>(GameObject Root) where T : Component
         {
-            if (Values.Length < 2) return Values;
-            var Keys = new (int[] Path, int Order)[Values.Length];
-            for (var i = 0; i < Values.Length; i++)
-                Keys[i] = (PllHierarchy.SiblingPath(Root.transform, Values[i].transform,
-                    "An authoring component is not owned by its source prefab."), ComponentOrder(Values[i]));
-            Array.Sort(Keys, Values, Comparer<(int[] Path, int Order)>.Create(CompareComponentPaths));
-            return Values;
-        }
-
-        static int CompareComponentPaths((int[] Path, int Order) Left, (int[] Path, int Order) Right)
-        {
-            var Count = Math.Min(Left.Path.Length, Right.Path.Length);
-            for (var i = 0; i < Count; i++)
+            var Values = new List<T>();
+            var Pending = new Stack<Transform>();
+            Pending.Push(Root.transform);
+            while (Pending.Count != 0)
             {
-                var Result = Left.Path[i].CompareTo(Right.Path[i]);
-                if (Result != 0) return Result;
+                var Current = Pending.Pop();
+                foreach (var Component in Current.GetComponents<T>())
+                {
+                    if (!Component)
+                        throw new InvalidOperationException("Prefab '" + Root.name + "' object '"
+                            + PllHierarchy.NamePath(Root.transform, Current) + "' contains a missing component.");
+                    Values.Add(Component);
+                }
+                for (var Index = Current.childCount - 1; Index >= 0; Index--)
+                    Pending.Push(Current.GetChild(Index));
             }
-            var PathResult = Left.Path.Length.CompareTo(Right.Path.Length);
-            if (PathResult != 0) return PathResult;
-            return Left.Order.CompareTo(Right.Order);
-        }
-
-        static int ComponentOrder(Component Value)
-        {
-            var Components = Value.gameObject.GetComponents<Component>();
-            for (var i = 0; i < Components.Length; i++)
-                if (Components[i] == Value) return i;
-            throw new InvalidOperationException("Component order changed while authoring catalogs were discovered.");
+            return Values.ToArray();
         }
 
         internal static void ValidateCreatorComponent(Component Component, string Context)

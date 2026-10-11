@@ -55,10 +55,10 @@ internal static class AuthoringPresentationRuntime
     internal static void Leave()
     {
         List<Exception>? Failures = null;
-        AuthoringCleanup.Capture(ref Failures, StopAmbience);
-        if (OneShotSource) AuthoringCleanup.Capture(ref Failures, () => OneShotSource.Stop());
-        AuthoringCleanup.Capture(ref Failures, AtmosphereProjection.Release);
-        AuthoringCleanup.Capture(ref Failures, RestoreAmbientColor);
+        CleanupOperations.Capture(ref Failures, StopAmbience);
+        if (OneShotSource) CleanupOperations.Capture(ref Failures, () => OneShotSource.Stop());
+        CleanupOperations.Capture(ref Failures, AtmosphereProjection.Release);
+        CleanupOperations.Capture(ref Failures, RestoreAmbientColor);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Visual transition cleanup failed.", Failures);

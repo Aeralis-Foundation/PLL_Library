@@ -174,8 +174,7 @@ internal sealed class EffectAuthoringContract
         var ResolvedAll = new ParticleSystem[AllParticleBindings.Length];
         for (var Index = 0; Index < ResolvedAll.Length; Index++)
             ResolvedAll[Index] = AllParticleBindings[Index].Resolve(RuntimeRoot, Biome, "effect particle");
-        if (!TransformOwnership.DiscoverableWhenActivated(RuntimeRoot, EffectRoot.transform)
-            || TransformOwnership.HasPropSpawnerInPath(RuntimeRoot, Value.transform)
+        if (TransformOwnership.HasPropSpawnerInPath(RuntimeRoot, Value.transform)
             || TransformOwnership.HasPropSpawnerInPath(RuntimeRoot, EffectRoot.transform)
             || PllAuthoringValueContract.DestroyedReference(Ambience)
             || PllAuthoringValueContract.DestroyedReference(Sound)
@@ -190,7 +189,8 @@ internal sealed class EffectAuthoringContract
             || Presentation && Presentation.activeSelf)
             throw new InvalidOperationException($"Biome '{Biome}' runtime effect metadata does not match its registered contract.");
         if (Presentation) ValidatePresentationComponents(Presentation, Value, Biome, false);
-        ValidateParticleGraph(RuntimeRoot, EffectRoot, Presentation, Value, Biome, false, out var RuntimeTop, out var RuntimeAll);
+        ValidateParticleGraph(RuntimeRoot, EffectRoot, Presentation, Value, Biome, false,
+            out var RuntimeTop, out var RuntimeAll, CheckActivePath: false);
         if (!Same(RuntimeTop, ResolvedTop) || !Same(RuntimeAll, ResolvedAll))
             throw new InvalidOperationException($"Biome '{Biome}' runtime effect particle graph does not match its registered contract.");
         var NativeParticles = NativeParticlesChoice == PllNativeEffectParticles.None ? null
@@ -273,7 +273,8 @@ internal sealed class EffectAuthoringContract
         BiomeId Biome,
         bool Argument,
         out ParticleSystem[] Top,
-        out ParticleSystem[] All)
+        out ParticleSystem[] All,
+        bool CheckActivePath = true)
     {
         Top = new ParticleSystem[Source.Particles.Count];
         var TopSet = new HashSet<ParticleSystem>();
@@ -293,7 +294,7 @@ internal sealed class EffectAuthoringContract
         foreach (var Particle in All)
         {
             if (!Particle
-                || !Discoverable(BindingRoot, Particle.transform, Presentation ? Presentation.transform : null)
+                || CheckActivePath && !Discoverable(BindingRoot, Particle.transform, Presentation ? Presentation.transform : null)
                 || TransformOwnership.HasPropSpawnerInPath(BindingRoot, Particle.transform)
                 || Particle.main.playOnAwake || !Particle.isStopped)
                 Fail($"Biome '{Biome}' effect '{Source.name}' contains an inactive, unowned, PropSpawner-owned, or non-normalized particle system.", Argument);

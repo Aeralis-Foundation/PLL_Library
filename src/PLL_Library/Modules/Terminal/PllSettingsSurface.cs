@@ -18,7 +18,7 @@ internal static class PllSettingsSurface
     {
         if (!TryBind(nativePage, out var binding))
         {
-            Plugin.PLLLog.LogError("PLL Library could not add its settings surface because PEAK's Settings page binding is unavailable.");
+            Plugin.PLLLog.LogError("PEAK's Settings page is incomplete. PLL settings could not be added.");
             return;
         }
         GetOrCreate(binding).EnsureSettingsLauncher(binding);
@@ -34,13 +34,13 @@ internal static class PllSettingsSurface
             : null;
         if (!settingsPage)
         {
-            Plugin.PLLLog.LogError("PLL Library could not add its pause-menu settings launcher because PEAK's Settings page is unavailable.");
+            Plugin.PLLLog.LogError("PEAK's Settings page is missing. The PLL pause-menu button could not be added.");
             return;
         }
 
         if (!TryBind(settingsPage, out var binding))
         {
-            Plugin.PLLLog.LogError("PLL Library could not add its settings surface because PEAK's Settings page binding is unavailable.");
+            Plugin.PLLLog.LogError("PEAK's Settings page is incomplete. PLL settings could not be added.");
             return;
         }
         var surface = GetOrCreate(binding);

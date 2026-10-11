@@ -24,7 +24,7 @@ namespace PLL.Creator.Editor
                 DiscoverGraphComponents<PllEffectAuthoring>(Graph),
                 DiscoverGraphComponents<PllFogZoneAuthoring>(Graph),
                 DiscoverGraphComponents<PllSoundEmitterAuthoring>(Graph),
-                DiscoverComponents<PllBiomeStingerAuthoring>(Identity.Root),
+                DiscoverComponents<PllBiomeStingerAuthoring>(Graph.ByPath[Graph.RootPath]),
                 DiscoverGraphComponents<PLLNativeResolver>(Graph),
                 DiscoverGraphComponents<PLLNativeVisualResolver>(Graph),
                 Atmosphere,
@@ -300,11 +300,7 @@ namespace PLL.Creator.Editor
             PrefabNode Node, Transform Value, GenerationAuthoring Generation,
             FixtureAuthoring Fixtures, PresentationAuthoring Presentation)
         {
-            for (var Current = Value; Current; Current = Current.parent)
-            {
-                if (Current.GetComponent<SegmentPort>()) return true;
-                if (Current == Node.SourceRoot.transform) break;
-            }
+            if (TransformOwnership.HasManagedHookAncestor(Node.SourceRoot.transform, Value)) return true;
             return Presentation.Effects.Any(Effect => BelongsToNode(Node, Effect)
                     && Effect.Root && TransformOwnership.Contains(Effect.Root.transform, Value))
                 || Generation.EffectZones.Any(Zone => BelongsToNode(Node, Zone) && TransformOwnership.Contains(Zone.transform, Value))
@@ -659,7 +655,7 @@ namespace PLL.Creator.Editor
             foreach (var Stinger in Presentation.Stingers) RejectOverlap(Root, Stinger.transform, Context, "stinger root");
             foreach (var Resolver in Presentation.NativeResolvers) RejectOverlap(Root, Resolver.Root.transform, Context, "gameplay-resolver root");
             foreach (var Hooked in Presentation.HookedProps) RejectOverlap(Root, Hooked.transform, Context, "hooked-prop root");
-            foreach (var Force in DiscoverComponents<PLLForceSpawner>(Identity.Root))
+            foreach (var Force in DiscoverComponents<PLLForceSpawner>(Identity.Graph.ByPath[Identity.Graph.RootPath]))
                 RejectOverlap(Root, Force.transform, Context, "force-spawner root");
         }
 
@@ -695,7 +691,8 @@ namespace PLL.Creator.Editor
             || Component is PLLNativeVisualResolver
             || Component is PllVariationAuthoring || Component is PllPropZoneAuthoring
             || Component is PLLNoPropSpawn || Component is PllChildPropAuthoring
-            || Component is PllItemSpawnerAuthoring || Component is PLLFinalGeneration || Component is PLLCriticalGeneration
+            || Component is PllItemSpawnerAuthoring || Component is PllNativeSpawnerAuthoring
+            || Component is PLLFinalGeneration || Component is PLLCriticalGeneration
             || Component is PLLForceSpawner || Component is PLLHookedProp
             || Component is PllCampfireAuthoring || Component is PllLuggageAuthoring
             || Component is PllStatueAuthoring || Component is PropSpawner
@@ -1083,8 +1080,13 @@ namespace PLL.Creator.Editor
                 ValidateFinite(Visual.TriggerValue, Context + " trigger value");
                 var Shader = Visual.Shader;
                 var Material = Visual.Material;
-                if (!ReferenceEquals(Shader, null) && !Shader || !ReferenceEquals(Material, null) && !Material)
-                    throw new InvalidOperationException(Context + " references a destroyed shader or material.");
+                if (!Shader || !Material)
+                {
+                    using var References = new SerializedObject(Visual);
+                    if (!Shader && References.FindProperty("shader").objectReferenceInstanceIDValue != 0
+                        || !Material && References.FindProperty("material").objectReferenceInstanceIDValue != 0)
+                        throw new InvalidOperationException(Context + " references a destroyed shader or material.");
+                }
                 if (Shader && Material && Material.shader != Shader)
                     throw new InvalidOperationException(Context + " material does not use its declared shader.");
                 var PropertyName = Visual.PropertyName;

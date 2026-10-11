@@ -77,7 +77,7 @@ internal sealed class ConfigDocument
     internal void RequireCustomBiomeOwner(string Id)
     {
         if (!TryGet("Biome", "ID", out var Owner)
-            || (string)TomlTypeConverter.ConvertToValue(Owner.Value, typeof(string)) != Id)
+            || TomlTypeConverter.ConvertToValue<string>(Owner.Value) != Id)
             throw new InvalidDataException($"Configuration '{Path}' does not belong to biome '{Id}'. Move the file before registering this biome.");
     }
 
@@ -139,7 +139,7 @@ internal sealed class ConfigDocument
             }
             var Length = Position - Start;
             var Line = Source.Substring(Start, ContentLength).Trim();
-            if (Line.StartsWith("[", StringComparison.Ordinal) && Line.EndsWith("]", StringComparison.Ordinal))
+            if (Line.StartsWith('[') && Line.EndsWith(']'))
             {
                 AppendPending(null);
                 InVariations = Line == "[Variations]";
@@ -152,7 +152,7 @@ internal sealed class ConfigDocument
                 continue;
             }
             var Separator = Line.IndexOf('=');
-            if (Separator < 0 || Line.StartsWith("#", StringComparison.Ordinal))
+            if (Separator < 0 || Line.StartsWith('#'))
             {
                 PendingLines.Add((Start, ContentLength, Length));
                 continue;
@@ -229,7 +229,7 @@ internal sealed class ConfigDocument
         foreach (var RawLine in Lines)
         {
             var Line = RawLine.Trim();
-            if (Line.StartsWith("[", StringComparison.Ordinal) && Line.EndsWith("]", StringComparison.Ordinal))
+            if (Line.StartsWith('[') && Line.EndsWith(']'))
             {
                 if (PendingEntryId is not null)
                     throw new InvalidDataException("Variation entry marker has no weight setting.");
@@ -257,7 +257,7 @@ internal sealed class ConfigDocument
             }
 
             var Separator = Line.IndexOf('=');
-            if (Separator < 0 || Line.StartsWith("#", StringComparison.Ordinal)) continue;
+            if (Separator < 0 || Line.StartsWith('#')) continue;
             var Key = Line.Substring(0, Separator).Trim();
             if (PendingEntryId is not null && !Key.StartsWith(VariationGroupConfig.WeightPrefix, StringComparison.Ordinal))
                 throw new InvalidDataException("Variation entry marker does not describe a weight setting.");
@@ -395,43 +395,43 @@ internal sealed class ConfigBindings
     {
         Config = new ConfigFile(Path, false, OwnerMetadata) { SaveOnConfigSet = false };
         Bind("Version", "SchemaRevision", SchemaRevision, "Tracks the configuration schema.", Migratable: false);
-        Seed = Bind("Map", "Seed", DefaultSeed, "Empty chooses a new random world seed; any text produces a deterministic seed.");
+        Seed = Bind("Map", "Seed", DefaultSeed, "Leave empty for a random world seed. Enter text to reuse the same seed.");
         ReplaceGenerated = Bind("Map", "Replace Generated", true, "Regenerates PEAK's already generated native segment props with the selected seed.");
         GetNote = Bind("PLL", "Get Note", true, "Fetches the Aeralis Foundation developer note when PEAK's main menu loads.");
         AdvertiseLayout = Bind("PLL", "Advertise Layout", false, "Shows one configured PLL layout label beneath PEAK's ascent name.");
-        DisplayProgress = Bind("PLL", "Display Progress", false, "Shows the active map-processing operation and estimated remaining time above PEAK's loading text.");
+        DisplayProgress = Bind("PLL", "Display Progress", false, "Shows map loading progress and estimated time remaining above PEAK's loading text.");
         LightMapMinimum = Bind("Map", "Light Map Minimum", 25, new ConfigDescription(
-            "Sets the local per-occurrence light-volume page limit in MiB.",
+            "Maximum light map size per map segment, in MiB. Applies only to this player.",
             new AcceptableValueRange<int>(25, 500)));
-        LayoutOrder = Bind("Map", "LayoutOrder", FileManager.DefaultLayoutOrder, "Defines an ordered list of public native or custom ordinary layout segments. Volcano and Citadel each include their native lower half.");
+        LayoutOrder = Bind("Map", "LayoutOrder", FileManager.DefaultLayoutOrder, "Map segments in order, separated by >. Use native segment names or custom segment IDs. Volcano and Citadel include their lower zones.");
         DoOrder = Bind("Map", "DoOrder", true, "Enables LayoutOrder for the map.");
-        GenerativeMap = Bind("Map", "Generative Map", false, "Builds one deterministic layout from registered native and custom biome candidates when Layout Order is disabled.");
+        GenerativeMap = Bind("Map", "Generative Map", false, "Chooses an order for loaded native and custom biomes using the map seed. Requires DoOrder to be disabled.");
         InfiniteMap = Bind("Map", "InfiniteMap", false, "Enables infinite map generation.");
-        InfiniteMapRepeatable = Bind("Fields", "InfiniteMap: Repeatable", FileManager.DefaultRepeatable, "Up to 255 public segment names eligible for repetition, separated by >.");
-        InfiniteMapChances = Bind("Fields", "InfiniteMap: Chances", FileManager.DefaultChances, "Up to 255 non-negative weights mapped by position to InfiniteMap: Repeatable, separated by >.");
-        InfiniteMapScale = Bind("Fields", "InfiniteMap: Scale", DefaultScale, new ConfigDescription("Requested total public segment count; configuration accepts 1 through 255, current PEAK navigation resolves at most 254 ordinary internal slots, and an online shared Photon room may separately reject a content-dependent generated object batch when it lacks free room ViewIDs.", new AcceptableValueRange<int>(1, byte.MaxValue)));
-        InfiniteMapBeginIndex = Bind("Fields", "InfiniteMap: Begin Index", -1, "-1 inserts at the final eligible public boundary (before a terminal Nadir); other values are clamped zero-based public insertion boundaries.");
+        InfiniteMapRepeatable = Bind("Fields", "InfiniteMap: Repeatable", FileManager.DefaultRepeatable, "Segments to repeat, separated by >. Accepts up to 255 entries.");
+        InfiniteMapChances = Bind("Fields", "InfiniteMap: Chances", FileManager.DefaultChances, "Relative weights for InfiniteMap: Repeatable, in the same order and separated by >. Use non-negative values; zero excludes an entry.");
+        InfiniteMapScale = Bind("Fields", "InfiniteMap: Scale", DefaultScale, new ConfigDescription("Requested total segment count, from 1 to 255. PEAK supports at most 254 ordinary zones, including the lower zones of Volcano, Citadel, and biome groups. Multiplayer also limits generated network objects.", new AcceptableValueRange<int>(1, byte.MaxValue)));
+        InfiniteMapBeginIndex = Bind("Fields", "InfiniteMap: Begin Index", -1, "Insertion position, counting from zero. -1 adds repeated segments at the end, before a final Nadir. Other values are limited to the layout's range.");
         InfiniteMapRemoveOld = Bind("Fields", "InfiniteMap: Remove Old", false, "Removes the default layout so only InfiniteMap: Repeatable segments are used.");
         Winnable = Bind("Behaviors", "Winnable", true, "Enables the configured final-zone win behavior.");
-        PeakAtEnd = Bind("Behaviors", "Peak at end", false, "Attaches full Peak after the actual final public ordinary segment; terminal Volcano and Citadel retain contextual Peak.");
+        PeakAtEnd = Bind("Behaviors", "Peak at end", false, "Adds Peak after the final segment. Volcano and Citadel use their own Peak attachment.");
         GemlessNadir = Bind("Behaviors", "Gemless Nadir", false, "Allows every Nadir occurrence to load without Scout's Honor.");
         WaterFollowsBeach = Bind("Behaviors", "Water follows Beach", true, "Activates the water floor when Beach is reached; otherwise enables it beneath the first segment from the start.");
         VoidWaterFollowsNadir = Bind("Behaviors", "Void Water follows Nadir", true, "Activates PEAK's Void Water when its Nadir occurrence is reached; otherwise enables it from the start.");
-        RelocatePlane = Bind("Prerequisites", "Relocate Plane", true, "Moves PEAK's original crashed plane to the first segment's explicit Start port.");
-        RelocateStart = Bind("Prerequisites", "Relocate Start", true, "Moves PEAK's active four-player spawn group to the first segment's explicit Start port.");
-        ValidNadir = Bind("Prerequisites", "Valid Nadir", true, "Requires preceding native or custom sources to provide all four distinct amulet opportunity categories before Nadir may require Scout's Honor; otherwise Nadir is gemless.");
+        RelocatePlane = Bind("Prerequisites", "Relocate Plane", true, "Moves the crashed plane to the first segment's Start port.");
+        RelocateStart = Bind("Prerequisites", "Relocate Start", true, "Moves PEAK's four player spawn points to the first segment's Start port.");
+        ValidNadir = Bind("Prerequisites", "Valid Nadir", true, "Nadir requires Scout's Honor only if earlier segments can provide all four amulet types. Otherwise Nadir does not require the gem.");
         LazyGeneration = Bind("Optimizations", "Lazy Generation", true, "Defers procedural prop generation until its prerequisite zone is reached.");
         Fogless = Bind("Optimizations", "Fogless", false, "Disables the fog sphere and its relocation behavior.");
         NoRisingGhosts = Bind("Optimizations", "No Rising Ghosts", false, "Disables Nadir's rising lost-soul fog and Citadel's rising Gloom.");
         NoSleepFog = Bind("Optimizations", "No Sleep Fog", false, "Disables Gloom's stationary sleep fog field.");
         NoWater = Bind("Optimizations", "No Water", false, "Disables Beach water and all water relocation behavior.");
         NoVoidWater = Bind("Optimizations", "No Void Water", false, "Disables PEAK's Nadir-local Void Water surface and WaterZone.");
-        NoPlane = Bind("Optimizations", "No Plane", false, "Removes the crashed plane and its affiliates except spawn points.");
-        NoSkyProps = Bind("Optimizations", "No Sky Props", true, "Restricts each native raycast-position prop spawner to its declared collision domain and exact registered external support. Citadel treasure spawners include their temple floor; foreign domains and the Peak bridge stay excluded, and PEAK's effective global trigger behavior stays unchanged.");
+        NoPlane = Bind("Optimizations", "No Plane", false, "Removes the crashed plane and its attached objects, but keeps the spawn points.");
+        NoSkyProps = Bind("Optimizations", "No Sky Props", true, "Limits native raycast-placed props to their segment. Citadel treasure can land on the temple floor, but not on the Peak bridge or another segment.");
         RemoveOld = Bind("Optimizations", "Remove Old", true, "Destroys map zones older than the immediately previous zone after progression.");
         foreach (var Biome in NativeSegmentCatalog.ConfigBiomeNames)
             NativeVariations.Add(Biome, Bind("Variations", Biome, "Random",
-                "Selects a native variation; available choices are fetched when WilIsland loads. Random keeps PEAK's selection."));
+                "Selects a native biome variation. Available choices appear after the island loads. Random uses PEAK's selection."));
         var Spatial = new BiomeSpatialConfig[BiomeLayoutConfigSnapshot.SpatialBiomeNames.Count];
         for (var Index = 0; Index < Spatial.Length; Index++)
         {

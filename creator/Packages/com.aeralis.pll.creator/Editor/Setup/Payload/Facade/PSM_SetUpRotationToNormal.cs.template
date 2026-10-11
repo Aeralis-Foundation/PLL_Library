@@ -1,5 +1,8 @@
  public class PSM_SetUpRotationToNormal : PropSpawnerMod
  {
+    public bool flipNormal;
+    public float minEffect;
+    public float maxEffect;
+    public float randomPow;
     public override void ModifyObject(UnityEngine.GameObject value, PropSpawner.SpawnData data) { }
  }
-

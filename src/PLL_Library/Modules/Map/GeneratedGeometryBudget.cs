@@ -94,9 +94,9 @@ internal sealed class GeneratedGeometryBudget
         var Owners = new NativeFlowRuntime[Reservations.Count]; Reservations.Keys.CopyTo(Owners, 0);
         var OutputOwners = new object[NativeOutputs.Count]; NativeOutputs.Keys.CopyTo(OutputOwners, 0);
         List<Exception>? Failures = null;
-        foreach (var Owner in Owners) AuthoringCleanup.Capture(ref Failures, Owner.Dispose);
+        foreach (var Owner in Owners) CleanupOperations.Capture(ref Failures, Owner.Dispose);
         foreach (var Owner in OutputOwners)
-            if (Owner is IDisposable Lifetime) AuthoringCleanup.Capture(ref Failures, Lifetime.Dispose);
+            if (Owner is IDisposable Lifetime) CleanupOperations.Capture(ref Failures, Lifetime.Dispose);
         NativeOutputs.Clear(); Instances = Nodes = Meshes = 0; Bytes = 0;
         ThrowFailures(Failures);
     }

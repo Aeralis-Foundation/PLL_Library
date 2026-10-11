@@ -1,4 +1,4 @@
  public class SpawnList : UnityEngine.MonoBehaviour
  {
+    public System.Collections.Generic.List<SpawnEntry> items = new();
  }
-

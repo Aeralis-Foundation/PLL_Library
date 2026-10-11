@@ -57,7 +57,8 @@ static class PllClimbingFixtureShape
     {
         if (!Owner || !PllAuthoringValueContract.IsLocalId(Id))
             return "Rest Point needs a stable local ID.";
-        if (!Finite(InteractionCenter) || !Finite(InteractionSize)
+        if (!PllAuthoringValueContract.CanEncode(InteractionCenter)
+            || !PllAuthoringValueContract.CanEncode(InteractionSize)
             || InteractionSize.x <= 0f || InteractionSize.y <= 0f || InteractionSize.z <= 0f)
             return "Rest Point interaction bounds must be finite and positive.";
         if (!(NativeModel ? Model && Model != Owner.gameObject && TransformOwnership.Contains(Owner, Model.transform)
@@ -94,7 +95,8 @@ static class PllClimbingFixtureShape
         if (Source.RopeAppearance != PllRopeAppearance.Native
             && (!RopeMesh || !RopeMesh.isReadable || RopeMesh.subMeshCount != 1
                 || !Source.RopeMaterial || !Source.RopeGhostMaterial
-                || !Finite(Source.RopeRestStart) || !Finite(Source.RopeRestEnd)
+                || !PllAuthoringValueContract.CanEncode(Source.RopeRestStart)
+                || !PllAuthoringValueContract.CanEncode(Source.RopeRestEnd)
                 || (Source.RopeRestEnd - Source.RopeRestStart).sqrMagnitude == 0f))
             return "Custom Rope needs a readable single-slot mesh, rope and ghost materials, and distinct finite rest endpoints.";
         return Failure(Source.transform, Source.Id, Source.ModelRoot, Source.GhostRoot,
@@ -138,9 +140,6 @@ static class PllClimbingFixtureShape
         }
         return false;
     }
-
-    static bool Finite(Vector3 Value) => PllAuthoringValueContract.CanEncode(Value.x)
-        && PllAuthoringValueContract.CanEncode(Value.y) && PllAuthoringValueContract.CanEncode(Value.z);
 
     static bool Hook(string Value) => Value is not null && (Value.Length == 0 || PllAuthoringValueContract.IsHook(Value));
 

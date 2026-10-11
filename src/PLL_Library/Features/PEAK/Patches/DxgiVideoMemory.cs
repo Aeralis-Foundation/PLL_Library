@@ -69,7 +69,11 @@ internal static class DxgiVideoMemory
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             || VendorId == 0 || DeviceId == 0) return null;
         try { return OpenWindows(VendorId, DeviceId, Description); }
-        catch (Exception) { return null; }
+        catch (Exception Failure) when (
+            Failure is COMException or DllNotFoundException or EntryPointNotFoundException)
+        {
+            return null;
+        }
     }
 
     static LocalBudget? OpenWindows(uint VendorId, uint DeviceId, string Description)

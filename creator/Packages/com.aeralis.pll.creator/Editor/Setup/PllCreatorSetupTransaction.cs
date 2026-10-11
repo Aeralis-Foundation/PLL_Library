@@ -25,8 +25,8 @@ namespace PLL.Creator.Editor
         {
             if (PllCreatorSetupStore.PendingExists())
             {
-                Failure = "Another PLL Creator setup record exists. Unity resumes current records automatically; "
-                    + "an incompatible record requires the Creator version that wrote it.";
+                Failure = "PLL Creator setup is already pending. "
+                    + "If Unity cannot resume it, use the Creator version that started it.";
                 return false;
             }
             PllCreatorSetupPlan Plan;
@@ -289,13 +289,10 @@ namespace PLL.Creator.Editor
         {
             var Target = PllCreatorEnvironment.GeneratedRootPath();
             var TargetMeta = Target + ".meta";
-            if (Directory.Exists(Target) && !PllCreatorSetupStore.HasOwnership(Target, null))
-                throw new PllCreatorSetupException(
-                    "Assets/PLL.Creator.Generated exists without PLL Creator ownership.");
-            if (Directory.Exists(Target) != File.Exists(TargetMeta))
+            Pending.hadPreviousAssets = Directory.Exists(Target);
+            if (Pending.hadPreviousAssets != File.Exists(TargetMeta))
                 throw new PllCreatorSetupException(
                     "Assets/PLL.Creator.Generated and its metadata must either both exist or both be absent.");
-            Pending.hadPreviousAssets = Directory.Exists(Target);
             if (!Pending.hadPreviousAssets) return;
             if (!PllCreatorSetupStore.TryReadOwnershipTransaction(
                     Target, out Pending.previousAssetsTransactionId))
@@ -775,13 +772,12 @@ namespace PLL.Creator.Editor
             string StagedRoot, IReadOnlyDictionary<string, string> MetadataByPath)
         {
             var SetupPath = Path.Combine(StagedRoot, PllCreatorSetupStore.SetupFileName);
-            var RequiredFiles = Directory.GetFiles(StagedRoot, "*", SearchOption.AllDirectories)
-                .Where(Value => !Value.EndsWith(".meta", StringComparison.OrdinalIgnoreCase)).ToArray();
-            foreach (var RequiredFile in RequiredFiles)
-                if (!MetadataByPath.ContainsKey(RequiredFile + ".meta"))
+            foreach (var RequiredFile in Directory.EnumerateFiles(StagedRoot, "*", SearchOption.AllDirectories))
+                if (!RequiredFile.EndsWith(".meta", StringComparison.OrdinalIgnoreCase)
+                    && !MetadataByPath.ContainsKey(RequiredFile + ".meta"))
                     throw new PllCreatorSetupException(
                         "Generated asset '" + RequiredFile + "' has no owned metadata plan.");
-            foreach (var Entry in MetadataByPath.OrderBy(Value => Value.Key, StringComparer.OrdinalIgnoreCase))
+            foreach (var Entry in MetadataByPath)
             {
                 if (!Entry.Key.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
                     throw new PllCreatorSetupException(
@@ -799,10 +795,6 @@ namespace PLL.Creator.Editor
                     throw new PllCreatorSetupException(
                         "Generated metadata was not written exactly: " + Entry.Key);
             }
-            foreach (var RequiredFile in RequiredFiles)
-                if (!File.Exists(RequiredFile + ".meta"))
-                    throw new PllCreatorSetupException(
-                        "Generated asset metadata is missing: " + RequiredFile + ".meta");
         }
 
         static PllCreatorGeneratedAssembly ManagedAssembly(

@@ -76,6 +76,7 @@ internal static class BiomeRegistration
         internal int RequiredEffectParticleMask { get; private set; }
         internal bool NeedsNativeCatalog { get; private set; }
         internal bool RequiresNativeFog { get; private set; }
+        internal bool RequiresNativeMaterials { get; private set; }
         internal bool RequiresFogRendering { get; private set; }
         internal bool RequiresNativeBeetles { get; private set; }
         internal bool RequiresNativeZombies { get; private set; }
@@ -129,7 +130,7 @@ internal static class BiomeRegistration
         internal List<Exception>? CollectRollbackFailures(RollbackScope Scope)
         {
             List<Exception>? Failures = null;
-            if (Scope != RollbackScope.Registration) Collect(() => ForceSpawnCatalog.UnsealBatch(FinalForces));
+            if (Scope != RollbackScope.Registration) Collect(() => NativeSpawnCatalog.UnsealBatch(FinalForces));
             if (Scope == RollbackScope.FinalSeal) return Failures;
             var Registration = SegmentBatch;
             if (Registration is not null) Collect(() => SegmentRegistry.UnregisterBatch(Registration));
@@ -166,6 +167,7 @@ internal static class BiomeRegistration
                 RequiredEffectParticleMask |= Contract.RequiredNativeEffectParticleMask;
                 NeedsNativeCatalog |= Contract.NeedsNativeCatalog;
                 RequiresNativeFog |= Contract.RequiresNativeFog;
+                RequiresNativeMaterials |= Contract.NativeMaterialContracts.Count != 0;
                 RequiresFogRendering |= Contract.FogZoneContracts.Count != 0
                     || Contract.HasFixedFlows || Contract.HasGeneratedFlows;
                 RequiresNativeBeetles |= Contract.RequiresNativeBeetles;
@@ -191,7 +193,6 @@ internal static class BiomeRegistration
             BundlePaths, Path => string.Equals(System.IO.Path.GetExtension(Path), ".pll", StringComparison.Ordinal));
         for (var i = 0; i < BundlePaths.Length; i++) BundlePaths[i] = System.IO.Path.GetFullPath(BundlePaths[i]);
         Array.Sort(BundlePaths, StringComparer.Ordinal);
-        Plugin.PLLLog.LogInfo($"Found {BundlePaths.Length} PLL bundles in '{DirectoryPath}'.");
 
         try
         {
@@ -208,11 +209,8 @@ internal static class BiomeRegistration
                 string? BundleSha256 = null;
                 try
                 {
-                    Plugin.PLLLog.LogInfo($"Loading PLL bundle '{Path}'.");
                     var Registered = ContentFile.Register(Path, out BundleSha256);
                     RetainedFiles.Add(Registered);
-                    Plugin.PLLLog.LogInfo(
-                        $"Registered PLL bundle '{Path}' with biomes: {string.Join(", ", Registered.Registration.Biomes.Select(Biome => Biome.Id))}. Native compatibility is checked when a map loads.");
                 }
                 catch (Exception Failure) when (
                     Failure is IOException or UnauthorizedAccessException
@@ -276,6 +274,7 @@ internal static class BiomeRegistration
             foreach (var File in RetainedFiles)
             {
                 RequiresNativeCatalog |= File.NeedsNativeCatalog;
+                foreach (var Contract in File.Authoring) ScanNativeProps |= Contract.RequiresNativeContentProps;
                 foreach (var Force in File.FinalForces)
                     if (Force.ForceNames.Count != 0)
                     {
@@ -284,8 +283,8 @@ internal static class BiomeRegistration
                     }
             }
             ItemDatabaseCatalog? Items = null;
-            if (RetainedFiles.Count == 0 && !ExportContent) ForceSpawnCatalog.BeginEmptySeal();
-            else Items = ForceSpawnCatalog.BeginContentSeal(NativeSources, ScanNativeProps);
+            if (RetainedFiles.Count == 0 && !ExportContent) NativeSpawnCatalog.BeginEmptySeal();
+            else Items = NativeSpawnCatalog.BeginContentSeal(NativeSources, ScanNativeProps);
             var Resolvers = NativeResolverSourceCatalog.BeginSeal(NativeCatalog);
             var MechanicalSources = NativeMechanicalHazards.BeginSeal(NativeCatalog);
             var VineSources = NativeVineRecipes.BeginSeal(NativeCatalog);
@@ -343,7 +342,8 @@ internal static class BiomeRegistration
                     foreach (var Contract in File.Authoring)
                     {
                         Contract.ValidateSource();
-                        Contract.ResolveExternal(Items!, Native, VisualBatch);
+                        Contract.ResolveExternal(Items!, Native, VisualBatch,
+                            File.RequiresNativeMaterials ? Visuals.Materials : null);
                         Contract.ResolveEntitySources(BeetleProvider, ZombieProvider, CondorProvider);
                         Contract.ResolveHazardSources(TornadoProvider, TumbleweedProvider);
                         Contract.ResolveMechanicalHazards(MechanicalBatch);
@@ -351,7 +351,7 @@ internal static class BiomeRegistration
                         Contract.ResolveRopeSource(RopeProvider, ToolProvider);
                         Contract.ResolveAmuletSource(NativeCatalog.RequireOrdinary("Beach").NadirAmulets);
                     }
-                    ForceSpawnCatalog.SealBatch(File.FinalForces);
+                    NativeSpawnCatalog.SealBatch(File.FinalForces);
                     var Fingerprint = CreateExternalFingerprint(File, ResolverBatch, VisualBatch,
                         BeetleProvider, ZombieProvider, CondorProvider, TornadoProvider, TumbleweedProvider,
                         RopeProvider, MechanicalBatch, ToolProvider, VineBatch);
@@ -433,7 +433,7 @@ internal static class BiomeRegistration
                 }
                 NativeContentTools.CaptureForceContent();
             }
-            ForceSpawnCatalog.CompleteSeal();
+            NativeSpawnCatalog.CompleteSeal();
             NativeResolverSourceCatalog.CompleteSeal(Resolvers, RequiredResolverMask);
             NativeFogRuntime.Publish(
                 Visuals.Complete(RequiredVisualMask, RequiredParticleMask, RequiredEffectParticleMask).Fog);
@@ -481,7 +481,7 @@ internal static class BiomeRegistration
     {
         NativeLuggageCatalog.Clear();
         BiomeAuthoringCatalog.ClearExternal();
-        ForceSpawnCatalog.Clear();
+        NativeSpawnCatalog.Clear();
         NativeResolverSourceCatalog.Clear();
         NativeFogRuntime.Clear();
         var VisualOwner = NativeVisualOwner;

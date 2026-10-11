@@ -137,14 +137,9 @@ internal static class PeakLifecycle
         return true;
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(PeakHandler), nameof(PeakHandler.PrepareEndCutscene))]
     static class PeakEndCutscenePatch
     {
-        static readonly MethodInfo Target = AccessTools.DeclaredMethod(typeof(PeakHandler), "PrepareEndCutscene", Type.EmptyTypes)
-            ?? throw new MissingMethodException(typeof(PeakHandler).FullName, "PrepareEndCutscene");
-
-        static MethodBase TargetMethod() => Target;
-
         [HarmonyTranspiler]
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> Instructions)
         {

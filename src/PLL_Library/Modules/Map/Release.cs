@@ -520,6 +520,8 @@ internal sealed class ReleasedSlotRetirement
             Collect(() => Map.CurrentRun?.HookedGeneration.RetireRoot(Value));
             Collect(() => Map.CurrentRun?.PropInteractions.Retire(Value));
             Collect(() => Map.CurrentRun?.SurfaceTextures.Retire(Value));
+            Collect(() => Map.CurrentRun?.NativeMaterials.Retire(Value));
+            Collect(() => Map.CurrentRun?.NativeSpawners.Retire(Value));
             Collect(() => Map.CurrentRun?.ClimbingFixtures.Retire(Value));
             Collect(() =>
             {

@@ -18,12 +18,11 @@ internal abstract class NativeClimbingFixtureBinding
     protected PhotonView View { get; }
     protected bool Admitted;
     internal bool IsAdmitted => Admitted;
-    internal virtual bool HasWork => false;
-    internal virtual NativeClimbingFixtureProgress? Initialize(int Seed, double Clock) => null;
-    internal virtual NativeClimbingFixtureProgress? Capture(double Clock) => null;
-    internal virtual (string Hang, string Warning, string Break) Apply(NativeClimbingFixtureProgress Progress, bool Replay) =>
-        throw new InvalidOperationException("Permanent climbing fixtures do not have break progress.");
-    internal virtual void Tick(double Clock, float DeltaSeconds, bool CanRequest, Action<NativeClimbingFixtureProgress> Request) { }
+    internal abstract bool HasWork { get; }
+    internal abstract NativeClimbingFixtureProgress? Initialize(int Seed, double Clock);
+    internal abstract NativeClimbingFixtureProgress? Capture(double Clock);
+    internal abstract (string Hang, string Warning, string Break) Apply(NativeClimbingFixtureProgress Progress, bool Replay);
+    internal abstract void Tick(double Clock, float DeltaSeconds, bool CanRequest, Action<NativeClimbingFixtureProgress> Request);
     internal abstract void Admit();
     internal abstract void Retire();
 
@@ -503,8 +502,8 @@ internal sealed class NativeClimbingFixtureRuntime
         foreach (var Fixture in Fixtures)
         {
             if (Fixture.Key && !TransformOwnership.Contains(Root.transform, Fixture.Key.transform)) continue;
-            if (Fixture.Value.Registration is { } Registration) AuthoringCleanup.Capture(ref Failures, Registration.Dispose);
-            AuthoringCleanup.Capture(ref Failures, Fixture.Value.Binding.Retire); Removed.Add(Fixture.Key!);
+            if (Fixture.Value.Registration is { } Registration) CleanupOperations.Capture(ref Failures, Registration.Dispose);
+            CleanupOperations.Capture(ref Failures, Fixture.Value.Binding.Retire); Removed.Add(Fixture.Key!);
         }
         foreach (var Source in Removed) Fixtures.Remove(Source);
         StableOccurrences.RemoveWhere(Occurrence => !Occurrence.Container
@@ -517,8 +516,8 @@ internal sealed class NativeClimbingFixtureRuntime
         List<Exception>? Failures = null;
         foreach (var Fixture in Fixtures.Values)
         {
-            if (Fixture.Registration is { } Registration) AuthoringCleanup.Capture(ref Failures, Registration.Dispose);
-            AuthoringCleanup.Capture(ref Failures, Fixture.Binding.Retire);
+            if (Fixture.Registration is { } Registration) CleanupOperations.Capture(ref Failures, Registration.Dispose);
+            CleanupOperations.Capture(ref Failures, Fixture.Binding.Retire);
         }
         Fixtures.Clear(); StableOccurrences.Clear();
         GeneratedGeometryBudget.ThrowFailures(Failures);

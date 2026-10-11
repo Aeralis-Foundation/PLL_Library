@@ -57,21 +57,21 @@ namespace PLL.Creator.Editor
             if (Vertices.Length == 0) throw new InvalidOperationException("Custom span mesh has no vertices.");
             for (var i = 0; i < Vertices.Length; i++)
             {
-                if (!Finite(Vertices[i])) throw new InvalidOperationException("Custom span mesh contains a nonfinite vertex.");
+                if (!PllAuthoringValueContract.CanEncode(Vertices[i])) throw new InvalidOperationException("Custom span mesh contains a nonfinite vertex.");
                 Vertices[i] = Frame * (Vertices[i] - Start);
-                if (!Finite(Vertices[i])) throw new InvalidOperationException("Normalized span exceeds the supported coordinate range.");
+                if (!PllAuthoringValueContract.CanEncode(Vertices[i])) throw new InvalidOperationException("Normalized span exceeds the supported coordinate range.");
             }
             var Normals = Source.normals;
             for (var i = 0; i < Normals.Length; i++)
             {
-                if (!Finite(Normals[i])) throw new InvalidOperationException("Custom span mesh contains a nonfinite normal.");
+                if (!PllAuthoringValueContract.CanEncode(Normals[i])) throw new InvalidOperationException("Custom span mesh contains a nonfinite normal.");
                 Normals[i] = Frame * Normals[i];
             }
             var Tangents = Source.tangents;
             for (var i = 0; i < Tangents.Length; i++)
             {
                 var Direction = new Vector3(Tangents[i].x, Tangents[i].y, Tangents[i].z);
-                if (!Finite(Direction) || !PllAuthoringValueContract.CanEncode(Tangents[i].w))
+                if (!PllAuthoringValueContract.CanEncode(Direction) || !PllAuthoringValueContract.CanEncode(Tangents[i].w))
                     throw new InvalidOperationException("Custom span mesh contains a nonfinite tangent.");
                 Direction = Frame * Direction;
                 Tangents[i] = new Vector4(Direction.x, Direction.y, Direction.z, Tangents[i].w);
@@ -81,7 +81,5 @@ namespace PLL.Creator.Editor
             Mesh.vertices = Vertices; Mesh.normals = Normals; Mesh.tangents = Tangents;
             Mesh.RecalculateBounds(); return Mesh;
         }
-        static bool Finite(Vector3 Value) => PllAuthoringValueContract.CanEncode(Value.x)
-            && PllAuthoringValueContract.CanEncode(Value.y) && PllAuthoringValueContract.CanEncode(Value.z);
     }
 }

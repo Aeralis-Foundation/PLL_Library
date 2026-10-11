@@ -54,10 +54,10 @@ namespace PLL.Creator.Editor
                 }
                 MaterialColor = EditorGUILayout.ColorField("Material Color and Alpha", MaterialColor);
             }
-            EditorGUILayout.HelpBox("Particle color replaces the owned systems' start colors while the effect plays. "
-                + "Material color changes one declared color channel in one owned renderer slot. "
-                + "Native fire/smoke use Color in slot zero. Original gradients and property blocks are restored; "
-                + "shared materials and the effect's biome Color stay unchanged.", MessageType.Info);
+            EditorGUILayout.HelpBox("Particle Color changes the selected systems' start colors while the effect plays. "
+                + "Material Color changes one color property in the selected renderer slot. "
+                + "Native fire and smoke use Color in slot 0. Original colors and property blocks are restored afterward. "
+                + "Shared materials and the effect's biome Color stay unchanged.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Effect))
                 if (GUILayout.Button("Apply Effect Appearance"))
                 {

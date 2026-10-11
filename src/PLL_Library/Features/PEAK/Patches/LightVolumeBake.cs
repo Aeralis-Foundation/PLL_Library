@@ -190,7 +190,7 @@ internal sealed class LightVolumeBakeOperation
     LightVolumeBakeInventory? Inventory;
     LightVolumeBakePlan? Plan;
     LightVolumeVisualMap? StagedMap;
-    MapLoadKeepAliveLease? KeepAlive;
+    PhotonLoadKeepAliveLease? KeepAlive;
     bool ComputeBackend;
     bool BakeAuthorized;
     bool ContextExpected;
@@ -279,7 +279,7 @@ internal sealed class LightVolumeBakeOperation
             Value.PeakAdditionalBytes,
             "bake working set");
         BakeStarted = true;
-        KeepAlive = MapLoadKeepAliveLease.Acquire();
+        KeepAlive = PhotonLoadKeepAliveLease.Acquire();
         ReadableMapExpected = true;
         BakeAuthorized = true;
         try { return Volume.Bake(skipCompression: true); }
@@ -639,17 +639,11 @@ internal sealed class LightVolumeBakeOperation
         Context = null;
         BakeResourcesDisposed = true;
         List<Exception>? Failures = null;
-        void Release(Action Action)
-        {
-            try { Action(); }
-            catch (Exception Exception) { (Failures ??= new List<Exception>(3)).Add(Exception); }
-        }
-
-        if (CommandBuffer is not null) Release(CommandBuffer.Dispose);
-        Release(Volume.Dispose);
-        if (OwnedAcceleration is not null) Release(OwnedAcceleration.Dispose);
-        if (RayTracingContext is not null) Release(RayTracingContext.Dispose);
-        if (KeepAlive is not null) Release(KeepAlive.Dispose);
+        if (CommandBuffer is not null) CleanupOperations.Capture(ref Failures, CommandBuffer.Dispose);
+        CleanupOperations.Capture(ref Failures, Volume.Dispose);
+        if (OwnedAcceleration is not null) CleanupOperations.Capture(ref Failures, OwnedAcceleration.Dispose);
+        if (RayTracingContext is not null) CleanupOperations.Capture(ref Failures, RayTracingContext.Dispose);
+        if (KeepAlive is not null) CleanupOperations.Capture(ref Failures, KeepAlive.Dispose);
         KeepAlive = null;
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is not null)

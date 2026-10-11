@@ -17,10 +17,11 @@ internal sealed class BiomeWallBox
     internal Vector3 Center { get; }
     internal Vector3 Size { get; }
     internal Quaternion Rotation { get; }
-    internal static bool TryParse(string Text, bool Configured, out BiomeWallBox Box)
+    internal static bool TryParse(ReadOnlySpan<char> Text, bool Configured, out BiomeWallBox Box)
     {
         Box = null!;
-        if (!BiomeSpatialSettings.TryNumbers(Text, Configured ? 9 : 10, out var Numbers)
+        Span<float> Numbers = stackalloc float[Configured ? 9 : 10];
+        if (!BiomeSpatialSettings.TryNumbers(Text, Numbers)
             || Numbers[3] <= 0f || Numbers[4] <= 0f || Numbers[5] <= 0f) return false;
         var Rotation = Configured ? Quaternion.Euler(Numbers[6], Numbers[7], Numbers[8]).normalized
             : new Quaternion(Numbers[6], Numbers[7], Numbers[8], Numbers[9]);
@@ -41,10 +42,11 @@ internal sealed class FogCutoutOverride
     internal float Minimum { get; }
     internal float Maximum { get; }
     internal float Amount { get; }
-    internal static bool TryParse(string Text, out FogCutoutOverride Override)
+    internal static bool TryParse(ReadOnlySpan<char> Text, out FogCutoutOverride Override)
     {
         Override = null!;
-        if (!BiomeSpatialSettings.TryNumbers(Text, 3, out var Numbers) || Numbers[0] < 0f || Numbers[0] >= Numbers[1]
+        Span<float> Numbers = stackalloc float[3];
+        if (!BiomeSpatialSettings.TryNumbers(Text, Numbers) || Numbers[0] < 0f || Numbers[0] >= Numbers[1]
             || Numbers[2] < 0f || Numbers[2] > 1f) return false;
         Override = new FogCutoutOverride(Numbers[0], Numbers[1], Numbers[2]);
         return true;
@@ -53,9 +55,9 @@ internal sealed class FogCutoutOverride
 
 internal sealed class BiomeSpatialSettings
 {
-    BiomeSpatialSettings(BiomeId Id, BiomeWallBox[] Boxes, FogCutoutOverride? FogCutout)
+    BiomeSpatialSettings(BiomeId Id, IReadOnlyList<BiomeWallBox> Boxes, FogCutoutOverride? FogCutout)
     {
-        this.Id = Id; this.Boxes = Array.AsReadOnly(Boxes); this.FogCutout = FogCutout;
+        this.Id = Id; this.Boxes = Boxes; this.FogCutout = FogCutout;
     }
     internal BiomeId Id { get; }
     internal IReadOnlyList<BiomeWallBox> Boxes { get; }
@@ -74,28 +76,42 @@ internal sealed class BiomeSpatialSettings
         Parsed = null!;
         if (Encoding.UTF8.GetByteCount(Boxes) > RunConfigurationCodec.MaximumPayloadBytes
             || Encoding.UTF8.GetByteCount(Fog) > RunConfigurationCodec.MaximumPayloadBytes) return false;
-        var Rows = Boxes.Length == 0 ? Array.Empty<string>() : Boxes.Split(';');
-        var Values = new BiomeWallBox[Rows.Length];
-        for (var i = 0; i < Rows.Length; i++)
-            if (!BiomeWallBox.TryParse(Rows[i], Configured, out Values[i])) return false;
+        IReadOnlyList<BiomeWallBox> Values = Array.Empty<BiomeWallBox>();
+        if (Boxes.Length != 0)
+        {
+            var Walls = new List<BiomeWallBox>();
+            var Remaining = Boxes.AsSpan();
+            while (true)
+            {
+                var Separator = Remaining.IndexOf(';');
+                if (!BiomeWallBox.TryParse(Separator < 0 ? Remaining : Remaining[..Separator],
+                        Configured, out var Wall))
+                    return false;
+                Walls.Add(Wall);
+                if (Separator < 0) break;
+                Remaining = Remaining[(Separator + 1)..];
+            }
+            Values = Walls.AsReadOnly();
+        }
         FogCutoutOverride? Override = null;
-        if (Fog.Length != 0)
-            if (!FogCutoutOverride.TryParse(Fog, out Override)) return false;
+        if (Fog.Length != 0 && !FogCutoutOverride.TryParse(Fog.AsSpan(), out Override)) return false;
         Parsed = new BiomeSpatialSettings(Id, Values, Override);
         return true;
     }
 
-    internal static bool TryNumbers(string Text, int Count, out float[] Values)
+    internal static bool TryNumbers(ReadOnlySpan<char> Text, Span<float> Values)
     {
-        Values = Array.Empty<float>();
-        if (Encoding.UTF8.GetByteCount(Text) > RunConfigurationCodec.MaximumPayloadBytes) return false;
         var Fields = 1;
         foreach (var Character in Text) if (Character == ',') Fields++;
-        if (Fields != Count) return false;
-        var Tokens = Text.Split(','); Values = new float[Count];
-        for (var i = 0; i < Count; i++)
-            if (!float.TryParse(Tokens[i], NumberStyles.Float, CultureInfo.InvariantCulture, out Values[i])
+        if (Fields != Values.Length) return false;
+        for (var i = 0; i < Values.Length; i++)
+        {
+            var Separator = Text.IndexOf(',');
+            if (!float.TryParse(Separator < 0 ? Text : Text[..Separator],
+                    NumberStyles.Float, CultureInfo.InvariantCulture, out Values[i])
                 || !float.IsFinite(Values[i])) return false;
+            if (Separator >= 0) Text = Text[(Separator + 1)..];
+        }
         return true;
     }
 
@@ -129,9 +145,12 @@ internal sealed class BiomeSpatialConfig
     {
         this.Id = Id;
         Boxes = File.Bind(BoxesDefinition, string.Empty, new ConfigDescription(
-            "Explicit segment-root-local wall boxes: center X,Y,Z,size X,Y,Z,Euler X,Y,Z degrees. Separate boxes with ;. Positive full sizes; empty adds no walls. PLL layouts replace scene-global edge walls; authored colliders remain."));
+            "Wall boxes in segment root coordinates: center X,Y,Z, full size X,Y,Z, rotation X,Y,Z in degrees. "
+            + "Separate boxes with ;. Use positive sizes; leave empty to add no walls."));
         FogCutout = File.Bind(FogDefinition, string.Empty, new ConfigDescription(
-            "Visual fog cutout minimum,maximum,amount. World radial distances satisfy 0 <= minimum < maximum; amount is 0 to 1. Empty preserves authored fog; override applies after Fogless."));
+            "Visual fog cutout: minimum radius, maximum radius, amount. Radii use world units; "
+            + "use 0 <= minimum < maximum and an amount from 0 to 1. Leave empty to keep the biome's fog settings. "
+            + "This also applies when Fogless is enabled."));
     }
     internal BiomeId Id { get; }
     internal ConfigEntry<string> Boxes { get; }

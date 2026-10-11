@@ -92,8 +92,7 @@ namespace PLL.Creator.Editor
                 Failure = string.Empty;
                 return true;
             }
-            Failure = "PLL Creator requires Unity 6000.3.x; current Editor is '"
-                + Version + "'.";
+            Failure = "Unity " + Version + " is not supported. Use Unity 6000.3.x.";
             return false;
         }
 
@@ -197,8 +196,8 @@ namespace PLL.Creator.Editor
             if (Inspection != null) Inspection.Manifest = Manifest;
             if (!string.Equals(Manifest.packageVersion, PackageVersion, StringComparison.Ordinal))
             {
-                Failure = "The generated Assets package version is '" + Manifest.packageVersion
-                    + "'; installed Creator package is '" + PackageVersion + "'. Reconfigure PLL Creator.";
+                Failure = "The project was configured with Creator " + Manifest.packageVersion
+                    + ", but " + PackageVersion + " is installed. Reconfigure PLL Creator.";
                 return false;
             }
             if (!PllCreatorProjectLayers.Installed(Contract.layers, out Failure)) return false;
@@ -270,9 +269,11 @@ namespace PLL.Creator.Editor
                 return false;
             }
             var AssemblyNames = new HashSet<string>(StringComparer.Ordinal);
+            var Dependencies = new List<PllCreatorManagedAssembly>();
+            var DependencyRecords = new Dictionary<string, PllCreatorGeneratedAssembly>(StringComparer.Ordinal);
             foreach (var Assembly in Manifest.managedAssemblies)
             {
-                string Identity;
+                AssemblyName Identity;
                 if (Assembly == null || string.IsNullOrEmpty(Assembly.name) || !AssemblyNames.Add(Assembly.name)
                     || !ValidGeneratedAssemblyRecord(Root, Assembly)
                     || !ValidAssembly(Assembly.sourcePath, Assembly.sourceSha256, Assembly.name, true, out Identity))
@@ -280,7 +281,13 @@ namespace PLL.Creator.Editor
                     Failure = "PEAK managed source '" + (Assembly?.name ?? "<unknown>") + "' changed.";
                     return false;
                 }
-                if (Inspection != null) Inspection.Identities.Add(Assembly.name, Identity);
+                if (Inspection != null) Inspection.Identities.Add(Assembly.name, Identity.FullName);
+                if (!string.Equals(Assembly.name, Contract.sourceAssembly, StringComparison.Ordinal)
+                    && !string.Equals(Assembly.name, "PLL_Library", StringComparison.Ordinal))
+                {
+                    Dependencies.Add(new PllCreatorManagedAssembly(Identity, Assembly.sourcePath, Assembly.sourceSha256));
+                    DependencyRecords.Add(Assembly.name, Assembly);
+                }
                 if (!string.IsNullOrEmpty(Assembly.providerFullPath)
                     && !(UnityPackageSourceRecord(Assembly)
                         ? ValidAssembly(Assembly.providerFullPath, string.Empty, Assembly.name, false, out _)
@@ -296,16 +303,12 @@ namespace PLL.Creator.Editor
                 Failure = "The generated managed provider manifest is incomplete.";
                 return false;
             }
-            var DependencyRecords = Manifest.managedAssemblies.Where(Value =>
-                    !string.Equals(Value.name, Contract.sourceAssembly, StringComparison.Ordinal)
-                    && !string.Equals(Value.name, "PLL_Library", StringComparison.Ordinal))
-                .ToDictionary(Value => Value.name, StringComparer.Ordinal);
             PllCreatorProviderInventory Providers;
             PllCreatorAssemblyPlan[] CurrentPlans;
             if (!PllCreatorProviderInventory.TryCreate(PllCreatorEnvironment.GeneratedAssetRoot,
                     PllCreatorEnvironment.GeneratedRootPath(), out Providers, out Failure)
                 || !Providers.TryPlanDependencies(
-                    DependencyRecords.Values.Select(Value => Value.sourcePath).ToArray(), out CurrentPlans, out Failure))
+                    Dependencies, out CurrentPlans, out Failure))
             {
                 Failure = "Generated dependency providers no longer match this project. " + Failure;
                 return false;
@@ -417,9 +420,9 @@ namespace PLL.Creator.Editor
         }
 
         static bool ValidAssembly(string PathValue, string Sha256, string Name,
-            bool ValidateContent, out string Identity)
+            bool ValidateContent, out AssemblyName Identity)
         {
-            Identity = string.Empty;
+            Identity = null;
             try
             {
                 if (string.IsNullOrEmpty(PathValue) || !File.Exists(PathValue)
@@ -427,7 +430,7 @@ namespace PLL.Creator.Editor
                         PllCreatorFileSystem.Sha256(PathValue), Sha256, StringComparison.Ordinal)) return false;
                 var AssemblyIdentity = AssemblyName.GetAssemblyName(PathValue);
                 if (!string.Equals(AssemblyIdentity.Name, Name, StringComparison.Ordinal)) return false;
-                Identity = AssemblyIdentity.FullName;
+                Identity = AssemblyIdentity;
                 return true;
             }
             catch (Exception Exception) when (Exception is IOException || Exception is UnauthorizedAccessException

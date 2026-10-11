@@ -1028,8 +1028,9 @@ internal sealed class HookedPropGeneration
         var Expected = new Hashtable();
         if (CurrentValue is not null) Expected[ControlKey] = CurrentValue;
         foreach (var Pair in Values)
-            if (!Equals(Pair.Key, ControlKey) && Room.CustomProperties.ContainsKey(Pair.Key))
-                Expected[Pair.Key] = Room.CustomProperties[Pair.Key];
+            if (!Equals(Pair.Key, ControlKey)
+                && Room.CustomProperties.TryGetValue(Pair.Key, out var Current))
+                Expected[Pair.Key] = Current;
         if (!Room.SetCustomProperties(Values, Expected.Count == 0 ? null : Expected)) return false;
         Pending = new Publication(Ledger, Value, Expected, Values, JournalHead); return true;
     }
@@ -1056,6 +1057,8 @@ internal sealed class HookedPropGeneration
         Run.ClimbingFixtures.Retire(Target.Root.gameObject);
         Run.PropInteractions.Retire(Target.Root.gameObject);
         Run.SurfaceTextures.Retire(Target.Root.gameObject);
+        Run.NativeMaterials.Retire(Target.Root.gameObject);
+        Run.NativeSpawners.Retire(Target.Root.gameObject);
         Occurrence.RetireActors(Target.Root.gameObject);
         var HasPrevious = Outputs.TryGetValue(Key, out var PreviousOutput);
         var PreviousRecord = Current!.ActiveRecord(Preparation.RecordIndex);
@@ -1088,6 +1091,7 @@ internal sealed class HookedPropGeneration
                 Run.PropInteractions.Enroll(Occurrence,
                     NeedsPlatforms ? NativeFeatureGeneration.CaptureOwnedTreePlatforms() : null, Target.Root);
                 Run.SurfaceTextures.Enroll(Occurrence);
+                Run.NativeMaterials.Enroll(Occurrence);
             });
         var Generation = Run.Features.BeginOperation();
         ViewBatchSynchronization.PendingViewBatch? PendingBatch = null;
@@ -1223,6 +1227,8 @@ internal sealed class HookedPropGeneration
             {
                 Cleanup(() => Run.PropInteractions.Retire(Target.Root.gameObject));
                 Cleanup(() => Run.SurfaceTextures.Retire(Target.Root.gameObject));
+                Cleanup(() => Run.NativeMaterials.Retire(Target.Root.gameObject));
+                Cleanup(() => Run.NativeSpawners.Retire(Target.Root.gameObject));
             }
             if (!Completed && LightStaged) Cleanup(() => Run.LightVolumes.CancelHooked(Key, Preparation.Revision));
             if (!Completed && PendingBatch is not null) Cleanup(() => Run.Network.ViewBatches.ReleaseProvisionalViewIds(PendingBatch));
@@ -2474,6 +2480,8 @@ internal sealed class HookedPropGeneration
         var Target = Declarations[RecordIndex(Key.RequestIndex)].Occurrence.HookedTargets[Key.TargetIndex];
         Cleanup(() => Run.PropInteractions.Retire(Target.Root.gameObject));
         Cleanup(() => Run.SurfaceTextures.Retire(Target.Root.gameObject));
+        Cleanup(() => Run.NativeMaterials.Retire(Target.Root.gameObject));
+        Cleanup(() => Run.NativeSpawners.Retire(Target.Root.gameObject));
         if (EndSourceLifetime)
         {
             Cleanup(() => RetireSavedHistory(Output.TrackerIds));

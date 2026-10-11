@@ -27,12 +27,11 @@ internal static class LobbyAdmission
     const int ProofLength = 9;
     const int MessageCapacity = 1024;
     const string WaitingForAirportMembers =
-        "Wait for every PLL Library player to finish joining the airport before starting the island.";
+        "Wait for every player to join the airport before starting the island.";
 
     static Callback<LobbyChatUpdate_t>? LobbyChanges;
     static AdmissionNonce LocalNonce;
     static ulong CurrentLobbyId;
-    static ulong ObservedMember;
     static ulong RejectedLobbyId;
     static RoomRequestLifecycle RequestState;
     static bool ProofFailureLogged;
@@ -48,12 +47,12 @@ internal static class LobbyAdmission
         }
         if (!SteamManager.Initialized || CurrentLobbyId == 0 || LocalNonce.IsZero)
             return BlockStart(
-                "PLL Library cannot verify this online lobby. Reconnect through Steam before starting the island.");
+                "The Steam lobby is unavailable. Reconnect through Steam before starting the island.");
 
         var Lobby = new CSteamID(CurrentLobbyId);
         if (!IsAdmissionLobby(Lobby))
             return BlockStart(
-                "PLL Library admission is unavailable in this lobby. Create a new lobby before starting the island.");
+                "The lobby does not support PLL Library. Create a new lobby before starting the island.");
         var MemberCount = SteamMatchmaking.GetNumLobbyMembers(Lobby);
         var SteamMembers = new HashSet<ulong>(MemberCount);
         for (var Index = 0; Index < MemberCount; Index++)
@@ -61,7 +60,7 @@ internal static class LobbyAdmission
             var Member = SteamMatchmaking.GetLobbyMemberByIndex(Lobby, Index);
             if (!HasMarker(Lobby, Member))
                 return BlockStart(
-                    "Every lobby member must install PLL Library before the island can start. Wait for the incompatible player to leave.");
+                    "A lobby member has no compatible PLL Library version. Install the same version on every player.");
             SteamMembers.Add(Member.m_SteamID);
         }
 
@@ -72,7 +71,7 @@ internal static class LobbyAdmission
                 return BlockStart(WaitingForAirportMembers);
             if (!SteamMembers.Contains(SourceMember))
                 return BlockStart(
-                    "PLL Library found an airport player outside the current Steam lobby. Rejoin the lobby before starting the island.");
+                    "An airport player is not in the Steam lobby. Rejoin the lobby before starting the island.");
             CoveredMembers.Add(SourceMember);
         }
 
@@ -107,7 +106,7 @@ internal static class LobbyAdmission
         if (RejectedLobbyId == Lobby.m_SteamID) return;
         RejectedLobbyId = Lobby.m_SteamID;
         ShowModal(
-            "This host does not support PLL Library admission. Join a lobby hosted with a compatible PLL Library version.");
+            "The host has no compatible PLL Library version. Join a host with the same version.");
     }
 
     static void Attach(CSteamID Lobby, bool PublishGlobalMarker)
@@ -126,7 +125,7 @@ internal static class LobbyAdmission
             && !SteamMatchmaking.SetLobbyData(Lobby, MarkerKey, MarkerValue))
         {
             Plugin.PLLLog.LogError(
-                "PLL Library could not publish lobby admission. Create a new lobby before starting the island.");
+                "The lobby could not enable PLL Library. Create a new lobby before starting the island.");
             return;
         }
 
@@ -140,7 +139,6 @@ internal static class LobbyAdmission
         LobbyChanges = null;
         LocalNonce = default;
         CurrentLobbyId = 0;
-        ObservedMember = 0;
         RejectedLobbyId = 0;
         RequestState = RoomRequestLifecycle.None;
         ProofFailureLogged = false;
@@ -272,11 +270,7 @@ internal static class LobbyAdmission
             || PhotonNetwork.CurrentRoom is null
             || PhotonNetwork.LocalPlayer is not { } LocalPlayer) return;
 
-        var SourceMember = ObservedMember != 0
-            ? ObservedMember
-            : PhotonNetwork.IsMasterClient
-                ? SteamMatchmaking.GetLobbyOwner(new CSteamID(CurrentLobbyId)).m_SteamID
-                : 0;
+        var SourceMember = SteamUser.GetSteamID().m_SteamID;
         if (SourceMember == 0) return;
 
         var Proof = EncodeProof(SourceMember);
@@ -287,7 +281,7 @@ internal static class LobbyAdmission
         if (ProofFailureLogged) return;
         ProofFailureLogged = true;
         Plugin.PLLLog.LogError(
-            "PLL Library could not publish this player's lobby admission. Rejoin the lobby before starting the island.");
+            "The player's lobby membership could not be confirmed. Rejoin the lobby before starting the island.");
     }
 
     static bool SendRoomRequest(CSteamID Lobby, byte[] NativePayload, int NativeLength)
@@ -342,7 +336,7 @@ internal static class LobbyAdmission
         if (ResponseFailureLogged) return;
         ResponseFailureLogged = true;
         Plugin.PLLLog.LogError(
-            "PLL Library could not send room admission. The joining player must rejoin the lobby.");
+            "The room details could not be sent. The joining player must rejoin the lobby.");
     }
 
     static void HandleRoomResponse(
@@ -359,9 +353,8 @@ internal static class LobbyAdmission
                 Length,
                 out var Nonce,
                 out var SourceMember)
-            || Nonce != LocalNonce) return;
+            || Nonce != LocalNonce || SourceMember != SteamUser.GetSteamID().m_SteamID) return;
 
-        ObservedMember = SourceMember;
         using var Deserializer = new BinaryDeserializer(Payload, Allocator.Temp);
         _ = Deserializer.ReadByte();
         _ = Deserializer.ReadByte();
@@ -474,14 +467,8 @@ internal static class LobbyAdmission
         static IEnumerable<CodeInstruction> Transpiler(
             IEnumerable<CodeInstruction> Instructions)
         {
-            var NativeSend = AccessTools.DeclaredMethod(
-                typeof(SteamMatchmaking),
-                nameof(SteamMatchmaking.SendLobbyChatMsg),
-                new[] { typeof(CSteamID), typeof(byte[]), typeof(int) });
-            var AdmissionSend = AccessTools.DeclaredMethod(
-                typeof(LobbyAdmission),
-                nameof(SendRoomRequest),
-                new[] { typeof(CSteamID), typeof(byte[]), typeof(int) });
+            var NativeSend = ((Func<CSteamID, byte[], int, bool>)SteamMatchmaking.SendLobbyChatMsg).Method;
+            var AdmissionSend = ((Func<CSteamID, byte[], int, bool>)SendRoomRequest).Method;
             var ReplacementCount = 0;
             foreach (var Instruction in Instructions)
             {

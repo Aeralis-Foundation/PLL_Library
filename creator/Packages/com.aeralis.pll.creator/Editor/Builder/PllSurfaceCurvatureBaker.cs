@@ -23,7 +23,7 @@ namespace PLL.Creator.Editor
             ValidateNormalTextures(Source.Material);
             if (Source.Target != PllSurfaceTarget.AuthoredRendererSlots
                 || !PllSurfaceProfileContract.NeedsBake(Source.Material)) return;
-            var Prepared = new List<Mesh>();
+            var Prepared = new Mesh[Source.Renderers.Count];
             for (var Index = 0; Index < Source.Renderers.Count; Index++)
             {
                 var Renderer = Source.Renderers[Index];
@@ -32,7 +32,7 @@ namespace PLL.Creator.Editor
                 var Original = Filter.sharedMesh;
                 if (Source.HasPreparedCurvature(Original) || PreparedMeshes.Contains(Original))
                 {
-                    Prepared.Add(Original); continue;
+                    Prepared[Index] = Original; continue;
                 }
                 var Fingerprint = FingerprintMesh(Original);
                 if (!Derived.TryGetValue(Fingerprint, out var Mesh))
@@ -46,9 +46,9 @@ namespace PLL.Creator.Editor
                     PreparedMeshes.Add(Mesh);
                 }
                 Filter.sharedMesh = Mesh;
-                Prepared.Add(Mesh);
+                Prepared[Index] = Mesh;
             }
-            Source.SetPreparedCurvature(Prepared.ToArray());
+            Source.SetPreparedCurvature(Prepared);
         }
 
         internal static void ValidateNormalTextures(Material Material)

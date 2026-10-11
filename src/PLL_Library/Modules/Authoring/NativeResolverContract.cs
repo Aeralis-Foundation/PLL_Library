@@ -482,7 +482,7 @@ internal sealed class NativeResolverContract
                 || (Source.SurfaceRenderer ? 1 : 0) + (Source.GeneratedSurfaceMaterial ? 1 : 0) != 1)
                 throw Invalid(Id, Source, "Water requires one Box volume and exactly one creator-owned surface mode", Argument);
             if (Vector3.Angle(Source.transform.TransformVector(Vector3.up).normalized, Vector3.up) > 0.01f)
-                throw Invalid(Id, Source, "Water positive-Y axis is not horizontal", Argument);
+                throw Invalid(Id, Source, "Water resolver must keep its positive Y axis upright", Argument);
         }
 
         abstract class WaterSurface

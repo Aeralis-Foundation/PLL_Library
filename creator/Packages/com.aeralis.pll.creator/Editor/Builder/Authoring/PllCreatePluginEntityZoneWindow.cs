@@ -38,7 +38,7 @@ namespace PLL.Creator.Editor
             Source.SpawnChance = EditorGUILayout.Slider("Zone Spawn Chance", Source.SpawnChance, 0f, 1f);
             Source.MaximumSlope = EditorGUILayout.Slider("Maximum Slope (degrees)", Source.MaximumSlope, 0f, 90f);
             Source.MinimumSpacing = EditorGUILayout.FloatField("Minimum Spacing", Source.MinimumSpacing);
-            EditorGUILayout.HelpBox("The game must install the selected factory revision. Use a prefab with only mesh, bone, collider and Rigidbody components. This zone generates a fixed population; Continue regenerates entities. Dynamic actors and bundled plugin scripts are unsupported.", MessageType.Info);
+            EditorGUILayout.HelpBox("Install the selected plugin factory revision. Use a prefab with only mesh, bone, collider and Rigidbody components. The zone spawns a fixed population and recreates it on Continue. Dynamic actors and bundled plugin scripts are not supported.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Parent))
                 if (GUILayout.Button("Create Plugin Entity Zone"))
                 {

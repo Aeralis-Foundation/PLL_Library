@@ -9,17 +9,16 @@ internal sealed class AuthoringBindingOwner
 {
     readonly ReadOnlyMemory<byte> CandidateFingerprint;
 
-    AuthoringBindingOwner(GameObject sourceRoot, bool generated, int candidateIndex, ReadOnlyMemory<byte> CandidateFingerprint)
+    AuthoringBindingOwner(GameObject sourceRoot, int candidateIndex, ReadOnlyMemory<byte> CandidateFingerprint)
     {
         SourceRoot = sourceRoot;
-        Generated = generated;
         CandidateIndex = candidateIndex;
         this.CandidateFingerprint = CandidateFingerprint;
     }
 
     internal GameObject SourceRoot { get; }
     internal Transform BindingRoot => SourceRoot.transform;
-    internal bool Generated { get; }
+    internal bool Generated => CandidateIndex >= 0;
     internal int CandidateIndex { get; }
 
     internal static List<(AuthoringBindingOwner Owner, string Key, T Value)> GraphComponents<T>(
@@ -59,7 +58,7 @@ internal sealed class AuthoringBindingOwner
     {
         if (!value) throw new ArgumentException($"Biome '{id}' contains a destroyed {name}.", nameof(value));
         if (TransformOwnership.Contains(template, value))
-            return new AuthoringBindingOwner(template.gameObject, false, -1, Array.Empty<byte>());
+            return new AuthoringBindingOwner(template.gameObject, -1, Array.Empty<byte>());
 
         GameObject? owner = null;
         var ownerIndex = -1;
@@ -74,7 +73,7 @@ internal sealed class AuthoringBindingOwner
         }
         if (!owner)
             throw new ArgumentException($"Biome '{id}' {name} is outside its root and reachable candidate graph.", nameof(value));
-        return new AuthoringBindingOwner(owner, true, ownerIndex, graph.CaptureFingerprint(ownerIndex));
+        return new AuthoringBindingOwner(owner, ownerIndex, graph.CaptureFingerprint(ownerIndex));
     }
 
     internal void Validate(

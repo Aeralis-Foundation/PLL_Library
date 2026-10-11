@@ -37,6 +37,7 @@ internal sealed class NativeVisualCatalog
         List<PlayerTrackParticles>? ParticleControllers;
         List<SpecialDayZone>? SpecialDayZones;
         NativeFogSource? CapturedFog;
+        NativeMaterialCatalog? MaterialSources;
         int CapturedMask;
         int CapturedParticleMask;
 
@@ -52,6 +53,7 @@ internal sealed class NativeVisualCatalog
 
         internal MapHandler Handler { get; }
         internal Scene Scene { get; }
+        internal NativeMaterialCatalog Materials => MaterialSources ??= new NativeMaterialCatalog(Sources, Scene);
         internal IReadOnlyList<PlayerTrackParticles> Particles =>
             ParticleControllers ??= CaptureComponents<PlayerTrackParticles>();
         internal IReadOnlyList<SpecialDayZone> SpecialDays =>

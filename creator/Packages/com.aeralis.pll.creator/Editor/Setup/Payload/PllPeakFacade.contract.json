@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "sourceAssembly": "Assembly-CSharp",
-  "serializedFieldCount": 239,
+  "serializedFieldCount": 251,
   "types": [
     {
       "name": "AudioLoop", "metadataName": "AudioLoop", "kind": "class",
@@ -1755,10 +1755,10 @@
       "baseType": "PropSpawnerMod",
       "isAbstract": false,
       "isSerializable": false,
-      "serializedSurface": false,
+      "serializedSurface": true,
       "enumUnderlyingType": "",
       "enumValues": [],
-      "fields": []
+      "fields": [{"name":"flipNormal","typeName":"System.Boolean","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]},{"name":"minEffect","typeName":"System.Single","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]},{"name":"maxEffect","typeName":"System.Single","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]},{"name":"randomPow","typeName":"System.Single","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]}]
     },
     {
       "name": "PSM_SnapPosition",
@@ -2637,10 +2637,10 @@
       "baseType": "UnityEngine.MonoBehaviour",
       "isAbstract": false,
       "isSerializable": false,
-      "serializedSurface": false,
+      "serializedSurface": true,
       "enumUnderlyingType": "",
       "enumValues": [],
-      "fields": []
+      "fields": [{"name":"items","typeName":"System.Collections.Generic.List<SpawnEntry>","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]}]
     },
     {
       "name": "SpawnPoint",
@@ -3859,7 +3859,10 @@
           "formerNames": []
         }
       ]
-    }
+    },
+    {"name":"SpawnEntry","metadataName":"SpawnEntry","kind":"class","baseType":"System.Object","isAbstract":false,"isSerializable":true,"serializedSurface":true,"enumUnderlyingType":"","enumValues":[],"fields":[{"name":"prefab","typeName":"UnityEngine.GameObject","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]},{"name":"weight","typeName":"System.Int32","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]},{"name":"percentageOdds","typeName":"System.Single","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]}]},
+    {"name":"BerryBush","metadataName":"BerryBush","kind":"class","baseType":"Spawner","isAbstract":false,"isSerializable":false,"serializedSurface":true,"enumUnderlyingType":"","enumValues":[],"fields":[{"name":"debug","typeName":"System.Boolean","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]},{"name":"possibleBerries","typeName":"UnityEngine.Vector2","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]},{"name":"randomPow","typeName":"System.Single","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":[]}]},
+    {"name":"GroundPlaceSpawner","metadataName":"GroundPlaceSpawner","kind":"class","baseType":"Spawner","isAbstract":false,"isSerializable":false,"serializedSurface":true,"enumUnderlyingType":"","enumValues":[],"fields":[{"name":"possibleItems","typeName":"UnityEngine.Vector2","serialized":true,"serializeReference":false,"isPublic":true,"formerNames":["possibleBerries"]}]}
   ],
   "methods": [
     {
@@ -4321,7 +4324,10 @@
     {
       "typeName": "ShittyPiton",
       "template": "ShittyPiton.cs.template"
-    }
+    },
+    {"typeName":"SpawnList","template":"SpawnList.cs.template"},
+    {"typeName":"BerryBush","template":"BerryBush.cs.template"},
+    {"typeName":"GroundPlaceSpawner","template":"GroundPlaceSpawner.cs.template"}
   ],
   "layers": [
     {

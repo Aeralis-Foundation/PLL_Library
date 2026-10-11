@@ -89,7 +89,7 @@ internal sealed class PllNativeFlowCondition : MonoBehaviour
         var Owned = Flows; Flows = Array.Empty<NativeFlowRuntime>();
         List<Exception>? Failures = null;
         for (var i = Owned.Length - 1; i >= 0; i--)
-            AuthoringCleanup.Capture(ref Failures, Owned[i].Dispose);
+            CleanupOperations.Capture(ref Failures, Owned[i].Dispose);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is not null) throw new AggregateException("Native flow cleanup failed.", Failures);
     }

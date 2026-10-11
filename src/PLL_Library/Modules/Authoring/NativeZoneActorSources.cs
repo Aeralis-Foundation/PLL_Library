@@ -15,16 +15,11 @@ internal static class NativeNetworkPrefabGraph
 
     internal static GameObject Resource(string Address)
     {
-        if (PhotonNetwork.PrefabPool is not DefaultPool Pool)
-            throw new InvalidOperationException("Native zone actors require PEAK's default Photon prefab pool.");
         var Prefab = Resources.Load<GameObject>(Address);
         if (!Prefab) throw new InvalidOperationException($"PEAK's native actor resource '{Address}' is missing.");
-        if (Pool.ResourceCache.TryGetValue(Address, out var Cached))
-        {
-            if (Cached != Prefab)
-                throw new InvalidOperationException($"Photon resource '{Address}' no longer refers to PEAK's native actor.");
-        }
-        else Pool.ResourceCache.Add(Address, Prefab);
+        if (PhotonNetwork.PrefabPool is DefaultPool Pool
+            && Pool.ResourceCache.TryGetValue(Address, out var Cached) && Cached != Prefab)
+            throw new InvalidOperationException($"Photon resource '{Address}' no longer refers to PEAK's native actor.");
         return Prefab;
     }
 

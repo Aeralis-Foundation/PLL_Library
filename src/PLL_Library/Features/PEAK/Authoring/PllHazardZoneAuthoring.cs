@@ -84,16 +84,13 @@ static class PllHazardZoneValueContract
     static string? PointsFailure(PllZoneVolume Volume, Vector3[] Points, int MaximumAlive, Vector3 Offset)
     {
         if (MaximumAlive < 0) return "Hazard maximum alive count must be nonnegative.";
-        if (!Finite(Offset)) return "Hazard spawn offset must be finite.";
+        if (!PllAuthoringValueContract.CanEncode(Offset)) return "Hazard spawn offset must be finite.";
         if (Points is null || Points.Length == 0) return "Hazard source needs at least one local position.";
         foreach (var Point in Points)
-            if (!Finite(Point) || !PllZoneMath.Contains(Volume, Point + Offset))
+            if (!PllAuthoringValueContract.CanEncode(Point) || !PllZoneMath.Contains(Volume, Point + Offset))
                 return "Hazard initial positions must be finite and inside the zone volume.";
         return null;
     }
-
-    static bool Finite(Vector3 Value) => PllAuthoringValueContract.CanEncode(Value.x)
-        && PllAuthoringValueContract.CanEncode(Value.y) && PllAuthoringValueContract.CanEncode(Value.z);
 }
 
 [DisallowMultipleComponent]

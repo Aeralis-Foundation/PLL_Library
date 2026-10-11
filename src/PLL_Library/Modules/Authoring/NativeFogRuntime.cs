@@ -109,13 +109,6 @@ internal sealed class NativeFogSource
         Target.amount = CutoutAmount;
     }
 
-    internal void ApplyFog(SpecialDayZone Target)
-    {
-        if (!Target) throw new ArgumentNullException(nameof(Target));
-        Target.overrideFog = OverrideFog;
-        Target.fogDensity = FogDensity;
-    }
-
     internal bool Matches(NativeFogSource Other) =>
         OriginEnabled == Other.OriginEnabled
         && OriginSize.Equals(Other.OriginSize)

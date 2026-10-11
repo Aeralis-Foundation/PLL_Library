@@ -58,6 +58,7 @@ internal static class AuthoringRuntime
             }
             LuggageRuntime.Bind(BiomesBySlot, Run.Slots);
             ItemSpawnerRuntime.Bind(Run.Slots);
+            Run.NativeSpawners.Bind();
             HookedPropRuntime.Bind(Run.Slots);
             NativeFogRenderRuntime.BindSources(Run.ReadPresentationClock,
                 AuthoringPresentationRuntime.CaptureFogSources(BiomesBySlot.Values));
@@ -172,8 +173,8 @@ internal static class AuthoringRuntime
         List<Exception>? Failures = null;
         var Active = Current;
         Current = null;
-        if (Active is not null) AuthoringCleanup.Capture(ref Failures, () => Active.SetCurrent(false));
-        AuthoringCleanup.Capture(ref Failures, AuthoringPresentationRuntime.Leave);
+        if (Active is not null) CleanupOperations.Capture(ref Failures, () => Active.SetCurrent(false));
+        CleanupOperations.Capture(ref Failures, AuthoringPresentationRuntime.Leave);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Visual transition cleanup failed.", Failures);
@@ -326,7 +327,7 @@ internal static class AuthoringRuntime
     {
         List<Exception>? Failures = null;
         foreach (var Biome in BiomesBySlot.Values)
-            AuthoringCleanup.Capture(ref Failures, Biome.ClearStingerRoute);
+            CleanupOperations.Capture(ref Failures, Biome.ClearStingerRoute);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Biome stinger route cleanup failed.", Failures);
@@ -355,14 +356,15 @@ internal static class AuthoringRuntime
         Current = null;
         BiomesBySlot.Clear();
         NativeParticlePrototypes = null;
-        AuthoringCleanup.Capture(ref Failures, NativeFogRenderRuntime.ClearSources);
-        if (Host) AuthoringCleanup.Capture(ref Failures, () => Host.enabled = false);
-        AuthoringCleanup.Capture(ref Failures, AuthoringPresentationRuntime.Leave);
-        AuthoringCleanup.Capture(ref Failures, LuggageRuntime.Clear);
-        AuthoringCleanup.Capture(ref Failures, ItemSpawnerRuntime.Clear);
-        AuthoringCleanup.Capture(ref Failures, HookedPropRuntime.Clear);
-        foreach (var Biome in Biomes) AuthoringCleanup.Capture(ref Failures, Biome.Restore);
-        if (Prototypes is not null) AuthoringCleanup.Capture(ref Failures, Prototypes.Release);
+        CleanupOperations.Capture(ref Failures, NativeFogRenderRuntime.ClearSources);
+        if (Host) CleanupOperations.Capture(ref Failures, () => Host.enabled = false);
+        CleanupOperations.Capture(ref Failures, AuthoringPresentationRuntime.Leave);
+        CleanupOperations.Capture(ref Failures, LuggageRuntime.Clear);
+        CleanupOperations.Capture(ref Failures, ItemSpawnerRuntime.Clear);
+        if (Map.CurrentRun is { } Run) CleanupOperations.Capture(ref Failures, Run.NativeSpawners.Clear);
+        CleanupOperations.Capture(ref Failures, HookedPropRuntime.Clear);
+        foreach (var Biome in Biomes) CleanupOperations.Capture(ref Failures, Biome.Restore);
+        if (Prototypes is not null) CleanupOperations.Capture(ref Failures, Prototypes.Release);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Authoring runtime cleanup failed.", Failures);

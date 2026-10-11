@@ -1,13 +1,11 @@
-# PLL Creator 5.8.1
-
-- I will add this later.
+# PLL Creator 5.9.3
 
 ## Requirements
 
-- I will add this later.
+- Unity 6000.3 with Windows Build Support.
+- An installed copy of PEAK and matching PLL Library 5.9.4.
 
 ## Install and configure
 
-- I will add this later.
-
-(!) Add the documentation for the features later.
+- Add the Creator `.tgz` through Unity Package Manager's **Install package from tarball** command.
+- Run **PLL > Setup > Configure** and select the PEAK installation directory.

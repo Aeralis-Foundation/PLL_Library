@@ -50,7 +50,7 @@ internal static class ItemSpawnerRuntime
         BindingsBySlot.Remove(index);
         List<Exception>? failures = null;
         foreach (var binding in previous)
-            AuthoringCleanup.Capture(ref failures, () => binding.RestoreUnless(replacement));
+            CleanupOperations.Capture(ref failures, () => binding.RestoreUnless(replacement));
         if (failures is { } Failures)
         {
             var CleanupFailureCount = Failures.Count;
@@ -76,7 +76,7 @@ internal static class ItemSpawnerRuntime
         Slots.Clear();
 
         List<Exception>? Failures = null;
-        foreach (var Binding in Bindings) AuthoringCleanup.Capture(ref Failures, Binding.Restore);
+        foreach (var Binding in Bindings) CleanupOperations.Capture(ref Failures, Binding.Restore);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 }) throw new AggregateException("Item-spawner cleanup failed.", Failures);
     }
@@ -88,7 +88,7 @@ internal static class ItemSpawnerRuntime
         BindingsBySlot.Remove(index);
         List<Exception>? failures = null;
         for (var i = bindings.Length - 1; i >= 0; i--)
-            AuthoringCleanup.Capture(ref failures, bindings[i].Restore);
+            CleanupOperations.Capture(ref failures, bindings[i].Restore);
         if (failures is { Count: 1 }) ExceptionPropagation.Throw(failures[0]);
         if (failures is { Count: > 1 }) throw new AggregateException("Item-spawner release failed.", failures);
     }
@@ -241,11 +241,11 @@ internal sealed class ItemSpawnerBinding
                 (failures ??= new List<Exception>()).Add(
                     new InvalidOperationException($"Item spawner '{spawner.name}' changed its live ItemDatabase binding."));
         }
-        AuthoringCleanup.Capture(ref failures, () =>
+        CleanupOperations.Capture(ref failures, () =>
         {
             if (tracker) SpawnTrackerTransaction.RemoveSpawnTracker(tracker);
         });
-        AuthoringCleanup.Capture(ref failures, () =>
+        CleanupOperations.Capture(ref failures, () =>
         {
             if (tracker)
             {
@@ -255,7 +255,7 @@ internal sealed class ItemSpawnerBinding
                 tracker.HasSpawnHistory = initialHasSpawnHistory;
             }
         });
-        AuthoringCleanup.Capture(ref failures, () =>
+        CleanupOperations.Capture(ref failures, () =>
         {
             if (spawner && ReferenceEquals(spawner.spawnedObjectPrefab, item)) spawner.spawnedObjectPrefab = null;
         });

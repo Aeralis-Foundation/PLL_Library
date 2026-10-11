@@ -20,16 +20,10 @@ internal static class Effects
     static void ReleaseProjections(bool RestoreNative, Action ReleaseSpecialDay)
     {
         List<Exception>? Failures = null;
-        void Attempt(Action Operation)
-        {
-            try { Operation(); }
-            catch (Exception Exception) { (Failures ??= new()).Add(Exception); }
-        }
-
-        Attempt(WeatherProjection.RollbackWeather);
-        Attempt(() => FogCutoutProjection.Release(RestoreNative));
-        Attempt(ReleaseSpecialDay);
-        Attempt(() => TerrainSplatProjection.Release(RestoreNative));
+        CleanupOperations.Capture(ref Failures, WeatherProjection.RollbackWeather);
+        CleanupOperations.Capture(ref Failures, () => FogCutoutProjection.Release(RestoreNative));
+        CleanupOperations.Capture(ref Failures, ReleaseSpecialDay);
+        CleanupOperations.Capture(ref Failures, () => TerrainSplatProjection.Release(RestoreNative));
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is not null)
             throw new AggregateException("Map effect release failed.", Failures);

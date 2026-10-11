@@ -27,7 +27,7 @@ public struct BiomeId : IEquatable<BiomeId>
             id = default;
             return false;
         }
-        id = new BiomeId(value!);
+        id = new BiomeId { value = value! };
         return true;
     }
 
@@ -41,7 +41,7 @@ public struct BiomeId : IEquatable<BiomeId>
 
     static bool IsCanonical(string? Candidate)
     {
-        if (!SegmentId.TryParse(Candidate, out _)) return false;
+        if (!QualifiedId.TryParse(Candidate, out _)) return false;
         var Separator = Candidate!.IndexOf('/');
         return Candidate.IndexOf('/', Separator + 1) < 0;
     }

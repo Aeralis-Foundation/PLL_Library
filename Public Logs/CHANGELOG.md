@@ -2,8 +2,125 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [5.8.1]
+## [5.9.4]
 <details open>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Initial FakeItem synchronization identifies scene roots by their unique names, not their positions in Unity's scene root array.
+
+</details>
+
+---
+
+## [5.9.3]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Native actor sealing accepts compatible Photon prefab pools, including PEAKLib's wrapper, without modifying their resource caches.
+- Room settings retain the startup biome schema when a bundle fails live compatibility sealing.
+- Variation settings own their IDs, titles and default weights without retaining authoring objects from rejected bundles.
+- Food and Content Spawners resolve names within their selected item or prop kind.
+- Native prop lists can reference the same prefab as ItemDatabase.
+- Effect zones, effects, visuals and sound emitters can bind while their deferred biome roots are inactive.
+- Particle fingerprints exclude ParticleSystemRenderer's runtime bounds, which Unity does not preserve when cloning.
+
+</details>
+
+---
+
+## [5.9.2]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Startup patches bind concrete material and bridge overrides instead of abstract or broader base methods.
+- Creator adds shared placement constraints after constructing every translated spawner, including native Content Spawner children.
+- Creator and runtime share amulet selection limits, so a biome cannot build with multiple simultaneously selected sources.
+- Native texture mappings use primitive bundle fields so texture only references survive loading in PEAK.
+- Food and Content Spawner weighted lists use primitive bundle fields for the same Editor to player serialization boundary.
+
+</details>
+
+---
+
+## [5.9.1]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Photon transport stays active while loading through room codes, Steam lobbies and invites, including clients still joining with an assigned room.
+- Room code clients can confirm their Steam lobby membership before starting the island.
+- Ordinary hooked props under a custom biome root are no longer rejected as managed fixtures.
+- Network and image cleanup releases owned resources when an earlier operation fails. 
+- Invalid collision vertices and rope skin directions are rejected before native construction.
+- Creator detects invalid amulet settings and routes supported native authoring tools correctly.
+
+### Changed
+
+- Removed duplicate scans, sorting, unused state and manual fixed-target bindings where typed access is available. Open serialized-value and RPC discovery remain supported.
+- Simplified configuration, setup, inspector and multiplayer messages without removing required usage information.
+
+</details>
+
+---
+
+## [5.9.0]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Added
+
+- Food Spawner attaches native regional pools or custom weighted item lists to authored and generated custom props.
+- Content Spawner places weighted native items and prop families in bounded biome zones.
+- Creator native content browser can append selectors directly to Food and Content Spawner lists.
+- Native Material authoring resolves named PEAK materials and independent texture property mappings in game without bundling native shader or texture copies.
+- Creator validates native material slot ownership and preserves reference settings through staged bundle serialization.
+
+</details>
+
+---
+
+## [5.8.3]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Creator accepts unset optional Shader references on Material only visuals while still rejecting missing serialized asset references.
+
+</details>
+
+---
+
+## [5.8.2]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Added
+
+- Optional biome-root `NativeModifiers` with independent Night Cold and Mesa Heatstroke settings.
+
+### Fixed
+
+- Night cold no longer depends on a fixed progress index.
+- Custom Mesa heat preserves native shade and item protections without stacking native heat volumes.
+- Shared cleanup failure capture replaces duplicate library implementations. 
+- Creator package trust uses a bound delegate instead of repeated reflective invocation. 
+- Creator diagnostics discover authoring components in one hierarchy pass. 
+- Configuration parsing and environment/property lookups avoid redundant work.
+
+</details>
+
+---
+
+## [5.8.1]
+<details>
 <summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
 
 ### Fixed

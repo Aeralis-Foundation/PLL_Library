@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace PLL.Creator.Editor
@@ -29,12 +28,6 @@ namespace PLL.Creator.Editor
             }
             indices.Reverse();
             return indices.ToArray();
-        }
-
-        internal static string SiblingKey(Transform root, Transform value, string OwnershipFailure)
-        {
-            return string.Join("/", SiblingPath(root, value, OwnershipFailure)
-                .Select(index => index.ToString("D6")));
         }
     }
 }

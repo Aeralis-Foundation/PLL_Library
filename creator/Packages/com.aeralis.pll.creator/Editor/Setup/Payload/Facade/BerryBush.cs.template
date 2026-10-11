@@ -1,0 +1,6 @@
+ public class BerryBush : Spawner
+ {
+    public bool debug;
+    public UnityEngine.Vector2 possibleBerries;
+    public float randomPow;
+ }

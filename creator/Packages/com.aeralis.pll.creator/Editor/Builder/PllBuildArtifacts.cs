@@ -657,6 +657,7 @@ namespace PLL.Creator.Editor
             AddFeatureTranslations(Result, Stage, BiomeId, Catalog.Graph, StagedPaths, Catalog.NoPropSpawn, "noPropSpawn");
             AddFeatureTranslations(Result, Stage, BiomeId, Catalog.Graph, StagedPaths, Catalog.ChildProps, "childProps");
             AddFeatureTranslations(Result, Stage, BiomeId, Catalog.Graph, StagedPaths, Catalog.ItemSpawners, "itemSpawners");
+            AddFeatureTranslations(Result, Stage, BiomeId, Catalog.Graph, StagedPaths, Catalog.NativeSpawners, "nativeSpawners");
             AddFeatureTranslations(Result, Stage, BiomeId, Catalog.Graph, StagedPaths, Catalog.FinalGeneration, "finalGeneration");
             AddFeatureTranslations(Result, Stage, BiomeId, Catalog.Graph, StagedPaths, Catalog.CriticalGeneration, "criticalGeneration");
             AddFeatureTranslations(Result, Stage, BiomeId, Catalog.Graph, StagedPaths, Catalog.HookedProps, "hookedProps");
@@ -886,6 +887,8 @@ namespace PLL.Creator.Editor
             if (Feature is PLLNoPropSpawn) return "PllNoPropSpawnConstraint on staged PropSpawner components";
             if (Feature is PllItemSpawnerAuthoring)
                 return "Spawner + Peak.SpawnedItemTracker; live ItemDatabase resolution deferred";
+            if (Feature is PllNativeSpawnerAuthoring Spawner)
+                return Spawner.Capture().Kind + ";typed native spawn shape; weighted native selectors resolved in PEAK; no native prefab bundled";
             if (Feature is PLLFinalGeneration) return "staged marked root inactive";
             if (Feature is PLLCriticalGeneration Critical)
                 return "active native Early prefix;Order=" + Critical.Order.ToString(CultureInfo.InvariantCulture)
@@ -1419,6 +1422,7 @@ namespace PLL.Creator.Editor
         readonly PrefabBinding[] Stingers;
         readonly BiomeGroupSemanticIdentity Group;
         readonly AtmosphereIdentity Atmosphere;
+        readonly (bool NightCold, bool MesaHeatstroke) Modifiers;
         readonly ClimbSurfaceSemanticIdentity ClimbSurfaces;
         readonly CollisionGeometryIdentity[] CollisionGeometry;
         readonly EffectZoneIdentity[] EffectZones;
@@ -1426,6 +1430,8 @@ namespace PLL.Creator.Editor
         readonly NativeResolverIdentity[] NativeResolvers;
         readonly FluidDefinitionIdentity[] FluidDefinitions;
         readonly SurfaceTextureIdentity[] SurfaceTextures;
+        readonly (PrefabBinding Binding, AssetBinding Preview, PllNativeMaterialSelection Selection)[] NativeMaterials;
+        readonly NativeSpawnerIdentity[] NativeSpawners;
         readonly BreakablePropIdentity[] BreakableProps;
         readonly SwingingPropIdentity[] SwingingProps;
         readonly VineIdentity[] Vines;
@@ -1497,6 +1503,7 @@ namespace PLL.Creator.Editor
                 Graph, StagedPaths, Catalog.Group);
             Atmosphere = AtmosphereIdentity.Capture(
                 Definition.RootPrefab, Graph, StagedPaths, AssetIdentities);
+            Modifiers = NativeModifiers.Capture(Definition.RootPrefab.transform);
             ClimbSurfaces = ClimbSurfaceSemanticIdentity.Capture(
                 Graph, StagedPaths, Catalog.ClimbSurfaceCatalog,
                 AssetIdentities);
@@ -1507,6 +1514,16 @@ namespace PLL.Creator.Editor
             for (var Index = 0; Index < HangingRopes.Length; Index++)
                 HangingRopes[Index] = new HangingRopeIdentity(Graph, StagedPaths, Catalog.HangingRopes[Index], AssetIdentities);
             var CaptureResolver = new DefinitionBindingResolver(null);
+            NativeMaterials = new (PrefabBinding, AssetBinding, PllNativeMaterialSelection)[Catalog.NativeMaterials.Length];
+            NativeSpawners = new NativeSpawnerIdentity[Catalog.NativeSpawners.Length];
+            for (var Index = 0; Index < NativeSpawners.Length; Index++)
+                NativeSpawners[Index] = new NativeSpawnerIdentity(Graph, StagedPaths, Catalog.NativeSpawners[Index]);
+            for (var Index = 0; Index < NativeMaterials.Length; Index++)
+            {
+                var Source = Catalog.NativeMaterials[Index]; var Selection = Source.Capture();
+                NativeMaterials[Index] = (PrefabBinding.Capture(Graph, StagedPaths, Source, "native material"),
+                    AssetBinding.Capture(Selection.Preview, AssetIdentities, "native material preview"), Selection);
+            }
             SurfaceTextures = new SurfaceTextureIdentity[Catalog.SurfaceTextures.Length];
             for (var Index = 0; Index < SurfaceTextures.Length; Index++)
                 SurfaceTextures[Index] = new SurfaceTextureIdentity(Graph, StagedPaths,
@@ -1641,10 +1658,19 @@ namespace PLL.Creator.Editor
                 Group, Definition.RootPrefab, Resolver, Context);
             AtmosphereIdentity.RequireOptional(
                 Atmosphere, Definition.RootPrefab, Resolver, Context);
+            if (NativeModifiers.Capture(Definition.RootPrefab.transform) != Modifiers)
+                throw Changed(Context, "native modifiers");
             ClimbSurfaces.Require(Resolver, Context);
             foreach (var RestPoint in RestPoints) RestPoint.Require(Resolver, Context);
             foreach (var Rope in HangingRopes) Rope.Require(Resolver, Context);
             foreach (var Surface in SurfaceTextures) Surface.Require(Resolver, Context);
+            foreach (var Material in NativeMaterials)
+            {
+                var Selection = Material.Binding.Resolve<PllNativeMaterialAuthoring>(Resolver, Context, "native material").Capture();
+                if (!Selection.HasSameReferences(Material.Selection)) throw Changed(Context, "native material references");
+                Material.Preview.Require(Selection.Preview, Resolver, Context, "native material preview");
+            }
+            foreach (var Spawner in NativeSpawners) Spawner.Require(Resolver, Context);
             foreach (var Breakable in BreakableProps) Breakable.Require(Resolver, Context);
             foreach (var Swinging in SwingingProps) Swinging.Require(Resolver, Context);
             foreach (var Vine in Vines) Vine.Require(Resolver, Context);
@@ -1668,6 +1694,8 @@ namespace PLL.Creator.Editor
             var HazardCount = 0; var EntityCount = 0;
             var SurfaceCount = 0; var BreakableCount = 0; var SwingingCount = 0; var VineCount = 0;
             var RestPointCount = 0; var HangingRopeCount = 0;
+            var NativeMaterialCount = 0;
+            var NativeSpawnerCount = 0;
             foreach (var Node in SourceNodes)
             {
                 var Root = Node.Resolve<GameObject>(Resolver, Context, "source node");
@@ -1680,6 +1708,8 @@ namespace PLL.Creator.Editor
                         case PllHazardAuthoring _: HazardCount++; break;
                         case PllEntityAuthoring _: EntityCount++; break;
                         case PllSurfaceTextureAuthoring _: SurfaceCount++; break;
+                        case PllNativeMaterialAuthoring _: NativeMaterialCount++; break;
+                        case PllNativeSpawnerAuthoring _: NativeSpawnerCount++; break;
                         case PllBreakablePropAuthoring _: BreakableCount++; break;
                         case PllSwingingPropAuthoring _: SwingingCount++; break;
                         case PllVineAuthoring _: VineCount++; break;
@@ -1691,9 +1721,10 @@ namespace PLL.Creator.Editor
                 throw Changed(Context, "source zone and resolver inventory");
             if (HazardCount != Hazards.Length || EntityCount != Entities.Length)
                 throw Changed(Context, "actor definition inventory");
-            if (SurfaceCount != SurfaceTextures.Length || BreakableCount != BreakableProps.Length
+            if (NativeMaterialCount != NativeMaterials.Length || SurfaceCount != SurfaceTextures.Length || BreakableCount != BreakableProps.Length
                 || SwingingCount != SwingingProps.Length || VineCount != Vines.Length)
                 throw Changed(Context, "surface and prop feature inventory");
+            if (NativeSpawnerCount != NativeSpawners.Length) throw Changed(Context, "native spawner inventory");
             if (RestPointCount != RestPoints.Length || HangingRopeCount != HangingRopes.Length)
                 throw Changed(Context, "climbing fixture inventory");
             foreach (var Fluid in FluidDefinitions) Fluid.Require(Resolver, Context);
@@ -1828,6 +1859,33 @@ namespace PLL.Creator.Editor
 
         internal static InvalidOperationException Changed(string Context, string Field) =>
             new InvalidOperationException(Context + " '" + Field + "' changed.");
+    }
+
+    sealed class NativeSpawnerIdentity
+    {
+        readonly PrefabBinding Binding;
+        readonly PllNativeSpawnerSelection Selection;
+        readonly PrefabBinding[] Points;
+        readonly PrefabBinding UpTowards;
+
+        internal NativeSpawnerIdentity(PrefabGraph Graph, IReadOnlyDictionary<string, string> StagedPaths,
+            PllNativeSpawnerAuthoring Source)
+        {
+            Binding = PrefabBinding.Capture(Graph, StagedPaths, Source, "native spawner"); Selection = Source.Capture();
+            Points = new PrefabBinding[Selection.Points.Count];
+            for (var i = 0; i < Points.Length; i++) Points[i] = PrefabBinding.Capture(Graph, StagedPaths, Selection.Points[i], "food spawn point");
+            UpTowards = PrefabBinding.CaptureOptional(Graph, StagedPaths, Selection.UpTowards, "food up target");
+        }
+
+        internal void Require(DefinitionBindingResolver Resolver, string Context)
+        {
+            var Source = Binding.Resolve<PllNativeSpawnerAuthoring>(Resolver, Context, "native spawner");
+            var Actual = Source.Capture();
+            if (!Selection.HasSameSettings(Actual)) throw DefinitionSemanticIdentity.Changed(Context, "native spawner settings");
+            for (var i = 0; i < Points.Length; i++) Points[i].Require(Actual.Points[i], Resolver, Context, "food spawn point");
+            PrefabBinding.RequireOptional(UpTowards, Actual.UpTowards, Resolver, Context, "food up target");
+            PllNativeSpawnerShape.Require(Source, Actual);
+        }
     }
 
     sealed class CriticalGenerationIdentity

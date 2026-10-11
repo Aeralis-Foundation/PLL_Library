@@ -1,42 +1,58 @@
 using System;
 using System.Collections;
+using HarmonyLib;
 using Photon.Pun;
-using Photon.Realtime;
+using UnityEngine;
 
 namespace PLL.Library;
 
-internal static class SuspendedPhotonTransport
+internal sealed class SuspendedPhotonTransport : MonoBehaviour
 {
-    internal static IEnumerator SendOutgoingAtYields(IEnumerator Process, Room? JoinedRoom)
-    {
-        try
-        {
-            while (Process.MoveNext())
-            {
-                var Yielded = Process.Current;
-                if (Yielded is IEnumerator Nested)
-                {
-                    yield return SendOutgoingAtYields(Nested, JoinedRoom);
-                    continue;
-                }
+    LoadingScreen Screen = null!;
+    PhotonLoadKeepAliveLease? KeepAlive;
 
-                if (!PhotonNetwork.OfflineMode && !PhotonNetwork.IsMessageQueueRunning)
-                {
-                    var CurrentRoom = PhotonNetwork.CurrentRoom;
-                    var State = PhotonNetwork.NetworkClientState;
-                    var IsExpectedConnection = JoinedRoom is null
-                        ? CurrentRoom is null && State is (ClientState.ConnectingToGameServer
-                            or ClientState.ConnectedToGameServer or ClientState.Joining)
-                        : ReferenceEquals(CurrentRoom, JoinedRoom) && State == ClientState.Joined;
-                    if (IsExpectedConnection)
-                        _ = PhotonNetwork.NetworkingClient.LoadBalancingPeer.SendOutgoingCommands();
-                }
-                yield return Yielded;
-            }
-        }
-        finally
+    void Begin(LoadingScreen Screen)
+    {
+        this.Screen = Screen;
+        KeepAlive ??= PhotonLoadKeepAliveLease.Acquire();
+    }
+
+    void Update()
+    {
+        if (KeepAlive is null) return;
+        if (!Screen.runningProcess)
         {
-            (Process as IDisposable)?.Dispose();
+            Release();
+            return;
+        }
+        if (!PhotonNetwork.OfflineMode && PhotonNetwork.IsConnected && !PhotonNetwork.IsMessageQueueRunning)
+            _ = PhotonNetwork.NetworkingClient.LoadBalancingPeer.SendOutgoingCommands();
+    }
+
+    void OnDestroy()
+    {
+        if (KeepAlive is null) return;
+        try { (Screen.currentProcess as IDisposable)?.Dispose(); }
+        finally { Release(); }
+    }
+
+    void Release()
+    {
+        var Released = KeepAlive;
+        KeepAlive = null;
+        Released?.Dispose();
+    }
+
+    [HarmonyPatch(typeof(LoadingScreen), nameof(LoadingScreen.RunProcess), new[] { typeof(IEnumerator) })]
+    static class LoadingProcessPatch
+    {
+        [HarmonyPrefix]
+        static void Prefix(LoadingScreen __instance)
+        {
+            if (PhotonNetwork.OfflineMode) return;
+            var Transport = __instance.GetComponent<SuspendedPhotonTransport>()
+                ?? __instance.gameObject.AddComponent<SuspendedPhotonTransport>();
+            Transport.Begin(__instance);
         }
     }
 }

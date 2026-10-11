@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace PLL.Library;
 
-internal static class AuthoringCleanup
+internal static class CleanupOperations
 {
     internal static void Capture(ref List<Exception>? Failures, Action Operation)
     {

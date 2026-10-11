@@ -394,13 +394,14 @@ internal static class NativePropSpawnerGeneration
         if (Generation is null)
             throw new InvalidOperationException(
                 "Native line-check filtering lost its generation lease.");
-        return FilterLineCheck(Generation, Spawner, OwnedOnly, From, To, LayerType, Excluded, EntityZone);
+        return FilterLineCheck(Generation, Spawner, OwnedOnly,
+            From, To, LayerType, TriggerInteraction, Excluded, EntityZone);
     }
 
     static RaycastHit FilterLineCheck(
         Generation Generation, PropSpawner Spawner, bool OwnedOnly,
         Vector3 From, Vector3 To, HelperFunctions.LayerType LayerType,
-        Collider? Excluded, bool EntityZone)
+        QueryTriggerInteraction TriggerInteraction, Collider? Excluded, bool EntityZone)
     {
         var Result = default(RaycastHit);
         var Direction = To - From;
@@ -413,7 +414,7 @@ internal static class NativePropSpawnerGeneration
             Count = Physics.RaycastNonAlloc(
                 new Ray(From, Direction), Hits, Distance,
                 HelperFunctions.GetMask(LayerType).value,
-                EntityZone ? QueryTriggerInteraction.Ignore : QueryTriggerInteraction.UseGlobal);
+                TriggerInteraction);
             if (Count < Hits.Length) break;
             if (!Generation.GrowLineCheckHits())
                 throw new InvalidOperationException(

@@ -70,7 +70,7 @@ namespace PLL.Creator.Editor
                     Owner.StageRoot.transform, Target.transform,
                     PllSourceIdentityValidator.VariationEntryRoots(
                         Owner.StageRoot.GetComponentsInChildren<PllVariationAuthoring>(true))))
-                throw new InvalidOperationException("The selected source must have active or configured variation ancestors.");
+                throw new InvalidOperationException("The selected source needs active ancestors or ancestors configured as variation entries.");
             return Owner;
         }
 
@@ -387,12 +387,12 @@ namespace PLL.Creator.Editor
                 throw new InvalidOperationException(Action + " is unavailable while entering or running Play Mode.");
             if (EditorUtility.IsPersistent(Value))
                 throw new InvalidOperationException("Open prefab '" + Value.name
-                    + "' in Prefab Mode before using " + Action + ". PLL edits source objects only through Unity's normal editable hierarchy.");
+                    + "' in Prefab Mode before using " + Action + ".");
             var Stage = PrefabStageUtility.GetCurrentPrefabStage();
             if (Stage == null || Value != Stage.prefabContentsRoot
                 && !Value.transform.IsChildOf(Stage.prefabContentsRoot.transform))
                 throw new InvalidOperationException(Action
-                    + " requires an object in the current Prefab Mode hierarchy so every created reference remains bundle-owned.");
+                    + " requires an object in the current Prefab Mode hierarchy.");
         }
 
         static void RequireCampfireModelPresentation(GameObject Model)

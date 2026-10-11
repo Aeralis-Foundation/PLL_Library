@@ -33,8 +33,6 @@ internal sealed class GeneratedPropAssetCatalog
     internal bool TryMeshOrdinal(Mesh Mesh, out int Ordinal) => MeshOrdinals.TryGetValue(Mesh, out Ordinal);
     internal int MaterialOrdinal(Material Material) => MaterialOrdinals.TryGetValue(Material, out var Ordinal)
         ? Ordinal : throw new InvalidOperationException("Hooked generation produced an unsealed material.");
-    internal int PhysicsMaterialOrdinal(PhysicsMaterial Material) => PhysicsMaterialOrdinals.TryGetValue(Material, out var Ordinal)
-        ? Ordinal : throw new InvalidOperationException("Hooked generation produced an unsealed physics material.");
     internal bool TryPhysicsMaterialOrdinal(PhysicsMaterial Material, out int Ordinal) => PhysicsMaterialOrdinals.TryGetValue(Material, out Ordinal);
 
     internal void WriteManifest(BinaryWriter Writer) => Writer.Write(CanonicalBytes);

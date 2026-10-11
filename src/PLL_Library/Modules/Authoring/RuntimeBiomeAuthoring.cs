@@ -108,19 +108,19 @@ internal sealed class RuntimeBiomeAuthoring
         {
             List<Exception>? CleanupFailures = null;
 
-            if (CreatedEnvironment is not null) AuthoringCleanup.Capture(ref CleanupFailures, CreatedEnvironment.Release);
+            if (CreatedEnvironment is not null) CleanupOperations.Capture(ref CleanupFailures, CreatedEnvironment.Release);
             if (CreatedClimbSurfaces is not null)
-                AuthoringCleanup.Capture(ref CleanupFailures, CreatedClimbSurfaces.Deactivate);
-            for (var i = CreatedStingers - 1; i >= 0; i--) AuthoringCleanup.Capture(ref CleanupFailures, Stingers[i].Restore);
-            for (var i = CreatedEmitters - 1; i >= 0; i--) AuthoringCleanup.Capture(ref CleanupFailures, SoundEmitters[i].Restore);
-            for (var i = CreatedVisuals - 1; i >= 0; i--) AuthoringCleanup.Capture(ref CleanupFailures, Visuals[i].Restore);
-            for (var i = CreatedResolvers - 1; i >= 0; i--) AuthoringCleanup.Capture(ref CleanupFailures, NativeResolvers[i].Restore);
+                CleanupOperations.Capture(ref CleanupFailures, CreatedClimbSurfaces.Deactivate);
+            for (var i = CreatedStingers - 1; i >= 0; i--) CleanupOperations.Capture(ref CleanupFailures, Stingers[i].Restore);
+            for (var i = CreatedEmitters - 1; i >= 0; i--) CleanupOperations.Capture(ref CleanupFailures, SoundEmitters[i].Restore);
+            for (var i = CreatedVisuals - 1; i >= 0; i--) CleanupOperations.Capture(ref CleanupFailures, Visuals[i].Restore);
+            for (var i = CreatedResolvers - 1; i >= 0; i--) CleanupOperations.Capture(ref CleanupFailures, NativeResolvers[i].Restore);
             for (var i = CreatedZones - 1; i >= 0; i--)
             {
                 var Zone = EffectZones[i];
-                AuthoringCleanup.Capture(ref CleanupFailures, () => Zone.SetActive(false, 0f, 0d));
+                CleanupOperations.Capture(ref CleanupFailures, () => Zone.SetActive(false, 0f, 0d));
             }
-            for (var i = CreatedEffects - 1; i >= 0; i--) AuthoringCleanup.Capture(ref CleanupFailures, Effects[i].Restore);
+            for (var i = CreatedEffects - 1; i >= 0; i--) CleanupOperations.Capture(ref CleanupFailures, Effects[i].Restore);
             if (CleanupFailures is not null)
             {
                 CleanupFailures.Insert(0, Failure);
@@ -155,29 +155,29 @@ internal sealed class RuntimeBiomeAuthoring
             AutomaticStingersPending = false;
             List<Exception>? Failures = null;
 
-            AuthoringCleanup.Capture(ref Failures, CommitZeroOccupancy);
-            AuthoringCleanup.Capture(ref Failures, ClimbSurfaces.Deactivate);
-            AuthoringCleanup.Capture(ref Failures, () => VisualEnvironment.Deactivate(PresentationClock));
+            CleanupOperations.Capture(ref Failures, CommitZeroOccupancy);
+            CleanupOperations.Capture(ref Failures, ClimbSurfaces.Deactivate);
+            CleanupOperations.Capture(ref Failures, () => VisualEnvironment.Deactivate(PresentationClock));
             for (var i = NativeResolvers.Length - 1; i >= 0; i--)
             {
                 var Resolver = NativeResolvers[i];
-                AuthoringCleanup.Capture(ref Failures, () => Resolver.SetCurrent(false, Time.time, PresentationClock));
+                CleanupOperations.Capture(ref Failures, () => Resolver.SetCurrent(false, Time.time, PresentationClock));
             }
             for (var i = EffectZones.Length - 1; i >= 0; i--)
             {
                 var Zone = EffectZones[i];
-                AuthoringCleanup.Capture(ref Failures, () => Zone.SetActive(false, Time.time, PresentationClock));
+                CleanupOperations.Capture(ref Failures, () => Zone.SetActive(false, Time.time, PresentationClock));
             }
             foreach (var Effect in Effects)
-                AuthoringCleanup.Capture(ref Failures, () => Effect.Deactivate(PresentationClock));
+                CleanupOperations.Capture(ref Failures, () => Effect.Deactivate(PresentationClock));
             foreach (var Visual in Visuals)
-                AuthoringCleanup.Capture(ref Failures, () => Visual.Apply(false, PresentationClock));
+                CleanupOperations.Capture(ref Failures, () => Visual.Apply(false, PresentationClock));
             foreach (var Emitter in SoundEmitters)
-                AuthoringCleanup.Capture(ref Failures, () => Emitter.Deactivate(PresentationClock));
+                CleanupOperations.Capture(ref Failures, () => Emitter.Deactivate(PresentationClock));
             if (Sounds.TryGetStingerRoute(out var Group))
                 foreach (var Stinger in Stingers)
-                    AuthoringCleanup.Capture(ref Failures, () => Stinger.Stop(Group, PresentationClock));
-            else foreach (var Stinger in Stingers) AuthoringCleanup.Capture(ref Failures, Stinger.Restore);
+                    CleanupOperations.Capture(ref Failures, () => Stinger.Stop(Group, PresentationClock));
+            else foreach (var Stinger in Stingers) CleanupOperations.Capture(ref Failures, Stinger.Restore);
             if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
             if (Failures is { Count: > 1 })
                 throw new AggregateException("Biome authoring deactivation failed.", Failures);
@@ -227,7 +227,7 @@ internal sealed class RuntimeBiomeAuthoring
         {
             List<Exception>? CleanupFailures = null;
             foreach (var Stinger in Stingers)
-                AuthoringCleanup.Capture(ref CleanupFailures, Stinger.Restore);
+                CleanupOperations.Capture(ref CleanupFailures, Stinger.Restore);
             if (CleanupFailures is not null)
             {
                 CleanupFailures.Insert(0, Failure);
@@ -272,7 +272,7 @@ internal sealed class RuntimeBiomeAuthoring
         AutomaticStingersPending = false;
         List<Exception>? Failures = null;
         foreach (var Stinger in Stingers)
-            AuthoringCleanup.Capture(ref Failures, Stinger.Restore);
+            CleanupOperations.Capture(ref Failures, Stinger.Restore);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Biome stinger occurrence cleanup failed.", Failures);
@@ -326,11 +326,11 @@ internal sealed class RuntimeBiomeAuthoring
             List<Exception>? CleanupFailures = null;
 
             for (var i = CreatedEmitters - 1; i >= 0; i--)
-                AuthoringCleanup.Capture(ref CleanupFailures, NextEmitters[StableSoundEmitterCount + i].Restore);
+                CleanupOperations.Capture(ref CleanupFailures, NextEmitters[StableSoundEmitterCount + i].Restore);
             for (var i = CreatedVisuals - 1; i >= 0; i--)
-                AuthoringCleanup.Capture(ref CleanupFailures, NextVisuals[StableVisualCount + i].Restore);
+                CleanupOperations.Capture(ref CleanupFailures, NextVisuals[StableVisualCount + i].Restore);
             for (var i = CreatedEffects - 1; i >= 0; i--)
-                AuthoringCleanup.Capture(ref CleanupFailures, NextEffects[StableEffectCount + i].Restore);
+                CleanupOperations.Capture(ref CleanupFailures, NextEffects[StableEffectCount + i].Restore);
             if (CleanupFailures is not null)
             {
                 CleanupFailures.Insert(0, Failure);
@@ -532,29 +532,29 @@ internal sealed class RuntimeBiomeAuthoring
         FogCommandSources.Clear();
         List<Exception>? Failures = null;
 
-        AuthoringCleanup.Capture(ref Failures, () => PublishGeneratedZones(
+        CleanupOperations.Capture(ref Failures, () => PublishGeneratedZones(
             Array.Empty<(EffectZoneAuthoringContract Contract, ResolvedEffectZone Zone)>()));
-        AuthoringCleanup.Capture(ref Failures, CommitZeroOccupancy);
-        AuthoringCleanup.Capture(ref Failures, ClimbSurfaces.Deactivate);
-        AuthoringCleanup.Capture(ref Failures, VisualEnvironment.Release);
+        CleanupOperations.Capture(ref Failures, CommitZeroOccupancy);
+        CleanupOperations.Capture(ref Failures, ClimbSurfaces.Deactivate);
+        CleanupOperations.Capture(ref Failures, VisualEnvironment.Release);
         foreach (var Flow in GeneratedFlows)
-            AuthoringCleanup.Capture(ref Failures, Flow.Stop);
+            CleanupOperations.Capture(ref Failures, Flow.Stop);
         foreach (var Flow in FixedFlows)
-            AuthoringCleanup.Capture(ref Failures, Flow.Stop);
+            CleanupOperations.Capture(ref Failures, Flow.Stop);
         GeneratedFlows = Array.Empty<NativeFlowRuntime>();
         FixedFlows = Array.Empty<NativeFlowRuntime>();
         FlowPublications = Array.Empty<(NativeFlowRuntime, int, int, int)>();
-        for (var i = NativeResolvers.Length - 1; i >= 0; i--) AuthoringCleanup.Capture(ref Failures, NativeResolvers[i].Restore);
+        for (var i = NativeResolvers.Length - 1; i >= 0; i--) CleanupOperations.Capture(ref Failures, NativeResolvers[i].Restore);
         for (var i = EffectZones.Length - 1; i >= 0; i--)
         {
             var Zone = EffectZones[i];
-            AuthoringCleanup.Capture(ref Failures, () => Zone.SetActive(false, 0f, 0d));
-            AuthoringCleanup.Capture(ref Failures, Zone.StopEnvironment);
+            CleanupOperations.Capture(ref Failures, () => Zone.SetActive(false, 0f, 0d));
+            CleanupOperations.Capture(ref Failures, Zone.StopEnvironment);
         }
-        foreach (var Visual in Visuals) AuthoringCleanup.Capture(ref Failures, Visual.Restore);
-        foreach (var Effect in Effects) AuthoringCleanup.Capture(ref Failures, Effect.Restore);
-        foreach (var Emitter in SoundEmitters) AuthoringCleanup.Capture(ref Failures, Emitter.Restore);
-        foreach (var Stinger in Stingers) AuthoringCleanup.Capture(ref Failures, Stinger.Restore);
+        foreach (var Visual in Visuals) CleanupOperations.Capture(ref Failures, Visual.Restore);
+        foreach (var Effect in Effects) CleanupOperations.Capture(ref Failures, Effect.Restore);
+        foreach (var Emitter in SoundEmitters) CleanupOperations.Capture(ref Failures, Emitter.Restore);
+        foreach (var Stinger in Stingers) CleanupOperations.Capture(ref Failures, Stinger.Restore);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Biome authoring occurrence cleanup failed.", Failures);

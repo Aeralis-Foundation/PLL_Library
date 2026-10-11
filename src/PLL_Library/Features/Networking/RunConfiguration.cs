@@ -169,8 +169,7 @@ internal sealed class ResolvedRunConfiguration
 internal static class RunConfigurationCodec
 {
     internal const string PropertyKey = PLLLibrary.PluginGuid + "/c";
-    internal const string ProtocolRevision = "72";
-    internal const int FieldCount = 35;
+    internal const string ProtocolRevision = "73";
     internal const int MaximumPayloadBytes = short.MaxValue;
     static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
@@ -202,7 +201,7 @@ internal static class RunConfigurationCodec
             FileManager.InfiniteMapBeginIndex.Value,
             FileManager.InfiniteMapRemoveOld.Value);
         if (Layout.Scale < 1 || Layout.Scale > byte.MaxValue)
-            throw new InvalidOperationException("PLL Library's local run configuration is invalid.");
+            throw new InvalidOperationException("The local run settings are invalid.");
         return new ResolvedRunConfiguration(
             new RunProtocolIdentity(
                 ProtocolRevision,
@@ -284,7 +283,7 @@ internal static class RunConfigurationCodec
         out string Failure)
     {
         Configuration = null!;
-        Failure = "The host published a malformed PLL Library room configuration.";
+        Failure = "The host sent invalid PLL room settings.";
         var Offset = 0;
         if (!ValidPayload(Data)
             || !LengthPrefixedText.TryRead(Data, ref Offset, out var ProtocolRevisionValue)
@@ -364,23 +363,23 @@ internal static class RunConfigurationCodec
         if (!string.Equals(
             SegmentManifestRevision, SegmentRegistry.StartupManifestRevision, StringComparison.Ordinal))
         {
-            Failure = "PLL Library custom segment registry mismatch.";
+            Failure = "The players have different custom biomes.";
             return false;
         }
         if (!string.Equals(LayoutManifestRevision, LayoutRegistry.ManifestRevision, StringComparison.Ordinal))
         {
-            Failure = "PLL Library registered layout registry mismatch.";
+            Failure = "The players have different registered layouts.";
             return false;
         }
         if (!CustomBiomeConfigRegistry.TryParseSnapshot(
             BiomeConfigurationValue, out var BiomeConfigurations))
         {
-            Failure = "The host published a malformed PLL Library custom biome configuration.";
+            Failure = "The host sent invalid custom biome settings.";
             return false;
         }
         if (!ValidSelection(SelectedLayoutId, Order, OrderEnabled, IsLibraryBase))
         {
-            Failure = "The host published an inconsistent PLL Library layout selection.";
+            Failure = "The host sent inconsistent layout settings.";
             return false;
         }
 
@@ -466,7 +465,7 @@ internal static class RunConfigurationResolution
     internal static BiomeLayoutConfigSnapshot? CurrentBiomes => CurrentConfiguration?.Biomes;
 
     internal static ResolvedRunConfiguration RequireCurrent() => CurrentConfiguration
-        ?? throw new InvalidOperationException("PLL Library's resolved run configuration is unavailable.");
+        ?? throw new InvalidOperationException("The run settings are unavailable.");
 
     internal static void AdoptForPublication(ResolvedRunConfiguration Configuration)
     {
@@ -489,17 +488,17 @@ internal static class RunConfigurationResolution
             {
                 if (!IslandLoadPublication.IsOnlineStartupState(NetworkConnector.CurrentConnectionState))
                     throw PhotonRoomRejection.Disconnect(
-                        "PLL Library cancelled online run startup because PEAK left its room connection flow.");
+                        "PEAK stopped connecting to the room. Run startup stopped.");
                 if (State is not ClientState.Disconnected and not ClientState.PeerCreated)
                     EnteredPhotonConnection = true;
                 if (State == ClientState.Joined
                     && (PhotonNetwork.OfflineMode || Room is { IsOffline: true }))
                     throw PhotonRoomRejection.Disconnect(
-                        "PLL Library cannot continue an online run in a local Photon room.");
+                        "An online run cannot use an offline room.");
                 if (State == ClientState.Disconnecting
                     || State == ClientState.Disconnected && EnteredPhotonConnection)
                     throw PhotonRoomRejection.Disconnect(
-                        "PLL Library cancelled online run startup because Photon disconnected.");
+                        "Photon disconnected during run startup.");
                 if (State is ClientState.Disconnected or ClientState.PeerCreated)
                 {
                     yield return null;
@@ -516,14 +515,14 @@ internal static class RunConfigurationResolution
                 && Room.CustomProperties.ContainsKey(RunConfigurationCodec.PropertyKey)) yield break;
             if (State is ClientState.Disconnecting or ClientState.Disconnected)
                 throw new InvalidOperationException(
-                    "PLL Library cancelled run startup because Photon disconnected before startup became ready.");
+                    "Photon disconnected before run startup finished.");
             if (State == ClientState.Joined && Room is null)
                 throw PhotonRoomRejection.Disconnect(
-                    "PLL Library cannot start the run because Photon joined without a room.");
+                    "Photon reported a joined connection without a room.");
             if (EnteredGameServer && State is (ClientState.DisconnectingFromGameServer
                 or ClientState.ConnectingToMasterServer or ClientState.ConnectedToMasterServer))
                 throw PhotonRoomRejection.Disconnect(
-                    "PLL Library cancelled run startup because Photon left the room-join flow.");
+                    "Photon stopped joining the room. Run startup stopped.");
             yield return null;
         }
     }
@@ -549,11 +548,11 @@ internal static class RunConfigurationResolution
         }
         if (Room is null || PhotonNetwork.NetworkClientState != ClientState.Joined)
             throw PhotonRoomRejection.Disconnect(
-                "PLL Library cannot resolve an online run without an authoritative joined Photon room.");
+                "The online run has no joined Photon room.");
         if (!Room.CustomProperties.TryGetValue(RunConfigurationCodec.PropertyKey, out var Raw)
             || Raw is not string Data)
             throw PhotonRoomRejection.Disconnect(
-                "The host did not publish a PLL Library room configuration.");
+                "The host did not send PLL room settings.");
         if (!RunConfigurationCodec.TryParse(Data, out var Resolved, out var Failure))
             throw PhotonRoomRejection.Disconnect(Failure);
         CurrentConfiguration = Resolved;

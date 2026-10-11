@@ -24,7 +24,8 @@ namespace PLL.Creator.Editor
         {
             Root = (GameObject)EditorGUILayout.ObjectField("Target Biome", Root, typeof(GameObject), true);
             Source = (PllBiomeDefinition)EditorGUILayout.ObjectField("Source Biome Asset", Source, typeof(PllBiomeDefinition), false);
-            EditorGUILayout.HelpBox("Applies an existing biome's lighting profile, color, audio catalogs and provided atmosphere, fog and native visual settings in one Undo operation. It does not change biome behavior, clone weather/particles/campsites, or modify source assets. Those remain owned by their current source objects.", MessageType.Info);
+            EditorGUILayout.HelpBox("Copies lighting, biome color, audio, atmosphere, fog and native visuals from the source biome. "
+                + "Weather, particles, campsite and biome behavior stay unchanged.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Root || !Source))
                 if (GUILayout.Button("Apply Existing Environment"))
                 {
@@ -46,7 +47,7 @@ namespace PLL.Creator.Editor
             PllAtmosphereAuthoringCommand.RequireCurrentBiomeRoot(Root);
             var Target = Root.GetComponent<PllBiomeRoot>();
             if (!Target || !Target.Definition || !Source || !AssetDatabase.IsMainAsset(Source))
-                throw new InvalidOperationException("Select a linked target biome and one persistent source biome definition.");
+                throw new InvalidOperationException("Select a target biome linked to its definition and a saved source biome definition.");
             PllSourceIdentityValidator.ResolveEditableOwner(
                 Root.GetComponentInChildren<PllBiomePrefabAnchors>(true).FloorRoot, Action);
             if (Source == Target.Definition)

@@ -189,7 +189,8 @@ namespace PLL.Creator.Editor
                     else File.Move(TemporaryPath, DestinationPath);
                     return;
                 }
-                catch (IOException) when (Attempt < MaximumAtomicWriteAttempts)
+                catch (IOException Failure) when (Attempt < MaximumAtomicWriteAttempts
+                    && ((Failure.HResult & 0xffff) == 32 || (Failure.HResult & 0xffff) == 33))
                 {
                     System.Threading.Thread.Sleep(AtomicWriteRetryDelayMilliseconds);
                 }

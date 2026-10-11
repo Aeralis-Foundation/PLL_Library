@@ -35,7 +35,8 @@ namespace PLL.Creator.Editor
             Generator = (GameObject)EditorGUILayout.ObjectField("Generator", Generator, typeof(GameObject), true);
             Order = EditorGUILayout.IntField("Order", Order);
             EditorGUILayout.HelpBox(
-                "Choose an existing configured PropSpawner or Immediate Child Props block under FloorRoot or CampfireRoot. Placement and candidates stay unchanged; native deferred work remains deferred.",
+                "Choose a configured PropSpawner or Immediate Child Props block under FloorRoot or CampfireRoot. "
+                + "This marks its immediate generation as critical without changing placement, candidates or deferred work.",
                 MessageType.Info);
             using (new EditorGUI.DisabledScope(!Root || !Generator))
                 if (GUILayout.Button("Add Critical Generation"))

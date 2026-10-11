@@ -34,15 +34,14 @@ namespace PLL.Creator.Editor
                     return false;
                 }
                 var CurrentName = Layers.GetArrayElementAtIndex(Required.Index).stringValue;
-                if (!string.IsNullOrEmpty(CurrentName)
-                    && !ExactNameIndex(CurrentName, Required.Index, Required))
+                Required.PreviouslyPresent = ExactNameIndex(CurrentName, Required.Index, Required);
+                if (!string.IsNullOrEmpty(CurrentName) && !Required.PreviouslyPresent)
                 {
                     ProjectLayers = null;
                     Failure = "Project layer " + Required.Index + " is '" + CurrentName
                         + "'. Set it to '" + Required.Name + "' or clear it before configuring PLL Creator.";
                     return false;
                 }
-                Required.PreviouslyPresent = ExactNameIndex(CurrentName, Required.Index, Required);
             }
             Failure = string.Empty;
             return true;
@@ -78,7 +77,6 @@ namespace PLL.Creator.Editor
                 throw new PllCreatorSetupException(Failure);
             if (!NamesUseExpectedIndexes(Layers, ProjectLayers, out Failure))
                 throw new PllCreatorSetupException(Failure);
-            if (!HasOwnedChanges(ProjectLayers)) return;
             var Changed = false;
             foreach (var Layer in ProjectLayers)
             {
@@ -108,7 +106,6 @@ namespace PLL.Creator.Editor
                 throw new PllCreatorSetupException(Failure);
             if (!NamesUseExpectedIndexes(Layers, ProjectLayers, out Failure))
                 throw new PllCreatorSetupException(Failure);
-            if (!HasOwnedChanges(ProjectLayers)) return;
             var Changed = false;
             foreach (var Layer in ProjectLayers)
             {
@@ -171,13 +168,6 @@ namespace PLL.Creator.Editor
             }
             Failure = string.Empty;
             return true;
-        }
-
-        static bool HasOwnedChanges(PllCreatorPendingLayer[] ProjectLayers)
-        {
-            foreach (var Layer in ProjectLayers)
-                if (!Layer.PreviouslyPresent) return true;
-            return false;
         }
 
         static PllCreatorPendingLayer[] CreateProjectLayers(PllCreatorContractLayer[] RequiredLayers)

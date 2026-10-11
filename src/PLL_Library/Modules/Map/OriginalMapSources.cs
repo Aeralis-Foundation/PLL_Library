@@ -299,7 +299,7 @@ internal sealed class OriginalMapSources
                 throw new InvalidOperationException("A reused native source container was destroyed before publication.");
             if (TransformOwnership.Overlaps(OriginalVoidContent, Container)) return;
         }
-        if (ForceSpawnCatalog.RequiresNativeSource(OriginalVoidContent)) return;
+        if (NativeSpawnCatalog.RequiresNativeSource(OriginalVoidContent)) return;
         PublishedVoidSegment = Terminal.Segment;
         PublishedVoidFallback = (Transform[])TerminalNadir.SpawnPoints.Clone();
         VoidPhase = VoidControllerPhase.TransferredPrepared;
@@ -566,7 +566,7 @@ internal sealed class OriginalMapSources
                 throw new InvalidOperationException("The original VOID content left its controller before retirement.");
             if (VoidPhase is VoidControllerPhase.TransferredPublished)
                 Candidates.Add(OriginalVoidContent.gameObject);
-            else if (!ForceSpawnCatalog.RequiresNativeSource(OriginalVoidContent))
+            else if (!NativeSpawnCatalog.RequiresNativeSource(OriginalVoidContent))
             {
                 RetireOmittedRoot = true;
                 Candidates.Add(VoidController.gameObject);
@@ -638,7 +638,7 @@ internal sealed class OriginalMapSources
             if (TransformOwnership.Overlaps(Unit.Owner.transform, Container)) return false;
         }
         foreach (var Source in Unit.Sources)
-            if (ForceSpawnCatalog.RequiresNativeSource(Source)) return false;
+            if (NativeSpawnCatalog.RequiresNativeSource(Source)) return false;
         return true;
     }
 

@@ -41,6 +41,22 @@ namespace PLL.Library
             }
         }
 
+        internal static bool HasManagedHookAncestor(Transform Root, Transform Value)
+        {
+            for (var Current = Value; Current; Current = Current.parent)
+            {
+                if (Current.GetComponent<SegmentPort>()
+                    || Current != Root && (Current.GetComponent<CustomSegmentRuntime>()
+                        || Current.GetComponent<PllBiomePrefabAnchors>() || Current.GetComponent<PllBiomeRoot>())
+                    || Current.GetComponent<PllEffectZoneAuthoring>() || Current.GetComponent<PLLNativeResolver>()
+                    || Current.GetComponent<PllItemSpawnerAuthoring>() || Current.GetComponent<PllStatueAuthoring>()
+                    || Current.GetComponent<PllCampfireAuthoring>() || Current.GetComponent<PllLuggageAuthoring>()
+                    || Current.GetComponent<PllBiomeStingerAuthoring>()) return true;
+                if (Current == Root) return false;
+            }
+            return false;
+        }
+
         internal static bool ParentDiscoverable(Transform Owner, Transform Value)
         {
             if (Value == Owner) return false;

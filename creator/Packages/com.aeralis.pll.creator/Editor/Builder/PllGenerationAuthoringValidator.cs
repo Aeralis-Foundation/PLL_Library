@@ -15,17 +15,18 @@ namespace PLL.Creator.Editor
         {
             var Graph = Identity.Graph;
             var Root = Identity.Root;
+            var RootNode = Graph.ByPath[Graph.RootPath];
             var Authoring = new GenerationAuthoring(
-                DiscoverComponents<PllVariationAuthoring>(Root),
+                DiscoverComponents<PllVariationAuthoring>(RootNode),
                 DiscoverGraphComponents<PllEffectZoneAuthoring>(Graph),
                 DiscoverGraphComponents<PllPropZoneAuthoring>(Graph),
                 DiscoverGraphComponents<PLLNoPropSpawn>(Graph),
                 DiscoverGraphComponents<PllChildPropAuthoring>(Graph),
-                DiscoverComponents<PLLFinalGeneration>(Root),
-                DiscoverComponents<PLLCriticalGeneration>(Root),
-                DiscoverComponents<PllEntityZoneAuthoring>(Root),
-                DiscoverComponents<PllHazardZoneAuthoring>(Root),
-                DiscoverComponents<PllAmuletSpawnerAuthoring>(Root),
+                DiscoverComponents<PLLFinalGeneration>(RootNode),
+                DiscoverComponents<PLLCriticalGeneration>(RootNode),
+                DiscoverComponents<PllEntityZoneAuthoring>(RootNode),
+                DiscoverComponents<PllHazardZoneAuthoring>(RootNode),
+                DiscoverComponents<PllAmuletSpawnerAuthoring>(RootNode),
                 DiscoverGraphComponents<PllHazardAuthoring>(Graph),
                 DiscoverGraphComponents<PllEntityAuthoring>(Graph));
             RequireComponents(Root, Authoring.Variations, Identity.Label, "variationDefinitions");
@@ -60,16 +61,14 @@ namespace PLL.Creator.Editor
                 Authoring.EntityZones, Authoring.HazardZones, Identity.Label);
             foreach (var Amulet in Authoring.AmuletSpawners)
             {
-                if (!Amulet.enabled || !TransformOwnership.Contains(Identity.Floor, Amulet.transform)
-                    || TransformOwnership.HasPropSpawnerInPath(Identity.Floor, Amulet.transform))
-                    throw new InvalidOperationException("An amulet source must be enabled beneath FloorRoot and outside generated storage.");
-                ValidateZoneVolume(Amulet.Volume, "Amulet spawner");
-                PllAmuletSpawnerAuthoring.ResolveCategory(Amulet.Category, Identity.Definition.Behavior);
-                if (Amulet.Presentation is PllCustomAmuletPedestal Custom) Custom.RequireValid();
-                else if (!(Amulet.Presentation is PllNativeAmuletPedestal))
-                    throw new InvalidOperationException("The amulet presentation is unsupported.");
+                ValidateAmulet(Amulet, Identity.Floor);
+                if (Amulet.Category == PllAmuletOpportunityCategory.InheritBiome)
+                    PllAmuletSpawnerAuthoring.ResolveCategory(Amulet.Category, Identity.Definition.Behavior);
             }
-            var RootNode = Graph.ByPath[Graph.RootPath];
+            if (PllAmuletSpawnerAuthoring.CapturePotential(Identity.Floor, Authoring.Variations,
+                    Authoring.AmuletSpawners, Source => (Source.transform,
+                        PllAmuletSpawnerAuthoring.ResolveCategory(Source.Category, Identity.Definition.Behavior))).Maximum > 1)
+                throw new InvalidOperationException("An occurrence can contain only one selected amulet source.");
             ValidatePropZones(Root, Identity.Floor, Identity.Campfire,
                 ComponentsInNode(RootNode, Authoring.PropZones), Identity.Label);
             ValidateNoPropSpawn(Root, Identity.Floor, Identity.Campfire,
@@ -84,6 +83,19 @@ namespace PLL.Creator.Editor
                 PllCriticalGenerationContract.ValidateScope(Identity.Anchors, Marker.transform, Context, true);
             }
             return Authoring;
+        }
+
+        internal static void ValidateAmulet(PllAmuletSpawnerAuthoring Source, Transform Floor)
+        {
+            if (!Source.enabled || !TransformOwnership.Contains(Floor, Source.transform)
+                || TransformOwnership.HasPropSpawnerInPath(Floor, Source.transform))
+                throw new InvalidOperationException("Amulet Spawner must be enabled beneath FloorRoot and outside a PropSpawner hierarchy.");
+            ValidateZoneVolume(Source.Volume, "Amulet Spawner");
+            if (Source.Category != PllAmuletOpportunityCategory.InheritBiome)
+                PllAmuletSpawnerAuthoring.ResolveCategory(Source.Category, PllBiomeBehavior.Authored);
+            if (Source.Presentation is PllCustomAmuletPedestal Custom) Custom.RequireValid();
+            else if (Source.Presentation is not PllNativeAmuletPedestal)
+                throw new InvalidOperationException("Amulet Spawner has an unsupported presentation.");
         }
 
         static void ValidateEffectZones(SourceIdentity Identity, GenerationAuthoring Authoring)

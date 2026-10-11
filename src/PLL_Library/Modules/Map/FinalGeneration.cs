@@ -372,7 +372,7 @@ internal sealed class ForceSpawnTarget
         PLLForceSpawner Marker,
         string Key,
         int FinalIndexValue,
-        ForceSpawnResolution Resolution)
+        NativeSpawnResolution Resolution)
     {
         FinalIndex = FinalIndexValue;
         Execution = ForceSpawnExecution.Create(Marker, Key, Resolution);

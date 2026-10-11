@@ -196,16 +196,16 @@ internal sealed class EffectState
         Deadline = 0f;
         List<Exception>? Failures = null;
 
-        if (Ambience) AuthoringCleanup.Capture(ref Failures, () => Ambience.Stop());
-        AuthoringCleanup.Capture(ref Failures, StopParticles);
-        if (AppearanceApplied) AuthoringCleanup.Capture(ref Failures, RestoreAppearance);
-        if (PresentationRoot) AuthoringCleanup.Capture(ref Failures, () => PresentationRoot.SetActive(false));
+        if (Ambience) CleanupOperations.Capture(ref Failures, () => Ambience.Stop());
+        CleanupOperations.Capture(ref Failures, StopParticles);
+        if (AppearanceApplied) CleanupOperations.Capture(ref Failures, RestoreAppearance);
+        if (PresentationRoot) CleanupOperations.Capture(ref Failures, () => PresentationRoot.SetActive(false));
         for (var i = 0; i < EmissionTime.Length; i++)
         {
             var Particle = AllParticles[i];
             var TimeRate = EmissionTime[i];
             var DistanceRate = EmissionDistance[i];
-            if (Particle) AuthoringCleanup.Capture(ref Failures, () =>
+            if (Particle) CleanupOperations.Capture(ref Failures, () =>
             {
                 var Emission = Particle.emission;
                 Emission.rateOverTimeMultiplier = TimeRate;
@@ -216,7 +216,7 @@ internal sealed class EffectState
         {
             var Light = Lights[i];
             var Intensity = LightIntensities[i];
-            if (Light) AuthoringCleanup.Capture(ref Failures, () => Light.intensity = Intensity);
+            if (Light) CleanupOperations.Capture(ref Failures, () => Light.intensity = Intensity);
         }
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 }) throw new AggregateException("Effect cleanup failed.", Failures);
@@ -229,13 +229,13 @@ internal sealed class EffectState
         {
             var Particle = AllParticles[i];
             var Original = ParticleColors[i];
-            if (Particle) AuthoringCleanup.Capture(ref Failures, () =>
+            if (Particle) CleanupOperations.Capture(ref Failures, () =>
             {
                 var Main = Particle.main;
                 Main.startColor = Original;
             });
         }
-        if (ColorRenderer) AuthoringCleanup.Capture(ref Failures,
+        if (ColorRenderer) CleanupOperations.Capture(ref Failures,
             () => ColorRenderer.SetPropertyBlock(OriginalColorBlock, ColorMaterialSlot));
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 }) throw new AggregateException("Effect appearance restoration failed.", Failures);
@@ -249,7 +249,7 @@ internal sealed class EffectState
         {
             var Particle = AllParticles[i];
             if (!Particle) continue;
-            AuthoringCleanup.Capture(ref Failures,
+            CleanupOperations.Capture(ref Failures,
                 () => Particle.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear));
         }
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
@@ -260,27 +260,27 @@ internal sealed class EffectState
     {
         List<Exception>? Failures = null;
 
-        AuthoringCleanup.Capture(ref Failures, Stop);
+        CleanupOperations.Capture(ref Failures, Stop);
         if (!NativeRoot)
         {
-            if (PresentationRoot) AuthoringCleanup.Capture(ref Failures, () => PresentationRoot.SetActive(true));
+            if (PresentationRoot) CleanupOperations.Capture(ref Failures, () => PresentationRoot.SetActive(true));
             for (var i = 0; i < AllParticles.Count; i++)
             {
                 var Particle = AllParticles[i];
                 if (!Particle) continue;
                 var Playback = ParticlePlaybackStates[i];
-                AuthoringCleanup.Capture(ref Failures, () => RestoreParticle(Particle, Playback));
+                CleanupOperations.Capture(ref Failures, () => RestoreParticle(Particle, Playback));
             }
-            if (PresentationRoot) AuthoringCleanup.Capture(ref Failures, () => PresentationRoot.SetActive(PresentationActive));
+            if (PresentationRoot) CleanupOperations.Capture(ref Failures, () => PresentationRoot.SetActive(PresentationActive));
         }
         else
         {
-            AuthoringCleanup.Capture(ref Failures, () => NativeRoot.transform.SetParent(null, false));
-            AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.Destroy(NativeRoot));
+            CleanupOperations.Capture(ref Failures, () => NativeRoot.transform.SetParent(null, false));
+            CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.Destroy(NativeRoot));
         }
         var OwnedAmbience = Ambience;
         Ambience = null;
-        if (OwnedAmbience) AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.Destroy(OwnedAmbience));
+        if (OwnedAmbience) CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.Destroy(OwnedAmbience));
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 }) throw new AggregateException("Effect restoration failed.", Failures);
 
@@ -381,7 +381,7 @@ internal sealed class EffectZoneState
     {
         List<Exception>? Failures = null;
         for (var i = Effects.Length - 1; i >= 0; i--)
-            AuthoringCleanup.Capture(ref Failures, Effects[i].Stop);
+            CleanupOperations.Capture(ref Failures, Effects[i].Stop);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 }) throw new AggregateException("Effect-zone cleanup failed.", Failures);
     }

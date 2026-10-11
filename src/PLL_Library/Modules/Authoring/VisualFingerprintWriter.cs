@@ -11,7 +11,7 @@ namespace PLL.Library;
 
 internal sealed partial class VisualFingerprintWriter
 {
-    const string ParticleProtocol = "PLL/ParticleVisualGraph/v2";
+    const string ParticleProtocol = "PLL/ParticleVisualGraph/v3";
     static readonly Dictionary<Type, ValueMemberDescriptor> ValueMemberDescriptors = new();
     static readonly Dictionary<Type, FieldInfo[]> SerializedFieldDescriptors = new();
     readonly BinaryWriter Writer;
@@ -143,9 +143,10 @@ internal sealed partial class VisualFingerprintWriter
         Writer.Write(Particle.useAutoRandomSeed);
         if (!Particle.useAutoRandomSeed) Writer.Write(Particle.randomSeed);
         WriteModule(Particle.main);
-        WriteModule(Particle.emission);
-        var Bursts = new ParticleSystem.Burst[Particle.emission.burstCount];
-        Writer.Write(Particle.emission.GetBursts(Bursts));
+        var Emission = Particle.emission;
+        WriteModule(Emission);
+        var Bursts = new ParticleSystem.Burst[Emission.burstCount];
+        Writer.Write(Emission.GetBursts(Bursts));
         foreach (var Burst in Bursts) WriteValue(Burst);
         WriteModule(Particle.shape);
         WriteModule(Particle.velocityOverLifetime);
@@ -159,21 +160,21 @@ internal sealed partial class VisualFingerprintWriter
         WriteModule(Particle.sizeBySpeed);
         WriteModule(Particle.rotationOverLifetime);
         WriteModule(Particle.rotationBySpeed);
-        WriteModule(Particle.externalForces);
         var ExternalForces = Particle.externalForces;
+        WriteModule(ExternalForces);
         Writer.Write(ExternalForces.influenceCount);
         for (var i = 0; i < ExternalForces.influenceCount; i++) WriteUnityObject(ExternalForces.GetInfluence(i));
         WriteModule(Particle.noise);
-        WriteModule(Particle.collision);
         var Collision = Particle.collision;
+        WriteModule(Collision);
         Writer.Write(Collision.planeCount);
         for (var i = 0; i < Collision.planeCount; i++) WriteUnityObject(Collision.GetPlane(i));
-        WriteModule(Particle.trigger);
         var Trigger = Particle.trigger;
+        WriteModule(Trigger);
         Writer.Write(Trigger.colliderCount);
         for (var i = 0; i < Trigger.colliderCount; i++) WriteUnityObject(Trigger.GetCollider(i));
-        WriteModule(Particle.subEmitters);
         var SubEmitters = Particle.subEmitters;
+        WriteModule(SubEmitters);
         Writer.Write(SubEmitters.subEmittersCount);
         for (var i = 0; i < SubEmitters.subEmittersCount; i++)
         {
@@ -182,14 +183,14 @@ internal sealed partial class VisualFingerprintWriter
             Writer.Write((int)SubEmitters.GetSubEmitterProperties(i));
             Writer.Write(SubEmitters.GetSubEmitterEmitProbability(i));
         }
-        WriteModule(Particle.textureSheetAnimation);
         var Texture = Particle.textureSheetAnimation;
+        WriteModule(Texture);
         Writer.Write(Texture.spriteCount);
         for (var i = 0; i < Texture.spriteCount; i++) WriteUnityObject(Texture.GetSprite(i));
         WriteModule(Particle.lights);
         WriteModule(Particle.trails);
-        WriteModule(Particle.customData);
         var Custom = Particle.customData;
+        WriteModule(Custom);
         for (var Stream = ParticleSystemCustomData.Custom1; Stream <= ParticleSystemCustomData.Custom2; Stream++)
         {
             Writer.Write((int)Stream);
@@ -498,12 +499,14 @@ internal sealed partial class VisualFingerprintWriter
             }
             for (var i = 0; i < Mesh.subMeshCount; i++) WriteValue(Mesh.GetSubMesh(i));
         }
-        Writer.Write(Mesh.blendShapeCount);
-        for (var i = 0; i < Mesh.blendShapeCount; i++)
+        var BlendShapes = Mesh.blendShapeCount;
+        Writer.Write(BlendShapes);
+        for (var i = 0; i < BlendShapes; i++)
         {
             Writer.Write(Mesh.GetBlendShapeName(i) ?? string.Empty);
-            Writer.Write(Mesh.GetBlendShapeFrameCount(i));
-            for (var Frame = 0; Frame < Mesh.GetBlendShapeFrameCount(i); Frame++)
+            var Frames = Mesh.GetBlendShapeFrameCount(i);
+            Writer.Write(Frames);
+            for (var Frame = 0; Frame < Frames; Frame++)
                 WriteFloat(Mesh.GetBlendShapeFrameWeight(i, Frame));
         }
         return ByteCount;

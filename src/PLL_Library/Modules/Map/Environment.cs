@@ -35,7 +35,7 @@ internal sealed class MapEnvironmentProjection
         void CaptureWater(GameObject Root)
         {
             foreach (var Zone in Root.GetComponentsInChildren<WaterZone>(true))
-                if (!water.ContainsKey(Zone)) water.Add(Zone, Zone.zoneBounds);
+                water.TryAdd(Zone, Zone.zoneBounds);
         }
 
         internal void Rebase(GameObject Root, PlacementFrame Frame, bool Capture, Transform? Excluded = null)
@@ -50,7 +50,7 @@ internal sealed class MapEnvironmentProjection
             foreach (var Zone in Root.GetComponentsInChildren<WindChillZone>(true))
             {
                 if (Excluded && TransformOwnership.Contains(Excluded!, Zone.transform)) continue;
-                if (Capture && !wind.ContainsKey(Zone)) wind.Add(Zone, Zone.windZoneBounds);
+                if (Capture) wind.TryAdd(Zone, Zone.windZoneBounds);
                 var Bounds = Zone.windZoneBounds;
                 if (Frame.Rotated) Bounds = Frame.TransformBounds(Bounds);
                 else Bounds.center = Zone.transform.position;
@@ -59,7 +59,7 @@ internal sealed class MapEnvironmentProjection
             foreach (var Particles in Root.GetComponentsInChildren<PlayerTrackParticles>(true))
             {
                 if (Excluded && TransformOwnership.Contains(Excluded!, Particles.transform)) continue;
-                if (Capture && !tracks.ContainsKey(Particles)) tracks.Add(Particles, Particles.bounds);
+                if (Capture) tracks.TryAdd(Particles, Particles.bounds);
                 var Bounds = Particles.bounds;
                 if (Frame.Rotated) Bounds = Frame.TransformBounds(Bounds);
                 else Bounds.center = Particles.transform.position;
@@ -68,7 +68,7 @@ internal sealed class MapEnvironmentProjection
             foreach (var Zone in Root.GetComponentsInChildren<PlayerMoveZone>(true))
             {
                 if (Excluded && TransformOwnership.Contains(Excluded!, Zone.transform)) continue;
-                if (Capture && !movement.ContainsKey(Zone)) movement.Add(Zone, Zone.zoneBounds);
+                if (Capture) movement.TryAdd(Zone, Zone.zoneBounds);
                 var Bounds = Zone.zoneBounds;
                 if (Frame.Rotated) Bounds = Frame.TransformBounds(Bounds);
                 else Bounds.center = Zone.transform.position;
@@ -98,8 +98,7 @@ internal sealed class MapEnvironmentProjection
             foreach (var Effect in Root.GetComponentsInChildren<WindHeightEffect>(true))
             {
                 if (Excluded && TransformOwnership.Contains(Excluded!, Effect.transform)) continue;
-                if (Capture && !heights.ContainsKey(Effect))
-                    heights.Add(Effect, (Effect.fromHeight, Effect.toHeight));
+                if (Capture) heights.TryAdd(Effect, (Effect.fromHeight, Effect.toHeight));
                 Effect.fromHeight += Frame.Offset.y;
                 Effect.toHeight += Frame.Offset.y;
             }
@@ -115,7 +114,7 @@ internal sealed class MapEnvironmentProjection
             foreach (var Zone in Root.GetComponentsInChildren<WaterZone>(true))
             {
                 if (Excluded && TransformOwnership.Contains(Excluded!, Zone.transform)) continue;
-                if (Capture && !water.ContainsKey(Zone)) water.Add(Zone, Zone.zoneBounds);
+                if (Capture) water.TryAdd(Zone, Zone.zoneBounds);
                 Zone.zoneBounds = Frame.TransformBounds(Zone.zoneBounds);
             }
         }

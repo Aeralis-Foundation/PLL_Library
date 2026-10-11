@@ -11,7 +11,7 @@ namespace PLL.Library
         internal static string? HookFailure(string? Value)
         {
             if (Value is null || Value.Length is < 1 or > 128)
-                return "The hook must contain 1 through 128 UTF-16 code units.";
+                return "The hook must contain 1 to 128 characters (UTF-16).";
             for (var Index = 0; Index < Value.Length; Index++)
             {
                 var Character = Value[Index];
@@ -20,9 +20,9 @@ namespace PLL.Library
                 if (char.IsHighSurrogate(Character))
                 {
                     if (++Index >= Value.Length || !char.IsLowSurrogate(Value[Index]))
-                        return "The hook contains malformed UTF-16.";
+                        return "The hook contains an invalid Unicode sequence.";
                 }
-                else if (char.IsLowSurrogate(Character)) return "The hook contains malformed UTF-16.";
+                else if (char.IsLowSurrogate(Character)) return "The hook contains an invalid Unicode sequence.";
             }
             return null;
         }
@@ -47,7 +47,7 @@ namespace PLL.Library
         }
 
         internal static string? TransitionFailure(float Seconds) =>
-            CanEncode(Seconds) && Seconds >= 0f ? null : "Cover Delay must be finite nonnegative seconds within the synchronized range.";
+            CanEncode(Seconds) && Seconds >= 0f ? null : "Cover Delay must be zero or more seconds within the supported range.";
 
         internal static string? ParticleTransitionFailure(UnityEngine.ParticleSystem Particle) =>
             Particle.main.loop && !Particle.main.prewarm
@@ -115,6 +115,9 @@ namespace PLL.Library
             return !double.IsNaN(Scaled) && !double.IsInfinity(Scaled)
                 && Scaled > long.MinValue && Scaled < long.MaxValue;
         }
+
+        internal static bool CanEncode(UnityEngine.Vector3 Value) =>
+            CanEncode(Value.x) && CanEncode(Value.y) && CanEncode(Value.z);
 
         internal static bool CanEncodeExactly(float Value) => CanEncode(Value)
             && ((float)(System.Math.Round(

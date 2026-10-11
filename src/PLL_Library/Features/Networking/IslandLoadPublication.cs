@@ -116,7 +116,7 @@ internal static class IslandLoadPublication
         if (Request is null) return;
         if (!ReferenceEquals(PhotonNetwork.CurrentRoom, Request.Room) || !PhotonNetwork.IsMasterClient)
         {
-            Fail(Request, "PLL Library cancelled the pending room configuration because room authority changed.");
+            Fail(Request, "The host or room changed before the room settings were confirmed.");
             return;
         }
         TryConfirm(Request);
@@ -127,7 +127,7 @@ internal static class IslandLoadPublication
         if (Pending is not { } Request) return;
         if (!ReferenceEquals(PhotonNetwork.CurrentRoom, Request.Room) || !PhotonNetwork.IsMasterClient)
         {
-            Fail(Request, "PLL Library cancelled the pending room configuration because room authority changed.");
+            Fail(Request, "The host or room changed before the room settings were confirmed.");
             return;
         }
         if (PropertiesThatChanged.TryGetValue(RunConfigurationCodec.PropertyKey, out var Raw)
@@ -138,13 +138,13 @@ internal static class IslandLoadPublication
     internal static void ConnectionStateChanged(ClientState Current)
     {
         if (Pending is { } Request && !Request.Room.IsOffline && Current != ClientState.Joined)
-            Fail(Request, "PLL Library cancelled the pending room configuration because the room connection changed.");
+            Fail(Request, "The room connection changed before the room settings were confirmed.");
     }
 
     internal static void MasterClientChanged()
     {
         if (Pending is { } Request)
-            Fail(Request, "PLL Library cancelled the pending room configuration because the master client changed.");
+            Fail(Request, "The host changed before the room settings were confirmed.");
     }
 
     static Publication? Publish(
@@ -156,7 +156,7 @@ internal static class IslandLoadPublication
         var Room = PhotonNetwork.CurrentRoom;
         if (Room is null || !PhotonNetwork.IsMasterClient) return null;
         if (Pending is not null)
-            throw new InvalidOperationException("PLL Library already has a pending room configuration.");
+            throw new InvalidOperationException("Room settings are already waiting for confirmation.");
         SegmentRegistry.SealStartup();
         Publication? Request = null;
         NativeContentTools.StartupTicket? StartupTicket = null;
@@ -169,7 +169,7 @@ internal static class IslandLoadPublication
             if (Kiosk != null && SerializedRunSettings is not null
                 && MapQuicksave.RuntimeLayoutPublicationRequired(Configuration) && !MapQuicksave.ClearBufferedCampfireRpcs())
                 throw new InvalidOperationException(
-                    "PLL Library could not clear stale PEAK campfire state before loading the island.");
+                    "Old campfire settings could not be cleared before loading the island.");
             RunConfigurationResolution.AdoptForPublication(Configuration);
             var Payload = RunConfigurationCodec.Serialize(Configuration);
             var Properties = new Hashtable { [RunConfigurationCodec.PropertyKey] = Payload };
@@ -181,7 +181,7 @@ internal static class IslandLoadPublication
             Request = new Publication(Room, Kiosk, Ascent, SerializedRunSettings, Payload, Properties, StartupTicket);
             Pending = Request;
             if (Room.SetCustomProperties(Properties)) return Request;
-            throw new InvalidOperationException("PLL Library could not publish the room configuration.");
+            throw new InvalidOperationException("The room settings could not be sent.");
         }
         catch (Exception Failure)
         {
@@ -209,7 +209,7 @@ internal static class IslandLoadPublication
         {
             Fail(
                 Request,
-                "PLL Library cancelled the pending island load because the airport load target is unavailable.");
+                "The airport loading target is unavailable. Island loading stopped.");
             return false;
         }
 
@@ -244,8 +244,6 @@ internal static class IslandLoadPublication
     {
         readonly IEnumerator Load;
         readonly Room? Room;
-        MapLoadKeepAliveLease? Lease;
-        IEnumerator? ServicedLoad;
         bool StartupIntent = true;
         bool RoomLost;
         bool Disposed;
@@ -256,7 +254,7 @@ internal static class IslandLoadPublication
             this.Room = Room;
         }
 
-        public object Current => ServicedLoad?.Current!;
+        public object Current => Load.Current;
         internal bool HasJoinedRoom => Room is not null;
 
         internal bool ConsumeStartupIntent()
@@ -290,16 +288,7 @@ internal static class IslandLoadPublication
             if (Disposed) return false;
             try
             {
-                if (ServicedLoad is null)
-                {
-                    if (Room is not null)
-                    {
-                        Lease = MapLoadKeepAliveLease.Acquire();
-                        ServicedLoad = SuspendedPhotonTransport.SendOutgoingAtYields(Load, Room);
-                    }
-                    else ServicedLoad = Load;
-                }
-                if (ServicedLoad.MoveNext()) return true;
+                if (Load.MoveNext()) return true;
                 Dispose();
                 return false;
             }
@@ -323,8 +312,7 @@ internal static class IslandLoadPublication
             Disposed = true;
             StartupIntent = false;
             if (ReferenceEquals(ProcessingLoad, this)) ProcessingLoad = null;
-            try { ((ServicedLoad ?? Load) as IDisposable)?.Dispose(); }
-            finally { Lease?.Dispose(); }
+            (Load as IDisposable)?.Dispose();
         }
     }
 
@@ -452,7 +440,7 @@ internal static class IslandLoadPublication
             if (!Room.IsOffline && !Room.BroadcastPropertiesChangeToAll)
             {
                 Plugin.PLLLog.LogError(
-                    "PLL Library cannot verify room configuration publication without server property echoes.");
+                    "The server does not confirm room settings. Island loading cannot start.");
                 return false;
             }
             return Publish(__instance, ascent, serializedRunSettings) is null;

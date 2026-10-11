@@ -318,8 +318,13 @@ internal sealed class MapPreparation
 
         Owner.RequirePreparation(this);
         WaterObjects = MapEnvironmentProjection.FindWaterObjects(Handler);
-        WaterStates = Array.ConvertAll(WaterObjects, Value => Value.activeSelf);
-        WaterPositions = Array.ConvertAll(WaterObjects, Value => Value.transform.position);
+        WaterStates = new bool[WaterObjects.Length];
+        WaterPositions = new Vector3[WaterObjects.Length];
+        for (var i = 0; i < WaterObjects.Length; i++)
+        {
+            WaterStates[i] = WaterObjects[i].activeSelf;
+            WaterPositions[i] = WaterObjects[i].transform.position;
+        }
         Environment.CaptureWater(WaterObjects);
         StartKit.Detach();
 

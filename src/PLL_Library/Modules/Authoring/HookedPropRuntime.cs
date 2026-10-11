@@ -25,7 +25,7 @@ internal static class HookedPropRuntime
 
     internal static IReadOnlyList<PLLHookedProp> HookedProps => Volatile.Read(ref hookedProps);
 
-    internal static void Initialize() => mainThreadId = Thread.CurrentThread.ManagedThreadId;
+    internal static void Initialize() => mainThreadId = Environment.CurrentManagedThreadId;
 
     internal static IReadOnlyList<PLLHookedProp> Get(string hook)
     {
@@ -56,16 +56,16 @@ internal static class HookedPropRuntime
 
     internal static void RefreshSlot(int index)
     {
-        if (!Slots.TryGetValue(index, out var entry)) return;
         Mutate(() =>
         {
+            if (!Slots.TryGetValue(index, out var Entry)) return;
             var previous = Snapshot();
-            if (entry.Slot.Released)
+            if (Entry.Slot.Released)
             {
                 Slots.Remove(index);
                 PropsBySlot.Remove(index);
             }
-            else PropsBySlot[index] = Discover(entry.Slot, entry.Contract);
+            else PropsBySlot[index] = Discover(Entry.Slot, Entry.Contract);
             ReplacePublished(previous);
         });
     }
@@ -101,7 +101,7 @@ internal static class HookedPropRuntime
 
     internal static void RequireMainThread(string Operation)
     {
-        if (Thread.CurrentThread.ManagedThreadId != mainThreadId)
+        if (Environment.CurrentManagedThreadId != mainThreadId)
             throw new InvalidOperationException(
                 Operation + " can run only on Unity's main thread.");
     }
@@ -287,41 +287,20 @@ internal sealed class HookedPropContract
     internal bool Generated => owner.Generated;
 
     internal static HookedPropContract[] CreateAll(
-        Transform template,
-        BiomeId id,
-        AuthoringCandidateGraph graph)
+        Transform Template,
+        BiomeId Id,
+        AuthoringCandidateGraph Graph)
     {
-        var values = new List<(AuthoringBindingOwner Owner, string Key, PLLHookedProp Value)>();
-        Add(template.gameObject);
-        foreach (var candidate in graph.Ordered) Add(candidate);
-        values.Sort((left, right) =>
+        var Values = AuthoringBindingOwner.GraphComponents<PLLHookedProp>(Template, Id, Graph, "hooked prop");
+        var Result = new HookedPropContract[Values.Count];
+        for (var i = 0; i < Result.Length; i++)
         {
-            var ownerOrder = left.Owner.CandidateIndex.CompareTo(right.Owner.CandidateIndex);
-            return ownerOrder != 0 ? ownerOrder : StringComparer.Ordinal.Compare(left.Key, right.Key);
-        });
-        var result = new HookedPropContract[values.Count];
-        for (var i = 0; i < result.Length; i++)
-        {
-            var entry = values[i];
-            ValidateSource(entry.Owner.BindingRoot, entry.Value, id, true);
-            result[i] = new HookedPropContract(
-                entry.Owner,
-                ComponentBinding<PLLHookedProp>.Create(entry.Owner.BindingRoot, entry.Value),
-                entry.Value.Hook);
+            var Entry = Values[i];
+            ValidateSource(Entry.Owner.BindingRoot, Entry.Value, Id, true);
+            Result[i] = new HookedPropContract(Entry.Owner,
+                ComponentBinding<PLLHookedProp>.Create(Entry.Owner.BindingRoot, Entry.Value), Entry.Value.Hook);
         }
-        return result;
-
-        void Add(GameObject graphRoot)
-        {
-            foreach (var value in graphRoot.GetComponentsInChildren<PLLHookedProp>(true))
-            {
-                if (!value) throw new ArgumentException($"Biome '{id}' contains a destroyed hooked-prop component.", nameof(template));
-                var bindingOwner = AuthoringBindingOwner.Create(template, graph, value.transform, id, "hooked prop");
-                if (bindingOwner.SourceRoot.GetInstanceID() != graphRoot.GetInstanceID()) continue;
-                values.Add((bindingOwner,
-                    DeterministicObjectIdentity.RelativeComponentPath(value, bindingOwner.BindingRoot, 0), value));
-            }
-        }
+        return Result;
     }
 
     internal PLLHookedProp ResolveStable(Transform runtimeRoot, BiomeId id)
@@ -382,16 +361,7 @@ internal sealed class HookedPropContract
 
     static bool InsideManagedRoot(Transform owner, Transform value)
     {
-        for (var current = value; current; current = current.parent)
-        {
-            if (current.GetComponent<SegmentPort>() || current.GetComponent<CustomSegmentRuntime>()
-                || current.GetComponent<PllBiomePrefabAnchors>() || current.GetComponent<PllBiomeRoot>()
-                || current.GetComponent<PllEffectZoneAuthoring>() || current.GetComponent<PLLNativeResolver>()
-                || current.GetComponent<PllItemSpawnerAuthoring>() || current.GetComponent<PllStatueAuthoring>()
-                || current.GetComponent<PllCampfireAuthoring>() || current.GetComponent<PllLuggageAuthoring>()
-                || current.GetComponent<PllBiomeStingerAuthoring>()) return true;
-            if (current == owner) break;
-        }
+        if (TransformOwnership.HasManagedHookAncestor(owner, value)) return true;
         foreach (var effect in owner.GetComponentsInChildren<PllEffectAuthoring>(true))
             if (effect && (effect.Root && TransformOwnership.Contains(effect.Root.transform, value)
                 || effect.PresentationRoot && TransformOwnership.Contains(effect.PresentationRoot.transform, value))) return true;

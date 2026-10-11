@@ -1,0 +1,5 @@
+ public class GroundPlaceSpawner : Spawner
+ {
+    [UnityEngine.Serialization.FormerlySerializedAs("possibleBerries")]
+    public UnityEngine.Vector2 possibleItems;
+ }

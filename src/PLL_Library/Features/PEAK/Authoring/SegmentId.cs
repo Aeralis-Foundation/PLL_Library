@@ -6,21 +6,19 @@ namespace PLL.Library;
 [Serializable]
 public struct SegmentId : IComparable<SegmentId>, IEquatable<SegmentId>
 {
-    const int MaximumLength = 128;
-
     [SerializeField] string value;
 
     public SegmentId(string value)
     {
         if (value is null) throw new ArgumentNullException(nameof(value));
-        if (!IsCanonical(value))
+        if (!QualifiedId.TryParse(value, out _))
             throw new ArgumentException("A segment ID must be a canonical lowercase qualified ID.", nameof(value));
         this.value = value;
     }
 
     public string Value => value ?? string.Empty;
     public bool IsEmpty => string.IsNullOrEmpty(value);
-    public bool IsValid => IsCanonical(value);
+    public bool IsValid => QualifiedId.TryParse(value, out _);
 
     public static SegmentId Beach { get; } = new("peak/segment/beach");
     public static SegmentId Tropics { get; } = new("peak/segment/tropics");
@@ -41,12 +39,12 @@ public struct SegmentId : IComparable<SegmentId>, IEquatable<SegmentId>
 
     public static bool TryParse(string? value, out SegmentId id)
     {
-        if (!IsCanonical(value))
+        if (!QualifiedId.TryParse(value, out var Parsed))
         {
             id = default;
             return false;
         }
-        id = new SegmentId(value!);
+        id = new SegmentId { value = Parsed.Value };
         return true;
     }
 
@@ -59,24 +57,36 @@ public struct SegmentId : IComparable<SegmentId>, IEquatable<SegmentId>
     public static bool operator ==(SegmentId left, SegmentId right) => left.Equals(right);
     public static bool operator !=(SegmentId left, SegmentId right) => !left.Equals(right);
 
-    static bool IsCanonical(string? candidate)
+}
+
+internal readonly struct QualifiedId
+{
+    const int MaximumLength = 128;
+
+    QualifiedId(string Value) => this.Value = Value;
+
+    internal string Value { get; }
+
+    internal static bool TryParse(string? Candidate, out QualifiedId Id)
     {
-        if (string.IsNullOrEmpty(candidate) || candidate.Length > MaximumLength
-            || !string.Equals(candidate, candidate.ToLowerInvariant(), StringComparison.Ordinal)) return false;
-        var separator = candidate.IndexOf('/');
-        if (separator <= 0 || separator == candidate.Length - 1
-            || candidate.IndexOf("//", StringComparison.Ordinal) >= 0
-            || candidate.IndexOf('\\') >= 0 || candidate.IndexOf('>') >= 0) return false;
-        for (var i = 0; i < candidate.Length; i++)
+        Id = default;
+        if (string.IsNullOrEmpty(Candidate) || Candidate.Length > MaximumLength
+            || !string.Equals(Candidate, Candidate.ToLowerInvariant(), StringComparison.Ordinal)) return false;
+        var Separator = Candidate.IndexOf('/');
+        if (Separator <= 0 || Separator == Candidate.Length - 1
+            || Candidate.IndexOf("//", StringComparison.Ordinal) >= 0
+            || Candidate.IndexOf('\\') >= 0 || Candidate.IndexOf('>') >= 0) return false;
+        for (var i = 0; i < Candidate.Length; i++)
         {
-            var character = candidate[i];
-            if (char.IsControl(character) || char.IsWhiteSpace(character)) return false;
-            if (char.IsHighSurrogate(character))
+            var Character = Candidate[i];
+            if (char.IsControl(Character) || char.IsWhiteSpace(Character)) return false;
+            if (char.IsHighSurrogate(Character))
             {
-                if (++i >= candidate.Length || !char.IsLowSurrogate(candidate[i])) return false;
+                if (++i >= Candidate.Length || !char.IsLowSurrogate(Candidate[i])) return false;
             }
-            else if (char.IsLowSurrogate(character)) return false;
+            else if (char.IsLowSurrogate(Character)) return false;
         }
+        Id = new QualifiedId(Candidate);
         return true;
     }
 }

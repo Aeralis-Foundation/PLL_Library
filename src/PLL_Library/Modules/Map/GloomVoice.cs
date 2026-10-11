@@ -9,14 +9,6 @@ namespace PLL.Library;
 
 internal sealed class GloomVoiceRuntime
 {
-    static readonly MethodInfo SpawnAmbienceRaven = AccessTools.DeclaredMethod(
-        typeof(Peak.Island.RavenPerch), nameof(Peak.Island.RavenPerch.SpawnAmbienceRaven), Type.EmptyTypes)
-        ?? throw new MissingMethodException(
-            typeof(Peak.Island.RavenPerch).FullName, nameof(Peak.Island.RavenPerch.SpawnAmbienceRaven));
-    static readonly MethodInfo GloomVoiceAwake = AccessTools.DeclaredMethod(
-        typeof(Peak.Island.GloomVoiceConfuser), nameof(Peak.Island.GloomVoiceConfuser.Awake), Type.EmptyTypes)
-        ?? throw new MissingMethodException(
-            typeof(Peak.Island.GloomVoiceConfuser).FullName, nameof(Peak.Island.GloomVoiceConfuser.Awake));
     internal static readonly MethodInfo UpdateMethod = AccessTools.DeclaredMethod(
         typeof(Peak.Island.GloomVoiceConfuser), nameof(Peak.Island.GloomVoiceConfuser.Update), Type.EmptyTypes)
         ?? throw new MissingMethodException(
@@ -343,21 +335,17 @@ internal sealed class GloomVoiceRuntime
     static bool GloomVoiceCloneMayRunNativeLifecycle(Peak.Island.GloomVoiceConfuser Value) =>
         !GloomVoiceBindings.TryGetValue(Value, out _);
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(Peak.Island.RavenPerch), nameof(Peak.Island.RavenPerch.SpawnAmbienceRaven))]
     static class RavenPerchSpawnAmbiencePatch
     {
-        static MethodBase TargetMethod() => SpawnAmbienceRaven;
-
         [HarmonyPrefix]
         [HarmonyPriority(Priority.First)]
         static bool Prefix() => !Application.isPlaying || Peak.Network.NetCode.Session.IsHost;
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(Peak.Island.GloomVoiceConfuser), nameof(Peak.Island.GloomVoiceConfuser.Awake))]
     static class GloomVoiceConfuserAwakePatch
     {
-        static MethodBase TargetMethod() => GloomVoiceAwake;
-
         [HarmonyPrefix]
         [HarmonyPriority(Priority.First)]
         static bool Prefix(Peak.Island.GloomVoiceConfuser __instance) =>

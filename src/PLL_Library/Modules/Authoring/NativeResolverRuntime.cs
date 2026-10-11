@@ -19,7 +19,7 @@ internal static class NativeResolverRuntime
     {
         var Up = Root.transform.TransformVector(Vector3.up);
         if (!PositiveFinite(Up.magnitude) || Vector3.Angle(Up, Vector3.up) > 0.01f)
-            throw new InvalidOperationException("A Water resolver's placed positive-Y axis is not horizontal.");
+            throw new InvalidOperationException("Water resolver must keep its positive Y axis upright.");
         var Bounds = NativeResolverVolume.WorldBounds(Root.transform, Volume);
         Zone.transform.position = Bounds.center;
         Zone.waterDepth = Bounds.size.y;
@@ -29,7 +29,7 @@ internal static class NativeResolverRuntime
         Zone.animModShallow = AnimationShallow;
         Zone.animModDeep = AnimationDeep;
         if (!Zone.waterPlane || Zone.waterPlane != Plane)
-            throw new InvalidOperationException("A Water resolver lost its creator-owned surface renderer.");
+            throw new InvalidOperationException("Water resolver lost its authored surface renderer.");
     }
 
     internal static void ConfigureWeather(

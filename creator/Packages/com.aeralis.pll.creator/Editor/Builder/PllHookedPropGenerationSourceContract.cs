@@ -20,6 +20,8 @@ namespace PLL.Library
         {
             foreach (var Component in Root.GetComponentsInChildren<Component>(true))
             {
+                if (Component is PllContentSpawnerAuthoring)
+                    throw new ArgumentException("Content Spawner cannot be replayed by Hooked generation.");
                 if (!Component || UnsupportedPresentation(Component)
                     || Component is global::Campfire or PllCampfireAuthoring or PllHookedPropGenerationAuthoring or PllAmuletSpawnerAuthoring
                         or PropGrouper or ILevelGenFinalizer or PLLFinalGeneration
@@ -29,13 +31,13 @@ namespace PLL.Library
                     || Component is LevelGenStep Step && (Step is not PropSpawner Spawner
                         || Spawner.GetType() != typeof(PropSpawner) && Spawner.GetType() != typeof(PropSpawner_Line)
                             && Spawner.GetType() != typeof(PropSpawner_Sphere)))
-                    throw new ArgumentException("Hooked generation references unsupported presentation or executable ownership.");
+                    throw new ArgumentException("Hooked candidates contain a missing script or an unsupported generation or presentation component.");
                 if (Component is RockMaterialSwapper Swapper)
                 {
-                    if (Swapper.parents is null) throw new ArgumentException("Hooked material swapper has no parent inventory.");
+                    if (Swapper.parents is null) throw new ArgumentException("Hooked material swapper has no parent list.");
                     foreach (var Parent in Swapper.parents)
                         if (Parent && !TransformOwnership.Contains(Root, Parent))
-                            throw new ArgumentException("Hooked material swapper would mutate a foreign transform.");
+                            throw new ArgumentException("Hooked material swapper references a transform outside its candidate prefab.");
                 }
             }
         }
@@ -71,13 +73,13 @@ namespace PLL.Library
                 || !TransformOwnership.Contains(Floor, Root)
                     && !TransformOwnership.Contains(Campfire, Root)
                 || Root.GetComponents<PllHookedPropGenerationAuthoring>().Length != (Marker is null ? 0 : 1))
-                throw new ArgumentException("Hooked generation requires one enabled stable source under FloorRoot or CampfireRoot.");
+                throw new ArgumentException("Hooked generation requires one active source under FloorRoot or CampfireRoot.");
             for (var Parent = Root.parent; Parent && Parent != Template; Parent = Parent.parent)
                 if (Parent.GetComponent<PropSpawner>() || Parent.GetComponent<PLLFinalGeneration>()
                     || Parent.GetComponent<PllHookedPropGenerationAuthoring>() || Parent.GetComponent<PLLCriticalGeneration>()
                     || Parent.GetComponent<VariationSwapper>() && !Parent.GetComponent<PllVariationAuthoring>()
                     || Parent.GetComponent<VariantObject>())
-                    throw new ArgumentException("Hooked generation has a competing generator ancestor.");
+                    throw new ArgumentException("Hooked generation belongs to another generator.");
             foreach (var Unstable in UnstableRoots)
                 if (TransformOwnership.Contains(Unstable, Root))
                     throw new ArgumentException("Hooked generation cannot belong to a selectable variation.");
@@ -97,7 +99,7 @@ namespace PLL.Library
                     || UnsupportedPresentation(Component)
                     || UnsupportedConfiguration?.Invoke(Component) == true
                     || Component is PllHookedPropGenerationAuthoring Nested && Nested != Marker)
-                    throw new ArgumentException("Hooked generation contains competing generation or presentation ownership.");
+                    throw new ArgumentException("Hooked source contains a missing script or another managed generator, fixture, or presentation component.");
             foreach (var Step in Root.GetComponentsInChildren<LevelGenStep>(true))
                 if (Step is not PropSpawner Spawner || !Spawner.enabled || Spawner.transform.childCount != 0
                     || Spawner.GetType() != typeof(PropSpawner) && Spawner.GetType() != typeof(PropSpawner_Line)
@@ -142,7 +144,7 @@ namespace PLL.Library
                 || Zone.Effects.Count == 0 && Zone.OccupancyHook.Length == 0
                     && ActionCount == 0
                     && Zone.EnvironmentFog == PllEffectZoneEnvironmentFog.Inherit)
-                throw new ArgumentException("Effect zone has no capability or unsupported generated actions.");
+                throw new ArgumentException("Effect zone has no configured action or contains unsupported generated actions.");
             if (Zone.PropTriggers.Count == 0) return Array.Empty<Action>();
             var Actions = ParseActions(Zone.transform, Zone.Looped, Zone.PropTriggers.Count,
                 Index => Zone.PropTriggers[Index] is { } Trigger ? (Trigger.Transition, Trigger.Target)
@@ -163,7 +165,7 @@ namespace PLL.Library
             IReadOnlyDictionary<PllHookedPropGenerationAuthoring, PllEffectZoneAuthoring> Owners)
         {
             if (Looped && Count == 0 || Count > PllBundleSerialization.MaximumHookedActions)
-                throw new ArgumentException("Effect zone generation action count is unsupported.");
+                throw new ArgumentException("Effect zone generation action count is invalid.");
             var Actions = new Action[Count];
             var Pairs = new HashSet<(PllEffectZoneTransition, PllHookedPropGenerationAuthoring)>();
             for (var i = 0; i < Count; i++)
@@ -175,7 +177,7 @@ namespace PLL.Library
                 var Index = -1;
                 for (var j = 0; j < Targets.Count; j++) if (Targets[j] == Trigger.Target) { Index = j; break; }
                 if (Index < 0 || Owners.TryGetValue(Trigger.Target, out var Owner) && Owner.transform != Zone)
-                    throw new ArgumentException("Effect zone generation target is foreign or owned by another zone.");
+                    throw new ArgumentException("Effect zone generation target is outside this biome or belongs to another zone.");
                 Actions[i] = new Action(Trigger.Transition, Index);
             }
             return Actions;

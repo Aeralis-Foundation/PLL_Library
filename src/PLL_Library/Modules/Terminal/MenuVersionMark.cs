@@ -1,4 +1,3 @@
-using System.IO;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -27,7 +26,7 @@ internal static class MenuVersionMark
             || mainPage.Find("Menu/Buttons/Button_Quit/Hinge/Text")?.GetComponent<TextMeshProUGUI>() is not { } style
             || !style.font || !style.fontSharedMaterial)
         {
-            Plugin.PLLLog.LogError("PLL Library could not add its main-menu version mark because PEAK's MainPage binding is unavailable.");
+            Plugin.PLLLog.LogError("PEAK's main-menu panel is incomplete. The PLL version mark could not be added.");
             return;
         }
 
@@ -42,7 +41,7 @@ internal static class MenuVersionMark
             || mainPage.Find("MainPage/Options/UI_MainMenuButton_Resume/Text")?.GetComponent<TextMeshProUGUI>() is not { } style
             || !style.font || !style.fontSharedMaterial)
         {
-            Plugin.PLLLog.LogError("PLL Library could not add its pause-menu version mark because PEAK's MainPage binding is unavailable.");
+            Plugin.PLLLog.LogError("PEAK's pause-menu panel is incomplete. The PLL version mark could not be added.");
             return;
         }
 
@@ -129,8 +128,7 @@ internal static class MenuVersionMark
     {
         if (IconImage is { } Image && Image.Sprite) return Image.Sprite;
         IconImage = TerminalPresentation.LoadEmbeddedImage(
-            typeof(MenuVersionMark), IconResource, "PLL Package Icon",
-            static Message => new InvalidDataException(Message));
+            typeof(MenuVersionMark), IconResource, "PLL Package Icon");
         return IconImage.Sprite;
     }
 

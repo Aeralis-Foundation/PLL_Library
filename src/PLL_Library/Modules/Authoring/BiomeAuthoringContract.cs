@@ -22,6 +22,8 @@ internal sealed class BiomeAuthoringContract
     readonly IReadOnlyList<PllFogShaderAdapter> FogShaders;
     readonly NativeResolverContract[] NativeResolvers;
     readonly SurfaceTextureAuthoringContract[] SurfaceTextures;
+    readonly NativeMaterialContract[] NativeMaterials;
+    readonly NativeSpawnerContract[] NativeSpawnerDefinitions;
     readonly PropInteractionContract[] PropInteractions;
     readonly GeneratedNativeFlowContract[] GeneratedFlows;
     readonly IReadOnlyList<NativeFlowContract> FlowSources;
@@ -94,9 +96,14 @@ internal sealed class BiomeAuthoringContract
         BiomeId[] FavoriteBiomes,
         BiomeId[] OverwrittenBiomes,
         BiomeId[] BeforeBiomes,
-        BiomeId[] AfterBiomes)
+        BiomeId[] AfterBiomes,
+        (bool NightCold, bool MesaHeatstroke) Modifiers, NativeMaterialContract[] NativeMaterials,
+        NativeSpawnerContract[] NativeSpawners)
     {
         this.Source = Source;
+        this.Modifiers = Modifiers;
+        this.NativeMaterials = NativeMaterials;
+        NativeSpawnerDefinitions = NativeSpawners;
         BehaviorValue = Source.Behavior;
         this.Template = Template;
         this.DependencySeal = DependencySeal is null ? null : (byte[])DependencySeal.Clone();
@@ -163,6 +170,7 @@ internal sealed class BiomeAuthoringContract
     internal string SegmentId { get; }
     internal string DisplayTitle { get; }
     internal Color Color { get; }
+    internal (bool NightCold, bool MesaHeatstroke) Modifiers { get; }
     internal IReadOnlyList<AudioClip> Ambience => AmbienceClips;
     internal IReadOnlyList<AudioClip> EffectSounds => EffectSoundClips;
     internal IReadOnlyList<AudioClip> EnterSounds => EnterSoundClips;
@@ -209,6 +217,10 @@ internal sealed class BiomeAuthoringContract
     internal bool RequiresNativeTumbleweeds => Array.Exists(HazardZones, static Zone => Zone.RequiresTumbleweeds);
     internal IReadOnlyList<NativeClimbingFixtureContract> ClimbingFixtures => ClimbingFixtureContracts;
     internal IReadOnlyList<SurfaceTextureAuthoringContract> SurfaceTextureContracts => SurfaceTextures;
+    internal IReadOnlyList<NativeMaterialContract> NativeMaterialContracts => NativeMaterials;
+    internal IReadOnlyList<NativeSpawnerContract> NativeSpawnerContracts => NativeSpawnerDefinitions;
+    internal bool RequiresNativeContentProps => Array.Exists(NativeSpawnerDefinitions,
+        Definition => Definition.Selection.Kind == PllNativeSpawnerKind.Props);
     internal IReadOnlyList<PropInteractionContract> PropInteractionContracts => PropInteractions;
     internal int RequiredNativeVineMask
     {
@@ -364,6 +376,7 @@ internal sealed class BiomeAuthoringContract
         var AfterBiomes = CopyBiomeIds(Source.After, Source.BiomeId, nameof(PllBiomeDefinition.After));
         var Root = Source.RootPrefab ? Source.RootPrefab.transform : throw new ArgumentException(
             $"Biome '{Source.BiomeId}' is missing its root prefab.", nameof(Source));
+        var Modifiers = NativeModifiers.Capture(Root);
         ValidateColor(Source.Color, Source.BiomeId, "ambient color");
         var AmbienceClips = CopyClips(Source.AmbienceSounds, Source.BiomeId, "ambient sound");
         var EffectSoundClips = CopyClips(Source.EffectSounds, Source.BiomeId, "effect sound");
@@ -614,6 +627,30 @@ internal sealed class BiomeAuthoringContract
         }
         StingerContract.ValidateOwnership(Source, Root, Stingers, Source.BiomeId, true);
         var FogShaderAdapters = Source.CaptureFogShaderAdapters();
+        var NativeMaterials = NativeMaterialContract.Capture(Root, CandidateGraph, Source.BiomeId);
+        foreach (var NativeMaterial in NativeMaterials)
+        {
+            var Selection = NativeMaterial.Selection;
+            if (!NativeMaterial.Generated
+                && !TransformOwnership.Contains(Source.Anchors.FloorRoot.transform, Selection.Renderer.transform)
+                && !TransformOwnership.Contains(Source.Anchors.CampfireRoot.transform, Selection.Renderer.transform))
+                throw new ArgumentException("Native Material must belong to FloorRoot or CampfireRoot.");
+            if (SurfaceSlots.ContainsKey((Selection.Renderer, Selection.Slot)))
+                throw new ArgumentException("Native Material and Surface Textures cannot own the same renderer slot.");
+            foreach (var Visual in Visuals)
+                if (Visual.Source.PropertyName.Length != 0 && Visual.Source.Root
+                    && TransformOwnership.Contains(Visual.Source.Root.transform, Selection.Renderer.transform))
+                    throw new ArgumentException("Native Material cannot replace a Shader Visual property target.");
+            foreach (var Flow in FlowSources)
+            {
+                var Fluid = Flow.Source;
+                if (Fluid.SurfaceRenderer == Selection.Renderer && Selection.Slot == 0)
+                    throw new ArgumentException("Native Material cannot replace an owned fluid surface.");
+                for (var Index = 0; Index < Fluid.SurfaceRenderers.Count; Index++)
+                    if (Fluid.SurfaceRenderers[Index] == Selection.Renderer && Fluid.SurfaceSlots[Index] == Selection.Slot)
+                        throw new ArgumentException("Native Material cannot replace an owned fluid surface.");
+            }
+        }
         if ((CustomVisuals.Length != 0 || Atmosphere is not null || FogShaderAdapters.Length != 0
                 || Array.Exists(EntityZones, Zone => Zone.HasAppearance || Zone.RequiresPluginEntities)
                 || Array.Exists(NativeResolvers, Resolver => Resolver.IsFlow) || GeneratedFlows.Length != 0 || SurfaceTextures.Length != 0)
@@ -629,7 +666,9 @@ internal sealed class BiomeAuthoringContract
             CriticalGeneration, EntityZones, HazardZones, HazardDefinitions, EntityDefinitions, ClimbingFixtures, Amulets,
             CampfireAuthoring, Statue, Luggage, SoundEmitters, Stingers,
             AmbienceClips, EffectSoundClips, EnterSoundClips,
-            FavoriteBiomes, OverwrittenBiomes, BeforeBiomes, AfterBiomes);
+            FavoriteBiomes, OverwrittenBiomes, BeforeBiomes, AfterBiomes, Modifiers, NativeMaterials,
+            NativeSpawnerContract.Capture(Root, Source.Anchors.FloorRoot.transform,
+                Source.Anchors.CampfireRoot.transform, CandidateGraph, Source.BiomeId));
         Contract.ValidateSource();
         return Contract;
     }
@@ -765,11 +804,13 @@ internal sealed class BiomeAuthoringContract
     internal void ResolveExternal(
         ItemDatabaseCatalog Items,
         NativeLuggageCatalog? Native,
-        NativeVisualSources NativeVisuals)
+        NativeVisualSources NativeVisuals, NativeMaterialCatalog? Materials)
     {
         BoundNativeVisualSource = NativeVisual is null ? null : NativeVisuals.Require(NativeVisual.Preset);
         if (BoundNativeVisualSource is not null) NativeVisual!.ValidateAppearance(BoundNativeVisualSource);
         foreach (var Effect in Effects) Effect.ResolveExternal(NativeVisuals);
+        foreach (var Material in NativeMaterials) Material.ResolveExternal(Materials!);
+        foreach (var Spawner in NativeSpawnerDefinitions) Spawner.ResolveExternal();
         var NativeReplacements = new HashSet<NativeLuggageFingerprint>();
         foreach (var Definition in Luggage)
         {
@@ -785,6 +826,8 @@ internal sealed class BiomeAuthoringContract
 
     internal void ClearExternal()
     {
+        foreach (var Material in NativeMaterials) Material.ClearExternal();
+        foreach (var Spawner in NativeSpawnerDefinitions) Spawner.ClearExternal();
         foreach (var Zone in EntityZones) Zone.ClearExternal();
         foreach (var Zone in HazardZones) Zone.ClearExternal();
         foreach (var Fixture in ClimbingFixtureContracts) Fixture.ClearExternal();
@@ -816,7 +859,20 @@ internal sealed class BiomeAuthoringContract
             || Source.LuggageDefinitions.Count != Luggage.Length || Source.SoundEmitters.Count != SoundEmitters.Length
             || Source.StingerDefinitions.Count != Stingers.Length)
             throw new InvalidOperationException($"Biome '{Id}' changed its authoring definition counts before sealing.");
+        if (NativeModifiers.Capture(Template) != Modifiers)
+            throw new InvalidOperationException($"Biome '{Id}' changed its native modifiers before sealing.");
         var CandidateGraph = AuthoringCandidateGraph.Create(Template, Id);
+        var NativeMaterialCount = Template.GetComponentsInChildren<PllNativeMaterialAuthoring>(true).Length;
+        foreach (var Candidate in CandidateGraph.Ordered)
+            NativeMaterialCount += Candidate.GetComponentsInChildren<PllNativeMaterialAuthoring>(true).Length;
+        if (NativeMaterialCount != NativeMaterials.Length)
+            throw new InvalidOperationException("Native Material inventory changed before sealing.");
+        foreach (var Material in NativeMaterials) Material.Validate(Id);
+        var SpawnerCount = Template.GetComponentsInChildren<PllNativeSpawnerAuthoring>(true).Length;
+        foreach (var Candidate in CandidateGraph.Ordered) SpawnerCount += Candidate.GetComponentsInChildren<PllNativeSpawnerAuthoring>(true).Length;
+        if (SpawnerCount != NativeSpawnerDefinitions.Length)
+            throw new InvalidOperationException("Food or Content Spawner inventory changed before sealing.");
+        foreach (var Spawner in NativeSpawnerDefinitions) Spawner.Validate(Template, CandidateGraph, Id);
         ValidateCompleteGraphCatalog(Template, CandidateGraph, Source.EffectDefinitions, "effect");
         ValidateCompleteGraphCatalog(Template, CandidateGraph, Source.Visuals, "visual");
         ValidateCompleteGraphCatalog(Template, CandidateGraph, Source.LuggageDefinitions, "luggage");
@@ -1037,6 +1093,21 @@ internal sealed class BiomeAuthoringContract
         {
             Writer.Write("PLL/EntityDefinitions/v1"); Writer.Write(EntityDefinitions.Length);
             foreach (var Entity in EntityDefinitions) Entity.WriteManifest(Writer, External);
+        }
+        if (Modifiers.NightCold || Modifiers.MesaHeatstroke)
+        {
+            Writer.Write("PLL/NativeModifiers/v1");
+            Writer.Write(Modifiers.NightCold); Writer.Write(Modifiers.MesaHeatstroke);
+        }
+        if (NativeMaterials.Length != 0)
+        {
+            Writer.Write("PLL/NativeMaterials/v1"); Writer.Write(NativeMaterials.Length);
+            foreach (var Material in NativeMaterials) Material.WriteManifest(Writer, External);
+        }
+        if (NativeSpawnerDefinitions.Length != 0)
+        {
+            Writer.Write("PLL/NativeSpawners/v1"); Writer.Write(NativeSpawnerDefinitions.Length);
+            foreach (var Spawner in NativeSpawnerDefinitions) Spawner.WriteManifest(Writer, External);
         }
     }
 

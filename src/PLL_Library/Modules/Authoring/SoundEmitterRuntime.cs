@@ -87,8 +87,7 @@ internal sealed class SoundEmitterContract
         var value = component.Resolve(root, id, "sound emitter authoring");
         var target = Root.Resolve(root, id, "sound emitter root");
         var audio = audioSource.Resolve(root, id, "sound emitter audio source");
-        if (!TransformOwnership.DiscoverableWhenActivated(root, target.transform)
-            || value.Root != target || value.AudioSource != audio || audio.gameObject != target
+        if (value.Root != target || value.AudioSource != audio || audio.gameObject != target
             || !value.Transition.CoverDelaySeconds.Equals(CoverDelaySeconds))
             throw new InvalidOperationException($"Biome '{id}' runtime sound emitter metadata does not match its registered contract.");
         fingerprint.Validate(audio, id, value.name, "runtime");

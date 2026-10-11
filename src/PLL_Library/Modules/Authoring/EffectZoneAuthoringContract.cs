@@ -329,7 +329,7 @@ internal sealed class EffectZoneAuthoringContract
         var ResolvedEffects = new PllEffectAuthoring[EffectBindings.Length];
         for (var Index = 0; Index < EffectBindings.Length; Index++)
             ResolvedEffects[Index] = EffectBindings[Index].Resolve(RuntimeRoot, Biome, "effect-zone effect");
-        if (!ValidOwnerRoot(RuntimeRoot, OwnerRoot.transform))
+        if (!ValidOwnerRoot(RuntimeRoot, OwnerRoot.transform, CheckActivePath: false))
             throw new InvalidOperationException($"Biome '{Biome}' runtime effect-zone owner became invalid.");
         Source ??= ZoneBinding.Resolve(RuntimeRoot, Biome, "effect-zone authoring");
         if (Source.Root != OwnerRoot || !Source.Volume.Equals(Volume)
@@ -529,9 +529,9 @@ internal sealed class EffectZoneAuthoringContract
         return true;
     }
 
-    static bool ValidOwnerRoot(Transform BindingRoot, Transform Value) =>
+    static bool ValidOwnerRoot(Transform BindingRoot, Transform Value, bool CheckActivePath = true) =>
         Value != BindingRoot && TransformOwnership.Contains(BindingRoot, Value)
-        && TransformOwnership.DiscoverableWhenActivated(BindingRoot, Value)
+        && (!CheckActivePath || TransformOwnership.DiscoverableWhenActivated(BindingRoot, Value))
         && !TransformOwnership.HasPropSpawnerInPath(BindingRoot, Value);
 }
 

@@ -40,7 +40,8 @@ namespace PLL.Creator.Editor
             OpenTime = EditorGUILayout.FloatField("Opening Seconds", OpenTime);
             Controller = (RuntimeAnimatorController)EditorGUILayout.ObjectField("Animator Controller", Controller, typeof(RuntimeAnimatorController), false);
             PllAuthoringCommands.DrawReferences("Item", Items, false);
-            EditorGUILayout.HelpBox("Uses existing model and solid collision. The model is the skeleton when none is supplied; the builder creates the native respawn mechanics and an animator when needed.", MessageType.Info);
+            EditorGUILayout.HelpBox("Choose a model with solid collision. If no skeleton is assigned, PLL uses the model. "
+                + "The builder adds PEAK's respawn components and an Animator when needed.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Target || !Model || !SpawnPoint))
                 if (GUILayout.Button("Add Statue"))
                 {

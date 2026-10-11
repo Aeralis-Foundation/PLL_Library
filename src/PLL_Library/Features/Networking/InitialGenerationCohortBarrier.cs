@@ -45,10 +45,10 @@ internal static class InitialGenerationCohortBarrier
                 || PhotonNetwork.NetworkClientState != ClientState.Joined
                 || !FinalManifestConsensus.Owns(Configuration, Room))
                 throw PhotonRoomRejection.Disconnect(
-                    "PLL Library lost its Photon room before initial generation was sealed.");
+                    "The Photon room changed before initial map generation was confirmed.");
             if (!Room.BroadcastPropertiesChangeToAll)
                 throw PhotonRoomRejection.Disconnect(
-                    "PLL Library cannot seal initial generation without server property echoes.");
+                    "The server does not confirm room settings. Initial map generation cannot start.");
             var FinalManifestConfirmed = FinalManifestConsensus.TryMaintainConfirmation(Configuration);
             var Property = Room.CustomProperties[CohortKey];
             PropertyState State;
@@ -108,7 +108,7 @@ internal static class InitialGenerationCohortBarrier
                         Room,
                         CohortKey,
                         ProposedValue,
-                        "PLL Library could not publish the initial generation cohort.");
+                        "The initial generation player list could not be sent.");
                     if (CohortPublication.Failure is { } CohortPublicationFailure)
                         throw PhotonRoomRejection.Disconnect(CohortPublicationFailure);
                 }
@@ -147,7 +147,7 @@ internal static class InitialGenerationCohortBarrier
                 Room,
                 LocalReadyKey,
                 CohortValue!,
-                "PLL Library could not confirm its initial generation cohort.");
+                "The initial generation player list could not be confirmed.");
             if (ReadyPublication.Failure is { } ReadyPublicationFailure)
                 throw PhotonRoomRejection.Disconnect(ReadyPublicationFailure);
             if (Ready && FinalManifestConfirmed

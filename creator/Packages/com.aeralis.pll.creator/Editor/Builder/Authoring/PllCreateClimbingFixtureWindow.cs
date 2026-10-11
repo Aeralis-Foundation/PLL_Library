@@ -60,7 +60,8 @@ namespace PLL.Creator.Editor
                     PllHangingRopeAuthoring.MaximumSegments - (AnchorBehavior == PllRopeAnchorBehavior.NativeBreakableAnchor ? 2f : 0f));
                 SpoolOutSeconds = EditorGUILayout.FloatField("Spool Seconds", SpoolOutSeconds);
             }
-            EditorGUILayout.HelpBox("The builder creates native mechanics after final placement. Interaction waits for occurrence view admission. Custom Rope Appearance uses the separate captured-rig command; it never replaces native rope simulation.", MessageType.Info);
+            EditorGUILayout.HelpBox("PLL adds PEAK's climbing components after placement. Interaction starts when network setup is complete. "
+                + "Use Apply Custom Rope Appearance for a custom mesh; PEAK still simulates the rope.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Target || !Model || !Point || Kind == Recipe.HangingRope && !Ghost))
                 if (GUILayout.Button("Add Climbing Fixture"))
                 {

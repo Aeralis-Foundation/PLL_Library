@@ -386,17 +386,11 @@ internal static class FogRuntime
         ProjectionRoot = null;
 
         List<Exception>? Failures = null;
-        void Attempt(Action Operation)
-        {
-            try { Operation(); }
-            catch (Exception Exception) { (Failures ??= new()).Add(Exception); }
-        }
-
-        if (Root) Attempt(() => UnityEngine.Object.DestroyImmediate(Root));
+        if (Root) CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(Root));
         if (RestoreNative && Handler)
-            Attempt(() => Handler.origins = Origins);
+            CleanupOperations.Capture(ref Failures, () => Handler.origins = Origins);
         if (RestoreNative)
-            Attempt(() => RestoreSpheres(CapturedSpheres, RestoreScalars: true));
+            CleanupOperations.Capture(ref Failures, () => RestoreSpheres(CapturedSpheres, RestoreScalars: true));
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is not null)
             throw new AggregateException("Fog projection release failed.", Failures);

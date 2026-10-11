@@ -54,6 +54,7 @@ namespace PLL.Creator.Editor
                             : Zone && Zone.Source is PllCondorZoneSource ? "Condor" : "";
                         var Imported = Array.Find(Catalog.Rigs, Value => Value.Actor == Actor);
                         if (Imported == null) throw new InvalidOperationException("The catalog has no captured rig for this zone's native actor.");
+                        if (Imported.Skins.Length == 0) throw new InvalidOperationException("The captured rig has no renderer bindings.");
                         Rig = Imported;
                         SkinIndex = 0;
                         SkinLabels = Array.ConvertAll(Rig.Skins, Skin => Skin.RendererPath);
@@ -80,7 +81,7 @@ namespace PLL.Creator.Editor
             {
                 if (ArtistRenderer)
                 {
-                    BoneSlots = new int[ArtistRenderer.bones.Length];
+                    BoneSlots = new int[ArtistRenderer.sharedMesh ? ArtistRenderer.sharedMesh.bindposeCount : 0];
                     Array.Fill(BoneSlots, -1);
                     LocalBounds = ArtistRenderer.localBounds;
                 }
@@ -103,7 +104,8 @@ namespace PLL.Creator.Editor
                         "Bone " + i + (i < Bones.Length && Bones[i] ? " (" + Bones[i].name + ")" : ""),
                         BoneSlots[i], Skin.BonePaths);
             }
-            EditorGUILayout.HelpBox("Import the rig descriptor captured by the installed PEAK runtime, then explicitly map each artist mesh bone to a native bone path. Keep compatible bindposes and enable Read/Write. Only artist meshes, materials, bounds and the exact native descriptor fingerprint are saved. PEAK retains its skeleton, animation, body and sockets and rejects a different native rig.", MessageType.Info);
+            EditorGUILayout.HelpBox("Import the rig captured from PEAK and map each mesh bone to a native bone path. "
+                + "Enable Read/Write and use compatible bindposes. PEAK keeps its skeleton, animation, body and sockets.", MessageType.Info);
             using (new EditorGUI.DisabledScope(!Zone || Skin == null || !ArtistRenderer))
                 if (GUILayout.Button("Apply Renderer Binding"))
                 {
@@ -148,10 +150,10 @@ namespace PLL.Creator.Editor
                     throw new InvalidOperationException("The existing appearance uses a different native rig. Use Native Appearance before rebinding.");
             }
             if (!ArtistRenderer || !EditorUtility.IsPersistent(ArtistRenderer))
-                throw new InvalidOperationException("Choose a persistent artist renderer.");
+                throw new InvalidOperationException("Choose an artist renderer from a saved prefab.");
             var Mesh = ArtistRenderer.sharedMesh;
             if (!Mesh || !EditorUtility.IsPersistent(Mesh) || !Mesh.isReadable)
-                throw new InvalidOperationException("The artist renderer requires a persistent mesh with Read/Write enabled.");
+                throw new InvalidOperationException("The artist renderer needs a saved mesh with Read/Write enabled.");
             var Bindposes = Mesh.bindposes;
             if (BoneSlots.Count != Bindposes.Length)
                 throw new InvalidOperationException("Choose one native bone path for every artist bindpose.");
@@ -170,7 +172,7 @@ namespace PLL.Creator.Editor
             var Materials = ArtistRenderer.sharedMaterials;
             foreach (var Material in Materials)
                 if (!Material || !EditorUtility.IsPersistent(Material))
-                    throw new InvalidOperationException("Artist renderer materials must be persistent assets.");
+                    throw new InvalidOperationException("Save each artist renderer material as an asset.");
             var Replacement = new PllNativeEntityRenderer
             {
                 RendererPath = Skin.RendererPath,

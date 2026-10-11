@@ -16,7 +16,8 @@ namespace PLL.Creator.Editor
                 || Source.GetTopology(0) is not (MeshTopology.Triangles or MeshTopology.Quads)
                 || Source.blendShapeCount != 0 || Source.bindposes.Length != 0
                 || Source.GetAllBoneWeights().Length != 0
-                || !Finite(RestStart) || !Finite(RestEnd) || (RestEnd - RestStart).sqrMagnitude == 0f)
+                || !PllAuthoringValueContract.CanEncode(RestStart) || !PllAuthoringValueContract.CanEncode(RestEnd)
+                || (RestEnd - RestStart).sqrMagnitude == 0f)
                 throw new InvalidOperationException("Automatic Rope skinning needs a readable unskinned rest mesh with distinct finite endpoints.");
             if (Skin.BonePaths.Length != PllHangingRopeAuthoring.MaximumSegments
                 || Skin.Bindposes.Length != Skin.BonePaths.Length * 16 || Skin.BlendShapeCount != 0)
@@ -27,7 +28,7 @@ namespace PLL.Creator.Editor
             {
                 for (var j = 0; j < 16; j++) Bindposes[i][j] = Skin.Bindposes[i * 16 + j];
                 Positions[i] = Bindposes[i].inverse.MultiplyPoint3x4(Vector3.zero);
-                if (!Finite(Positions[i])) throw new InvalidOperationException("The captured Rope bindposes have an invalid rest frame.");
+                if (!PllAuthoringValueContract.CanEncode(Positions[i])) throw new InvalidOperationException("The captured Rope bindposes have an invalid rest frame.");
             }
             var Span = Positions[Positions.Length - 1] - Positions[0];
             if (Span.sqrMagnitude == 0f)
@@ -49,7 +50,7 @@ namespace PLL.Creator.Editor
             for (var i = 0; i < Vertices.Length; i++)
             {
                 var Coordinate = Vector3.Dot(Vertices[i] - RestStart, ArtistSpan) / ArtistSpan.sqrMagnitude;
-                if (!Finite(Vertices[i]) || Coordinate < 0f || Coordinate > 1f)
+                if (!PllAuthoringValueContract.CanEncode(Vertices[i]) || Coordinate < 0f || Coordinate > 1f)
                     throw new InvalidOperationException("The Rope mesh has a vertex outside its declared rest span. Adjust Rest Start and Rest End.");
                 var Right = Array.BinarySearch(Coordinates, Coordinate);
                 if (Right < 0) Right = ~Right;
@@ -61,7 +62,7 @@ namespace PLL.Creator.Editor
                     Weights[i] = new BoneWeight { boneIndex0 = Left, boneIndex1 = Right, weight0 = 1f - Blend, weight1 = Blend };
                 }
                 Vertices[i] = Positions[0] + Rotation * (Vertices[i] - RestStart) * Scale;
-                if (!Finite(Vertices[i]))
+                if (!PllAuthoringValueContract.CanEncode(Vertices[i]))
                     throw new InvalidOperationException("The Rope skin has a nonfinite transformed vertex.");
                 Minimum = Vector3.Min(Minimum, Vertices[i]); Maximum = Vector3.Max(Maximum, Vertices[i]);
             }
@@ -73,20 +74,26 @@ namespace PLL.Creator.Editor
                 extents = new Vector3(EnclosingExtent(Center.x, Minimum.x, Maximum.x),
                     EnclosingExtent(Center.y, Minimum.y, Maximum.y), EnclosingExtent(Center.z, Minimum.z, Maximum.z))
             };
-            var Mesh = UnityEngine.Object.Instantiate(Source);
-            Mesh.name = Source.name + "_PLL_RopeSkin";
-            Mesh.vertices = Vertices; Mesh.bindposes = Bindposes; Mesh.boneWeights = Weights;
-            var Normals = Mesh.normals;
-            for (var i = 0; i < Normals.Length; i++) Normals[i] = Rotation * Normals[i];
-            Mesh.normals = Normals;
-            var Tangents = Mesh.tangents;
+            var Normals = Source.normals;
+            for (var i = 0; i < Normals.Length; i++)
+            {
+                Normals[i] = Rotation * Normals[i];
+                if (!PllAuthoringValueContract.CanEncode(Normals[i]))
+                    throw new InvalidOperationException("The Rope mesh contains a nonfinite or out-of-range normal.");
+            }
+            var Tangents = Source.tangents;
             for (var i = 0; i < Tangents.Length; i++)
             {
                 var Direction = Rotation * new Vector3(Tangents[i].x, Tangents[i].y, Tangents[i].z);
+                if (!PllAuthoringValueContract.CanEncode(Direction) || !PllAuthoringValueContract.CanEncode(Tangents[i].w))
+                    throw new InvalidOperationException("The Rope mesh contains a nonfinite or out-of-range tangent.");
                 Tangents[i] = new Vector4(Direction.x, Direction.y, Direction.z, Tangents[i].w);
             }
-            Mesh.tangents = Tangents; Mesh.RecalculateBounds();
-            Mesh.bounds = Bounds; return Mesh;
+            var Mesh = UnityEngine.Object.Instantiate(Source);
+            Mesh.name = Source.name + "_PLL_RopeSkin";
+            Mesh.vertices = Vertices; Mesh.bindposes = Bindposes; Mesh.boneWeights = Weights;
+            Mesh.normals = Normals; Mesh.tangents = Tangents; Mesh.bounds = Bounds;
+            return Mesh;
         }
 
         static float EnclosingExtent(float Center, float Minimum, float Maximum)
@@ -97,8 +104,5 @@ namespace PLL.Creator.Editor
                 Extent = BitConverter.Int32BitsToSingle(BitConverter.SingleToInt32Bits(Extent) + 1);
             return Extent;
         }
-
-        static bool Finite(Vector3 Value) => PllAuthoringValueContract.CanEncode(Value.x)
-            && PllAuthoringValueContract.CanEncode(Value.y) && PllAuthoringValueContract.CanEncode(Value.z);
     }
 }

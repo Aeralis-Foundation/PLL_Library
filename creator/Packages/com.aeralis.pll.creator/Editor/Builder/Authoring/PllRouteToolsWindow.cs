@@ -85,7 +85,7 @@ namespace PLL.Creator.Editor
             using (new EditorGUI.DisabledScope(!Port || !PreviousBiome))
                 if (GUILayout.Button("Match Entry Rotation to Previous Exit"))
                     Run(() => MatchEntryRotation(Port, PreviousBiome));
-            EditorGUILayout.HelpBox("Connector matching uses the exact authored poses and matching IDs, with the same forward orientation. Matching a previous Exit preserves this Entry's position. Geometry and collider editing do not prove reachability, resting support or character stamina.", MessageType.Info);
+            EditorGUILayout.HelpBox("Entry and Exit must use matching connector IDs and face the same direction. Matching the previous Exit changes only this Entry's rotation. Test the route and rest ledges in PEAK.", MessageType.Info);
             EditorGUILayout.EndScrollView();
         }
 
@@ -119,7 +119,7 @@ namespace PLL.Creator.Editor
             const string Action = "Create Rest Ledge";
             RequirePose(Position, Rotation, Scale, Action);
             if (!Mesh || !Material || !EditorUtility.IsPersistent(Mesh) || !EditorUtility.IsPersistent(Material))
-                throw new InvalidOperationException("A rest ledge requires persistent mesh and material assets.");
+                throw new InvalidOperationException("A rest ledge needs saved mesh and material assets.");
             RequireGeometry(Parent, Action, true);
             return PllAuthoringCommands.Create(Action, () =>
             {

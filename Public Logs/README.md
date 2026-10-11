@@ -21,7 +21,7 @@ PLL Library is a PEAK map layout mod and automatic custom biome library. It sele
 ## Update
 <small>Current package information.</small>
 <details open>
-<summary><strong>Version 5.8.1</strong> <small><em>&rarr; click to collapse</em></small></summary>
+<summary><strong>Version 5.9.0</strong> <small><em>&rarr; click to collapse</em></small></summary>
 
 ---
 &nbsp;
@@ -292,9 +292,9 @@ dotnet build .\PLL_Library.slnx -c Release
 | Output | Conventional path |
 |---|---|
 | Runtime DLL | `artifacts/bin/PLL_Library/release/PLL_Library.dll` |
-| NuGet package | `artifacts/nuget/PLL_Library.5.8.1.nupkg` |
-| Thunderstore package | `artifacts/thunderstore/release/PLL_Library-5.8.1.zip` |
-| Creator package | `artifacts/Editor/com.aeralis.pll.creator-5.8.1.tgz` |
+| NuGet package | `artifacts/nuget/PLL_Library.5.9.0.nupkg` |
+| Thunderstore package | `artifacts/thunderstore/release/PLL_Library-5.9.0.zip` |
+| Creator package | `artifacts/Editor/com.aeralis.pll.creator-5.9.0.tgz` |
 | Fog resource package | `artifacts/resources/release/PLL_Fog_Resources-1.0.0.zip` |
 
 &nbsp;

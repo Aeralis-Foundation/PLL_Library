@@ -75,7 +75,8 @@ internal sealed class AmuletSpawnerContract
             Contracts[Index] = new AmuletSpawnerContract(Root, Source, Definition.Behavior, Materials);
         }
         Array.Sort(Contracts, (Left, Right) => StringComparer.Ordinal.Compare(Left.Key, Right.Key));
-        var Potential = CapturePotential(Floor, Definition.VariationDefinitions, Contracts);
+        var Potential = PllAmuletSpawnerAuthoring.CapturePotential(Floor, Definition.VariationDefinitions,
+            Contracts, static Source => (Source.Source.transform, Source.Category));
         if (Potential.Maximum > 1)
             throw new ArgumentException("An occurrence can contain only one selected amulet source.", nameof(Definition));
         OpportunityCoverage = Potential.Coverage;
@@ -176,58 +177,6 @@ internal sealed class AmuletSpawnerContract
         return Materials.ToArray();
     }
 
-    static (int Coverage, int Maximum) CapturePotential(Transform Root,
-        IReadOnlyList<PllVariationAuthoring> Groups, IReadOnlyList<AmuletSpawnerContract> Sources)
-    {
-        var Coverage = 0;
-        var Maximum = 0;
-        foreach (var Source in Sources)
-        {
-            if (!TransformOwnership.Contains(Root, Source.Source.transform)) continue;
-            var InAlternative = false;
-            foreach (var Group in Groups)
-                foreach (var Entry in Group.Entries)
-                    if (Entry.Root.transform != Root && TransformOwnership.Contains(Root, Entry.Root.transform)
-                        && TransformOwnership.Contains(Entry.Root.transform, Source.Source.transform)) InAlternative = true;
-            if (InAlternative || !PotentiallyActive(Source.Source.transform, Root)) continue;
-            Coverage |= 1 << Source.Category;
-            Maximum++;
-        }
-        foreach (var Group in Groups)
-        {
-            if (Group.Entries.Count == 0 || !TransformOwnership.Contains(Root, Group.Entries[0].Root.transform)
-                || Group.Entries[0].Root.transform == Root) continue;
-            if (!TransformOwnership.Contains(Root, Group.transform)
-                || !PotentiallyActive(Group.transform, Root)) continue;
-            var Nested = false;
-            foreach (var Other in Groups)
-            {
-                if (ReferenceEquals(Group, Other)) continue;
-                foreach (var Entry in Other.Entries)
-                    if (Entry.Root.transform != Root && TransformOwnership.Contains(Root, Entry.Root.transform)
-                        && TransformOwnership.Contains(Entry.Root.transform, Group.Entries[0].Root.transform)) Nested = true;
-            }
-            if (Nested) continue;
-            var Common = 15;
-            var AlternativeMaximum = 0;
-            foreach (var Entry in Group.Entries)
-            {
-                var Alternative = CapturePotential(Entry.Root.transform, Groups, Sources);
-                Common &= Alternative.Coverage;
-                AlternativeMaximum = Math.Max(AlternativeMaximum, Alternative.Maximum);
-            }
-            Coverage |= Common;
-            Maximum += AlternativeMaximum;
-        }
-        return (Coverage, Maximum);
-    }
-
-    static bool PotentiallyActive(Transform Source, Transform Root)
-    {
-        for (var Node = Source; Node != Root; Node = Node.parent)
-            if (!Node.gameObject.activeSelf && !Node.GetComponent<PLLFinalGeneration>()) return false;
-        return true;
-    }
 }
 
 internal sealed class AmuletSpawnerPlan

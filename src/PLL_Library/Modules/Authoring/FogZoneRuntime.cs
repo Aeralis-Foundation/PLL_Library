@@ -75,13 +75,6 @@ internal readonly struct FogZoneContribution
     internal float VisibilityDistance { get; }
     internal Color Color { get; }
     internal float Influence { get; }
-
-    internal float Opacity(float ViewpointDistance)
-    {
-        var x = Mathf.Clamp01(ViewpointDistance / VisibilityDistance);
-        var Smooth = x * x * (3f - 2f * x);
-        return Influence * (1f - (1f - Smooth) * (1f - Smooth));
-    }
 }
 
 internal sealed class FogZoneCompositor
@@ -116,16 +109,6 @@ internal sealed class FogZoneCompositor
                     Source.Settings.VisibilityDistance, Source.Settings.Color, Influence));
         }
         return Contributions;
-    }
-
-    internal Color Composite(Color NativeSceneColor, float ViewpointDistance)
-    {
-        var Alpha = NativeSceneColor.a;
-        foreach (var Contribution in Contributions)
-            NativeSceneColor = Color.LerpUnclamped(NativeSceneColor,
-                Contribution.Color, Contribution.Opacity(ViewpointDistance));
-        NativeSceneColor.a = Alpha;
-        return NativeSceneColor;
     }
 
     static int Compare(FogZoneState Left, FogZoneState Right)

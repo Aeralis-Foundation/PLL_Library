@@ -77,6 +77,14 @@ internal sealed class ItemDatabaseCatalog
 
     internal bool TryGet(string name, out Entry[] entries) => byName.TryGetValue(name, out entries!);
 
+    internal NativeItemSpawnResolution ResolveId(ushort Id)
+    {
+        if (!byId.TryGetValue(Id, out var Entry))
+            throw new InvalidOperationException($"Native food item {Id} is absent from the ItemDatabase.");
+        Validate(Entry, Entry.Item.gameObject.name, Entry.Item.GetType().FullName!, "Native food pool");
+        return new NativeItemSpawnResolution(Entry.Item.gameObject.name, Id, Entry.Item);
+    }
+
     internal void ProjectItems(List<NativeContentEntry> Entries, HashSet<string> Names)
     {
         foreach (var Entry in byId.Values)
@@ -112,9 +120,9 @@ internal sealed class ItemDatabaseCatalog
     }
 }
 
-internal abstract class ForceSpawnResolution
+internal abstract class NativeSpawnResolution
 {
-    protected ForceSpawnResolution(string name)
+    protected NativeSpawnResolution(string name)
     {
         Name = name;
     }
@@ -123,7 +131,7 @@ internal abstract class ForceSpawnResolution
     internal abstract void WriteFingerprint(BinaryWriter writer);
 }
 
-internal sealed class ItemForceSpawnResolution : ForceSpawnResolution
+internal sealed class NativeItemSpawnResolution : NativeSpawnResolution
 {
     readonly ushort key;
     readonly Item item;
@@ -131,7 +139,7 @@ internal sealed class ItemForceSpawnResolution : ForceSpawnResolution
     readonly string type;
     readonly byte[] fingerprint;
 
-    internal ItemForceSpawnResolution(string name, ushort key, Item item) : base(name)
+    internal NativeItemSpawnResolution(string name, ushort key, Item item) : base(name)
     {
         this.key = key;
         this.item = item;
@@ -166,11 +174,11 @@ internal sealed class ItemForceSpawnResolution : ForceSpawnResolution
     }
 }
 
-internal sealed class PropForceSpawnResolution : ForceSpawnResolution
+internal sealed class NativePropSpawnResolution : NativeSpawnResolution
 {
     readonly PropEntry[] props;
 
-    internal PropForceSpawnResolution(string name, PropEntry[] props) : base(name)
+    internal NativePropSpawnResolution(string name, PropEntry[] props) : base(name)
     {
         this.props = props;
     }
@@ -245,7 +253,7 @@ internal sealed class PropForceSpawnResolution : ForceSpawnResolution
             if (!Candidate || !string.Equals(Candidate.name, name, StringComparison.Ordinal))
                 throw new InvalidOperationException(
                     $"Forced native prop '{name}' changed its sealed candidate '{StableKey}'.");
-            ForceSpawnCatalog.ValidateCandidate(Candidate, name, StableKey);
+            NativeSpawnCatalog.ValidateCandidate(Candidate, name, StableKey);
             var current = DeterministicObjectIdentity.HashObjectHierarchy(
                 Candidate.transform, "PLL/ForcePropCandidate/v1");
             if (!DeterministicObjectIdentity.SameHash(fingerprint, current))
@@ -267,7 +275,7 @@ internal sealed class PropForceSpawnResolution : ForceSpawnResolution
     }
 }
 
-internal static class ForceSpawnCatalog
+internal static class NativeSpawnCatalog
 {
     enum SealPhase
     {
@@ -294,11 +302,50 @@ internal static class ForceSpawnCatalog
         internal void ReplaceSite(string StableKey) => this.StableKey = StableKey;
     }
 
-    static readonly Dictionary<string, ForceSpawnResolution> Resolved = new(StringComparer.Ordinal);
+    static readonly Dictionary<string, NativeSpawnResolution> ForcedResolutions = new(StringComparer.Ordinal);
+    static readonly Dictionary<(PllContentKind Kind, string Name), NativeSpawnResolution> ContentResolutions = new();
     static readonly List<FinalForceAuthoringContract> SealedContracts = new();
+    static readonly HashSet<NativeSpawnerContract> ContentContracts = new();
+    static readonly Dictionary<SpawnPool, byte[]> FoodPools = new();
     static ItemDatabaseCatalog? ItemCatalog;
     static Dictionary<string, List<PropCandidate>>? PropCandidates;
     static SealPhase Phase;
+
+    internal static NativeSpawnResolution ResolveContent(string Name, PllContentKind Kind)
+    {
+        if (Phase != SealPhase.BuildingContent)
+            throw new InvalidOperationException("Native content can only resolve during the open scene seal.");
+        return ContentResolutions.TryGetValue((Kind, Name), out var Result)
+            ? Result : Resolve(Name, ItemCatalog!, PropCandidates!, Kind);
+    }
+
+    internal static byte[] ResolveFoodPool(SpawnPool Pool)
+    {
+        if (Phase != SealPhase.BuildingContent)
+            throw new InvalidOperationException("Native food pools require an open scene seal.");
+        if (FoodPools.TryGetValue(Pool, out var Fingerprint)) return Fingerprint;
+        LootData.PopulateLootData();
+        if (!LootData.AllSpawnWeightData.TryGetValue(Pool, out var Weights) || Weights.Count == 0)
+            throw new InvalidOperationException($"Native food pool '{Pool}' is empty.");
+        var Ordered = new List<KeyValuePair<ushort, int>>(Weights);
+        Ordered.Sort((Left, Right) => Left.Key.CompareTo(Right.Key));
+        using var Stream = new MemoryStream();
+        using (var Writer = new BinaryWriter(Stream, System.Text.Encoding.UTF8, true))
+        {
+            Writer.Write((int)Pool); Writer.Write(Ordered.Count);
+            foreach (var Entry in Ordered)
+            {
+                Writer.Write(Entry.Key); Writer.Write(Entry.Value);
+                ItemCatalog!.ResolveId(Entry.Key).WriteFingerprint(Writer);
+            }
+        }
+        using var Sha = System.Security.Cryptography.SHA256.Create();
+        FoodPools.Add(Pool, Fingerprint = Sha.ComputeHash(Stream.GetBuffer(), 0, checked((int)Stream.Length)));
+        return Fingerprint;
+    }
+
+    internal static void RetainContent(NativeSpawnerContract Contract) => ContentContracts.Add(Contract);
+    internal static void ReleaseContent(NativeSpawnerContract Contract) => ContentContracts.Remove(Contract);
 
     internal static void BeginEmptySeal()
     {
@@ -348,8 +395,8 @@ internal static class ForceSpawnCatalog
         orderedNames.Sort(StringComparer.Ordinal);
         foreach (var name in orderedNames)
         {
-            if (Resolved.ContainsKey(name)) continue;
-            try { Resolved.Add(name, Resolve(name, items, props)); }
+            if (ForcedResolutions.ContainsKey(name)) continue;
+            try { ForcedResolutions.Add(name, Resolve(name, items, props)); }
             catch (InvalidOperationException exception)
             {
                 throw new InvalidOperationException(
@@ -359,7 +406,7 @@ internal static class ForceSpawnCatalog
         var sealedCount = 0;
         try
         {
-            for (; sealedCount < contracts.Count; sealedCount++) contracts[sealedCount].SealExternal(Resolved);
+            for (; sealedCount < contracts.Count; sealedCount++) contracts[sealedCount].SealExternal(ForcedResolutions);
             for (var i = 0; i < contracts.Count; i++)
                 if (!SealedContracts.Contains(contracts[i])) SealedContracts.Add(contracts[i]);
         }
@@ -383,11 +430,22 @@ internal static class ForceSpawnCatalog
         foreach (var contract in SealedContracts)
             foreach (var name in contract.ForceNames) usedNames.Add(name);
         var unusedNames = new List<string>();
-        foreach (var name in Resolved.Keys)
+        foreach (var name in ForcedResolutions.Keys)
             if (!usedNames.Contains(name)) unusedNames.Add(name);
-        foreach (var name in unusedNames) Resolved.Remove(name);
+        foreach (var name in unusedNames) ForcedResolutions.Remove(name);
+        var UsedContent = new HashSet<(PllContentKind Kind, string Name)>();
+        foreach (var Resolution in ForcedResolutions.Values)
+            UsedContent.Add((Resolution is NativePropSpawnResolution ? PllContentKind.Props : PllContentKind.Items, Resolution.Name));
+        foreach (var Contract in ContentContracts)
+            foreach (var Entry in Contract.Selection.Entries)
+                UsedContent.Add((Contract.Selection.Kind == PllNativeSpawnerKind.Props ? PllContentKind.Props : PllContentKind.Items, Entry.Name));
+        var UnusedContent = new List<(PllContentKind Kind, string Name)>();
+        foreach (var Key in ContentResolutions.Keys)
+            if (!UsedContent.Contains(Key)) UnusedContent.Add(Key);
+        foreach (var Key in UnusedContent) ContentResolutions.Remove(Key);
         ItemCatalog = null;
         PropCandidates = null;
+        FoodPools.Clear();
         Phase = SealPhase.Sealed;
     }
 
@@ -408,10 +466,10 @@ internal static class ForceSpawnCatalog
                 ImageAbsence = NativeContentTools.ThumbnailAbsence
             };
             Entries.Add(Entry);
-            ForceSpawnResolution Resolution;
+            NativeSpawnResolution Resolution;
             try
             {
-                Resolution = Resolved.TryGetValue(Name, out var Existing)
+                Resolution = ForcedResolutions.TryGetValue(Name, out var Existing)
                     ? Existing : Resolve(Name, ItemCatalog, PropCandidates);
             }
             catch (InvalidOperationException Failure)
@@ -437,9 +495,13 @@ internal static class ForceSpawnCatalog
         ForceSpawnTarget.ClearCaptures();
         foreach (var contract in SealedContracts) contract.ClearExternal();
         SealedContracts.Clear();
+        var Content = new NativeSpawnerContract[ContentContracts.Count]; ContentContracts.CopyTo(Content);
+        foreach (var Contract in Content) Contract.ClearExternal();
+        FoodPools.Clear();
         ItemCatalog = null;
         PropCandidates = null;
-        Resolved.Clear();
+        ForcedResolutions.Clear();
+        ContentResolutions.Clear();
         Phase = SealPhase.Inactive;
     }
 
@@ -447,8 +509,8 @@ internal static class ForceSpawnCatalog
     {
         if (!SourceRoot) throw new ArgumentNullException(nameof(SourceRoot));
         var SourceInstanceId = SourceRoot.GetInstanceID();
-        foreach (var Resolution in Resolved.Values)
-            if (Resolution is PropForceSpawnResolution Props
+        foreach (var Resolution in ContentResolutions.Values)
+            if (Resolution is NativePropSpawnResolution Props
                 && Props.RequiresNativeSource(SourceInstanceId)) return true;
         return false;
     }
@@ -522,43 +584,58 @@ internal static class ForceSpawnCatalog
         return result;
     }
 
-    static ForceSpawnResolution Resolve(
-        string name,
-        ItemDatabaseCatalog items,
-        IReadOnlyDictionary<string, List<PropCandidate>> props)
+    static NativeSpawnResolution Resolve(
+        string Name,
+        ItemDatabaseCatalog Items,
+        IReadOnlyDictionary<string, List<PropCandidate>> Props,
+        PllContentKind? Kind = null)
     {
-        items.TryGet(name, out var itemMatches);
-        props.TryGetValue(name, out var propMatches);
-        var itemCount = itemMatches?.Length ?? 0;
-        var propCount = propMatches?.Count ?? 0;
-        if (itemCount > 1)
+        ItemDatabaseCatalog.Entry[]? ItemMatches = null;
+        List<PropCandidate>? PropMatches = null;
+        if (Kind != PllContentKind.Props) Items.TryGet(Name, out ItemMatches);
+        if (Kind != PllContentKind.Items) Props.TryGetValue(Name, out PropMatches);
+        var ItemCount = ItemMatches?.Length ?? 0;
+        var PropCount = PropMatches?.Count ?? 0;
+        if (ItemCount > 1)
             throw new InvalidOperationException(
-                $"Forced object name '{name}' matches distinct ItemDatabase identities "
-                    + $"[{string.Join(", ", Array.ConvertAll(itemMatches!, value => value.Key.ToString(CultureInfo.InvariantCulture)))}] "
-                + $"and native candidates [{string.Join(", ", propMatches?.ConvertAll(value => value.StableKey) ?? new List<string>())}] "
-                + "and cannot be classified.");
-        if (itemCount != 0 && propCount != 0)
-            throw new InvalidOperationException(
-                $"Forced object name '{name}' is ambiguous between ItemDatabase identity {itemMatches![0].Key} "
-                + $"and native candidates [{string.Join(", ", propMatches!.ConvertAll(value => value.StableKey))}].");
-        if (itemCount == 0 && propCount == 0)
-            throw new InvalidOperationException(
-                $"Forced object name '{name}' is absent from the live item and native-prop catalogs.");
-        if (itemCount == 1)
+                $"Native item name '{Name}' matches multiple ItemDatabase entries: "
+                + $"{string.Join(", ", Array.ConvertAll(ItemMatches!, Value => Value.Key.ToString(CultureInfo.InvariantCulture)))}.");
+        if (ItemCount != 0 && PropCount != 0)
+            foreach (var Prop in PropMatches!)
+                if (Prop.Candidate != ItemMatches![0].Item.gameObject)
+                    throw new InvalidOperationException(
+                        $"Forced object name '{Name}' matches item {ItemMatches[0].Key} "
+                        + $"and distinct native props [{string.Join(", ", PropMatches.ConvertAll(Value => Value.StableKey))}].");
+        if (ItemCount == 0 && PropCount == 0)
+            throw new InvalidOperationException(Kind switch
+            {
+                PllContentKind.Items => $"Native item '{Name}' was not found in PEAK's ItemDatabase.",
+                PllContentKind.Props => $"Native prop '{Name}' was not found in PEAK's prop sources.",
+                null => $"Forced object '{Name}' was not found among loaded items or native props.",
+                _ => throw new InvalidOperationException("Native content kind is undefined.")
+            });
+        var Key = (ItemCount == 1 ? PllContentKind.Items : PllContentKind.Props, Name);
+        if (Kind is null && ContentResolutions.TryGetValue(Key, out var Existing)) return Existing;
+        NativeSpawnResolution Result;
+        if (ItemCount == 1)
         {
-            var match = itemMatches![0];
-            return new ItemForceSpawnResolution(name, match.Key, match.Item);
+            var Match = ItemMatches![0];
+            Result = new NativeItemSpawnResolution(Name, Match.Key, Match.Item);
         }
-
-        var family = new PropForceSpawnResolution.PropEntry[propCount];
-        for (var i = 0; i < family.Length; i++)
+        else
         {
-            var candidate = propMatches![i];
-            ValidateCandidate(candidate.Candidate, name, candidate.StableKey);
-            family[i] = new PropForceSpawnResolution.PropEntry(
-                candidate.Candidate, candidate.StableKey, candidate.NativeSourceInstanceIds);
+            var Family = new NativePropSpawnResolution.PropEntry[PropCount];
+            for (var i = 0; i < Family.Length; i++)
+            {
+                var Candidate = PropMatches![i];
+                ValidateCandidate(Candidate.Candidate, Name, Candidate.StableKey);
+                Family[i] = new NativePropSpawnResolution.PropEntry(
+                    Candidate.Candidate, Candidate.StableKey, Candidate.NativeSourceInstanceIds);
+            }
+            Result = new NativePropSpawnResolution(Name, Family);
         }
-        return new PropForceSpawnResolution(name, family);
+        ContentResolutions.Add(Key, Result);
+        return Result;
     }
 
     internal static void ValidateCandidate(GameObject candidate, string name, string key)

@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using PLL.Library;
 using UnityEditor;
 using UnityEngine;
@@ -13,14 +12,11 @@ namespace PLL.Creator.Editor
         {
             if (Value.transform.childCount != 0)
                 throw new InvalidOperationException("The selected biome stinger must be a leaf GameObject.");
-            var Components = Value.GetComponents<Component>();
-            var Sources = Value.GetComponents<AudioSource>();
-            if (Components.Length != 2 || Sources.Length != 1
-                || Components.Count(Component => Component && Component.GetType() == typeof(Transform)) != 1
-                || Components.Count(Component => Component && Component.GetType() == typeof(AudioSource)) != 1)
+            if (Value.GetComponents<Component>().Length != 2 || Value.transform.GetType() != typeof(Transform)
+                || !Value.TryGetComponent<AudioSource>(out var Source))
                 throw new InvalidOperationException(
                     "The selected biome stinger must contain exactly Transform and one AudioSource.");
-            if (!Sources[0].enabled)
+            if (!Source.enabled)
                 throw new InvalidOperationException("The selected biome stinger AudioSource must be enabled.");
             var PlacementFailure = PlacementError(Root, Value);
             if (PlacementFailure != null) throw new InvalidOperationException(PlacementFailure);
@@ -29,11 +25,11 @@ namespace PLL.Creator.Editor
         internal static void Validate(
             PllBiomeStingerAuthoring Value, string PlacementError, Action<string, Object> Reject)
         {
+            var HasAudio = Value.TryGetComponent<AudioSource>(out var Source);
             if (PllAuthoringValueContract.TransitionFailure(Value.Transition.CoverDelaySeconds) is { } Failure)
                 Reject(Failure, Value);
-            if (Value.Transition.CoverDelaySeconds > 0f
-                && Value.TryGetComponent<AudioSource>(out var TransitionAudio) && !TransitionAudio.loop)
-                Reject("Cover Delay requires looping audio.", TransitionAudio);
+            if (Value.Transition.CoverDelaySeconds > 0f && HasAudio && !Source.loop)
+                Reject("Cover Delay requires looping audio.", Source);
             if (!Value.enabled) Reject("Biome stinger authoring must be enabled.", Value);
             switch (Value.Mode)
             {
@@ -52,14 +48,9 @@ namespace PLL.Creator.Editor
             if (PlacementError != null) Reject(PlacementError, Value);
             if (Value.transform.childCount != 0)
                 Reject("A biome stinger must own no child hierarchy.", Value);
-            var Components = Value.GetComponents<Component>();
-            var Sources = Value.GetComponents<AudioSource>();
-            if (Components.Length != 3 || Sources.Length != 1
-                || Components.Count(Component => Component && Component.GetType() == typeof(Transform)) != 1
-                || Components.Count(Component => Component && Component.GetType() == typeof(AudioSource)) != 1
-                || Components.Count(Component => Component && Component.GetType() == typeof(PllBiomeStingerAuthoring)) != 1)
+            if (Value.GetComponents<Component>().Length != 3 || Value.transform.GetType() != typeof(Transform) || !HasAudio)
                 Reject("A biome stinger must contain exactly Transform, one AudioSource, and one PllBiomeStingerAuthoring.", Value);
-            if (Sources.Length == 1) ValidateAudio(Sources[0], Reject);
+            if (HasAudio) ValidateAudio(Source, Reject);
         }
 
         static void ValidateAudio(AudioSource Source, Action<string, Object> Reject)

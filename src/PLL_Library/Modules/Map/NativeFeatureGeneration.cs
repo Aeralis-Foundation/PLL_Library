@@ -250,7 +250,7 @@ internal static class NativeFeatureGeneration
         internal void ReleaseSplines()
         {
             List<Exception>? Failures = null;
-            foreach (var Resource in SplineMeshes) AuthoringCleanup.Capture(ref Failures, Resource.Dispose);
+            foreach (var Resource in SplineMeshes) CleanupOperations.Capture(ref Failures, Resource.Dispose);
             GeneratedGeometryBudget.ThrowFailures(Failures);
             SplineMeshes.Clear();
         }
@@ -335,7 +335,7 @@ internal static class NativeFeatureGeneration
         {
             var Resources = new RawSplineMesh[SplineMeshes.Count]; SplineMeshes.CopyTo(Resources);
             List<Exception>? Failures = null;
-            foreach (var Resource in Resources) AuthoringCleanup.Capture(ref Failures, Resource.Dispose);
+            foreach (var Resource in Resources) CleanupOperations.Capture(ref Failures, Resource.Dispose);
             GeneratedGeometryBudget.ThrowFailures(Failures);
         }
 
@@ -345,7 +345,7 @@ internal static class NativeFeatureGeneration
         {
             List<Exception>? Failures = null;
             foreach (var Resource in SplineMeshes)
-                if (Resource.IsFixed) AuthoringCleanup.Capture(ref Failures, Resource.ReleaseMesh);
+                if (Resource.IsFixed) CleanupOperations.Capture(ref Failures, Resource.ReleaseMesh);
             GeneratedGeometryBudget.ThrowFailures(Failures);
         }
 
@@ -782,11 +782,9 @@ internal static class NativeFeatureGeneration
         return ActiveClone?.Capture(Extrude);
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(SplineExtrude), nameof(SplineExtrude.EnsureMeshExists))]
     static class RawSplineEnsurePatch
     {
-        static MethodBase TargetMethod() => SymbolExtensions.GetMethodInfo(() => default(SplineExtrude)!.EnsureMeshExists());
-
         [HarmonyPrefix]
         static bool Prefix(SplineExtrude __instance)
         {
@@ -825,11 +823,9 @@ internal static class NativeFeatureGeneration
         }
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(SplineExtrude), nameof(SplineExtrude.CleanupMesh))]
     static class RawSplineCleanupPatch
     {
-        static MethodBase TargetMethod() => SymbolExtensions.GetMethodInfo(() => default(SplineExtrude)!.CleanupMesh());
-
         [HarmonyPrefix]
         static bool Prefix(SplineExtrude __instance)
         {
@@ -838,11 +834,9 @@ internal static class NativeFeatureGeneration
         }
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(SplineExtrude), nameof(SplineExtrude.OnEnable))]
     static class RawSplineEnablePatch
     {
-        static MethodBase TargetMethod() => SymbolExtensions.GetMethodInfo(() => default(SplineExtrude)!.OnEnable());
-
         [HarmonyPrefix]
         static void Prefix(SplineExtrude __instance, out RawSplineCall? __state) =>
             __state = RawSplineOwner(__instance) is { } Owner ? new RawSplineCall(Owner) : null;
@@ -995,31 +989,25 @@ internal static class NativeFeatureGeneration
         {
             if (Cleaned || AwaitPending) return;
             Cleaned = true;
-            var Failures = new List<Exception>();
-
-            void Release(Action Operation)
-            {
-                try { Operation(); }
-                catch (Exception Failure) { Failures.Add(Failure); }
-            }
-
-            Release(ReleaseExternalCollisionScope);
-            Release(() => TowerGenerationScope?.Dispose());
-            Release(() =>
+            List<Exception>? Failures = null;
+            CleanupOperations.Capture(ref Failures, ReleaseExternalCollisionScope);
+            CleanupOperations.Capture(ref Failures, () => TowerGenerationScope?.Dispose());
+            CleanupOperations.Capture(ref Failures, () =>
             {
                 if (Lease.RandomDepth != 0)
                     throw new InvalidOperationException("Native feature random scope remained active during cleanup.");
                 if (!Lease.RandomHandoffReady) UnityEngine.Random.state = RandomState;
             });
-            Release(() => RpcRootReservation?.Dispose());
-            Release(() => PropSpawnerGenerationScope?.Dispose());
+            CleanupOperations.Capture(ref Failures, () => RpcRootReservation?.Dispose());
+            CleanupOperations.Capture(ref Failures, () => PropSpawnerGenerationScope?.Dispose());
             if (ReferenceEquals(activeLease, Lease)) activeLease = null;
             else if (activeLease is not null)
-                Failures.Add(new InvalidOperationException("Native feature generation lost its active lease during cleanup."));
-            Release(WriterLease.Dispose);
+                (Failures ??= new()).Add(new InvalidOperationException(
+                    "Native feature generation lost its active lease during cleanup."));
+            CleanupOperations.Capture(ref Failures, WriterLease.Dispose);
 
-            if (Failures.Count == 1) ExceptionPropagation.Throw(Failures[0]);
-            if (Failures.Count != 0)
+            if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
+            if (Failures is not null)
                 throw new AggregateException("Native feature generation cleanup failed.", Failures);
         }
         activeLease = Lease;
@@ -1185,6 +1173,7 @@ internal static class NativeFeatureGeneration
                 if (!parent) continue;
                 foreach (var renderer in parent.GetComponentsInChildren<MeshRenderer>(true))
                     if (!NativeFlowRuntime.OwnsRenderer(renderer) && !Map.CurrentRun!.SurfaceTextures.OwnsRenderer(renderer)
+                        && !Map.CurrentRun.NativeMaterials.OwnsSlot(renderer, 0)
                         && Map.CurrentRun!.HookedGeneration.OwnedByOuter(grouper.transform, renderer.transform))
                         renderer.sharedMaterial = swapper.mat;
             }
@@ -1201,7 +1190,8 @@ internal static class NativeFeatureGeneration
             {
                 if (!Parent) continue;
                 foreach (var Renderer in Parent.GetComponentsInChildren<MeshRenderer>(true))
-                    if (!NativeFlowRuntime.OwnsRenderer(Renderer) && Map.CurrentRun?.SurfaceTextures.OwnsRenderer(Renderer) != true)
+                    if (!NativeFlowRuntime.OwnsRenderer(Renderer) && Map.CurrentRun?.SurfaceTextures.OwnsRenderer(Renderer) != true
+                        && Map.CurrentRun?.NativeMaterials.OwnsSlot(Renderer, 0) != true)
                         Renderer.sharedMaterial = __instance.mat;
             }
             return false;
@@ -1294,24 +1284,24 @@ internal static class NativeFeatureGeneration
         }
         List<Exception>? Failures = null;
         var Components = Array.Empty<Component>();
-        AuthoringCleanup.Capture(ref Failures, () =>
+        CleanupOperations.Capture(ref Failures, () =>
         {
             Components = Root.GetComponentsInChildren<Component>(true);
             foreach (var Component in Components)
                 if (Component is Renderer Renderer)
-                    AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRenderer(Renderer));
+                    CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRenderer(Renderer));
                 else if (Component is ShaderEffect Effect)
-                    AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireEffect(Effect));
+                    CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireEffect(Effect));
             foreach (var Component in Components)
                 if (Component is PllNativeFlowCondition Bridge)
-                    AuthoringCleanup.Capture(ref Failures, Bridge.Release);
+                    CleanupOperations.Capture(ref Failures, Bridge.Release);
                 else if (Component is SplineExtrude Extrude && RawSplines.TryGetValue(Extrude, out var Resource))
-                    AuthoringCleanup.Capture(ref Failures, Resource.Dispose);
+                    CleanupOperations.Capture(ref Failures, Resource.Dispose);
         });
-        AuthoringCleanup.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(Output));
+        CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.DestroyImmediate(Output));
         foreach (var Component in Components)
             if (Component is PllGeneratedPrefabIdentity Identity)
-                AuthoringCleanup.Capture(ref Failures, Identity.Release);
+                CleanupOperations.Capture(ref Failures, Identity.Release);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is not null) throw new AggregateException("Native output cleanup failed.", Failures);
     }
@@ -1454,7 +1444,7 @@ internal static class NativeFeatureGeneration
             throw new InvalidOperationException("Native feature ownership cannot be released while generation is active.");
         List<Exception>? Failures = null;
         foreach (var Ownership in OwnedFeatures.Values)
-            AuthoringCleanup.Capture(ref Failures, Ownership.Outputs.Dispose);
+            CleanupOperations.Capture(ref Failures, Ownership.Outputs.Dispose);
         OwnedFeatures.Clear(); GeneratedGeometryBudget.ThrowFailures(Failures);
     }
 
@@ -1462,6 +1452,8 @@ internal static class NativeFeatureGeneration
     {
         Map.CurrentRun?.PropInteractions.Retire(grouper.gameObject);
         Map.CurrentRun?.SurfaceTextures.Retire(grouper.gameObject);
+        Map.CurrentRun?.NativeMaterials.Retire(grouper.gameObject);
+        Map.CurrentRun?.NativeSpawners.Retire(grouper.gameObject, GeneratedOnly: true);
         Map.CurrentRun?.ClimbingFixtures.Retire(grouper.gameObject);
         Map.CurrentRun?.NativeSpawns.RetireOutputs(grouper.gameObject);
         if (!OwnedFeatures.TryGetValue(grouper, out var Ownership))
@@ -1622,14 +1614,9 @@ internal static class NativeFeatureGeneration
         PhotonNetwork.NetworkingClient.LoadBalancingPeer.SendOutgoingCommands();
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(PropGrouper), nameof(PropGrouper.ShouldWaitForFrame), MethodType.Getter)]
     static class PropGrouperTransportPatch
     {
-        static MethodBase TargetMethod() =>
-            AccessTools.DeclaredPropertyGetter(typeof(PropGrouper), "ShouldWaitForFrame")
-            ?? throw new MissingMethodException(
-                typeof(PropGrouper).FullName, "get_ShouldWaitForFrame");
-
         [HarmonyPostfix]
         static void Postfix(PropGrouper __instance) =>
             PumpOutgoingDuringSynchronousGeneration(__instance);

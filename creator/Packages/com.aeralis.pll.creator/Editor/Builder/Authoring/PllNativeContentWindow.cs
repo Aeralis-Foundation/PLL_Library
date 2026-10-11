@@ -78,9 +78,14 @@ namespace PLL.Creator.Editor
                     EditorGUILayout.EndHorizontal();
                     DrawSelected();
                     foreach (var Rig in Catalog.Rigs)
-                        if (GUILayout.Button("Bind Artist Mesh to " + Rig.Actor + " Rig"))
+                        if (Rig.Actor == "RopeDynamic" && Rig.Skins.Length == 1)
+                        {
+                            if (GUILayout.Button("Apply Custom Rope Appearance")) PllApplyRopeAppearanceWindow.Open(Rig);
+                        }
+                        else if (Rig.Actor is "Beetle" or "Condor" && Rig.Skins.Length != 0
+                            && GUILayout.Button("Bind Artist Mesh to " + Rig.Actor + " Rig"))
                             PllApplyEntityAppearanceWindow.Open(Rig);
-                    EditorGUILayout.HelpBox("The catalog contains selector identities and captured rig metadata, not native prefabs or executable game code. Arbitrary PropSpawner prefab picks are unsupported. Missing images are not substituted with invented thumbnails.", MessageType.Info);
+                    EditorGUILayout.HelpBox("The catalog lists native content and rig settings; it contains no game prefabs or code. Content Spawner selects native prop families in PEAK.", MessageType.Info);
                 }
                 DrawProfile();
             }
@@ -117,10 +122,14 @@ namespace PLL.Creator.Editor
                 EditorGUILayout.HelpBox(Selected.SelectionFailure, MessageType.Error);
                 return;
             }
+            var Spawner = Selection.activeGameObject ? Selection.activeGameObject.GetComponent<PllNativeSpawnerAuthoring>() : null;
+            if (Selected.Kind is NativeContentPickKind.ForceName or NativeContentPickKind.Item)
+                using (new EditorGUI.DisabledScope(!Spawner))
+                    if (GUILayout.Button("Add to Selected Food or Content Spawner")) AddToSpawner(Spawner, Selected.Name);
             if (Selected.Kind == NativeContentPickKind.ForceName)
             {
                 EditorGUILayout.LabelField("Candidate family size", Selected.CandidateCount.ToString());
-                EditorGUILayout.HelpBox("This operation selects the exact force name, not an individual family variant. PEAK resolves and validates the family during live sealing.", MessageType.Info);
+                EditorGUILayout.HelpBox("Selects the prop family by its exact force name, not an individual variant.", MessageType.Info);
                 if (GUILayout.Button("Add Force Spawner to Selected Source"))
                     PllCreateForceSpawnerWindow.Create(Selection.activeGameObject, Selected.Name);
             }
@@ -159,10 +168,10 @@ namespace PLL.Creator.Editor
         void DrawProfile()
         {
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Explicit game profile handoff", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Game Profile", EditorStyles.boldLabel);
             if (!NativeContentRequestFile.IsSupported)
             {
-                EditorGUILayout.HelpBox("Native content queue and preview handoff require Windows. Catalog import and selector authoring remain available.", MessageType.Info);
+                EditorGUILayout.HelpBox("Sending capture or preview requests to PEAK requires Windows. You can still import catalogs and configure spawners.", MessageType.Info);
                 return;
             }
             if (GUILayout.Button("Select and Inspect Game Profile"))
@@ -191,7 +200,7 @@ namespace PLL.Creator.Editor
                     var Request = ReadJson<NativeContentRequest>(Path, NativeContentArtifact.MaximumRequestBytes,
                         FileShare.Read | FileShare.Delete);
                     RequireRecordedRequest(Request); Queued = Request;
-                    ResultSummary = "Queue entry inspected; no generation or render result is implied.";
+                    ResultSummary = "The pending request has been loaded.";
                 }
             }
             if (GUILayout.Button("Open Published Result"))
@@ -238,11 +247,26 @@ namespace PLL.Creator.Editor
             if (RequestId != "")
             {
                 EditorGUILayout.LabelField("Request", RequestId);
-                if (GUILayout.Button("Read Correlated Result")) ReadResult();
+                if (GUILayout.Button("Read Request Result")) ReadResult();
                 if (GUILayout.Button("Cancel Queued Request")) CancelQueue();
                 if (ResultSummary != "") EditorGUILayout.HelpBox(ResultSummary, MessageType.Info);
             }
-            EditorGUILayout.HelpBox("Queueing does not launch PEAK. Start this profile normally through its existing launcher and use a fresh normal run, not Continue. Export requires a PLL-processed layout; unchanged native-base runs are unsupported. Preview keeps the exported canonical layout and effective variations, hashes the requested seed text, and requires the same native settings and ascent. Navigate normally to the requested occurrence. Cancellation stops pending startup or capture; it does not undo an island load that already began. Compatibility-seal logs are not preview results.", MessageType.Info);
+            EditorGUILayout.HelpBox("Launch PEAK through the selected profile and start a new PLL run, not Continue. "
+                + "Preview uses the catalog's layout and variations with your seed; keep the same game settings and ascent, then visit the selected biome. "
+                + "Cancel stops pending requests or captures, but cannot undo an island load that has started.", MessageType.Info);
+        }
+
+        internal static void AddToSpawner(PllNativeSpawnerAuthoring Source, string Name)
+        {
+            var Entries = Source is PllFoodSpawnerAuthoring Food ? Food.CustomItems : ((PllContentSpawnerAuthoring)Source).Content;
+            foreach (var Entry in Entries) if (Entry.Name == Name) return;
+            PllSourceIdentityValidator.ResolveEditableOwner(Source.gameObject, "Add Native Spawn Content");
+            Undo.RecordObject(Source, "Add Native Spawn Content");
+            var Updated = new PllNativeSpawnEntry[Entries.Length + 1]; Entries.CopyTo(Updated, 0);
+            Updated[Entries.Length] = new PllNativeSpawnEntry { Name = Name, Weight = 1 };
+            if (Source is PllFoodSpawnerAuthoring Target) { Target.UseCustomList = true; Target.CustomItems = Updated; }
+            else ((PllContentSpawnerAuthoring)Source).Content = Updated;
+            EditorUtility.SetDirty(Source);
         }
 
         void Queue(NativeContentRequestKind Kind)
@@ -297,14 +321,14 @@ namespace PLL.Creator.Editor
                 File.Move(Pending, Destination); OwnsPending = false;
             }
             finally { if (OwnsPending) File.Delete(Pending); }
-            Queued = Request; ResultSummary = "Queued; no PEAK startup or render has been observed.";
+            Queued = Request; ResultSummary = "The request is queued. Start PEAK to process it.";
         }
 
         void ReadResult()
         {
             var Path = System.IO.Path.Combine(Profile.Root, "BepInEx", "plugins",
                 NativeContentArtifact.DirectoryName, RequestId, NativeContentArtifact.ResultFile);
-            if (!File.Exists(Path)) { ResultSummary = "No correlated result has been published."; return; }
+            if (!File.Exists(Path)) { ResultSummary = "No result is available for this request yet."; return; }
             var Result = ReadJson<NativeContentResult>(Path, NativeContentArtifact.MaximumRequestBytes);
             NativeContentArtifact.RequireResult(Result);
             if (Result.RequestId != RequestId || !SameIdentity(Result.Identity, Queued.Identity))
@@ -348,7 +372,7 @@ namespace PLL.Creator.Editor
             {
                 using (File.Open(Path.Combine(Directory, RequestId + ".cancel"),
                            FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read)) { }
-                ResultSummary = "Cancellation requested; active capture retains its resources until cleanup.";
+                ResultSummary = "Cancellation requested. An active capture must finish stopping.";
             }
         }
 

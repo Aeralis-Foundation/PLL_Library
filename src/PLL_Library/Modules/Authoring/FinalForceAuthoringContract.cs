@@ -123,7 +123,7 @@ internal sealed class FinalForceAuthoringContract
         foreach (var feature in features) feature.Validate(template, segmentId);
     }
 
-    internal void SealExternal(IReadOnlyDictionary<string, ForceSpawnResolution> resolutions)
+    internal void SealExternal(IReadOnlyDictionary<string, NativeSpawnResolution> resolutions)
     {
         foreach (var marker in forceMarkers)
         {
@@ -490,7 +490,7 @@ internal sealed class ForceMarkerContract
     readonly ComponentBinding<PLLForceSpawner> marker;
     readonly BiomeId biomeId;
     readonly FinalMarkerContract? final;
-    ForceSpawnResolution? resolution;
+    NativeSpawnResolution? resolution;
 
     ForceMarkerContract(
         PLLForceSpawner source,
@@ -552,7 +552,7 @@ internal sealed class ForceMarkerContract
         ValidateUnitFrame(Source.transform, id, Key);
     }
 
-    internal void Seal(ForceSpawnResolution value) => resolution = value;
+    internal void Seal(NativeSpawnResolution value) => resolution = value;
     internal void ClearExternal() => resolution = null;
 
     internal int FinalIndex(IReadOnlyList<FinalMarkerContract> featureFinals)

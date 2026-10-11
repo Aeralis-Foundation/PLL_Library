@@ -18,7 +18,7 @@ namespace PLL.Creator.Editor
             var Fixtures = new FixtureAuthoring(
                 DiscoverGraphComponents<PllLuggageAuthoring>(Identity.Graph),
                 DiscoverGraphComponents<PllCampfireAuthoring>(Identity.Graph),
-                DiscoverComponents<PllStatueAuthoring>(Identity.Root),
+                DiscoverComponents<PllStatueAuthoring>(Identity.Graph.ByPath[Identity.Graph.RootPath]),
                 DiscoverGraphComponents<PllItemSpawnerAuthoring>(Identity.Graph),
                 DiscoverGraphComponents<PllRestPointAuthoring>(Identity.Graph),
                 DiscoverGraphComponents<PllHangingRopeAuthoring>(Identity.Graph));

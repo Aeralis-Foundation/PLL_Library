@@ -33,7 +33,6 @@ internal sealed class NativeAmuletSourceContract
     internal int CoverageBit => 1 << Category;
     internal int CandidateCount => CandidateValues.Length;
     internal GameObject Candidate(int Index) => CandidateValues[Index];
-    internal int SemanticType(int Index) => SemanticTypes[Index];
     internal System.Collections.Generic.IReadOnlyList<string> SourceBindings { get; }
 
     internal Peak.PropSpawner_AmuletStatues PlacedGenerator(Transform Container) =>

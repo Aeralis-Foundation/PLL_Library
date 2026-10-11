@@ -54,12 +54,12 @@ namespace PLL.Creator.Editor
                         PllCreatorSetup.ConfigureFromMenu();
             }
             Scroll = EditorGUILayout.BeginScrollView(Scroll);
-            EditorGUILayout.LabelField("Generated installation", Inspection.State, EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Setup", Inspection.State, EditorStyles.boldLabel);
             if (!string.IsNullOrEmpty(Inspection.Failure))
                 EditorGUILayout.HelpBox(Inspection.Failure, MessageType.Warning);
             if (!string.IsNullOrEmpty(EnvironmentFailure))
                 EditorGUILayout.HelpBox(EnvironmentFailure, MessageType.Warning);
-            EditorGUILayout.LabelField("Creator package (declared)", Inspection.PackageVersion);
+            EditorGUILayout.LabelField("Installed Creator package", Inspection.PackageVersion);
             EditorGUILayout.LabelField("Unity Editor", UnityVersion);
             EditorGUILayout.LabelField("Active build target", BuildTarget);
             EditorGUILayout.LabelField("Windows Build Support", WindowsBuildSupport ? "Installed" : "Missing");
@@ -69,15 +69,15 @@ namespace PLL.Creator.Editor
                 EditorGUILayout.LabelField("Required layers", EditorStyles.boldLabel);
                 foreach (var Layer in Inspection.Contract.layers)
                     EditorGUILayout.LabelField(Layer.index.ToString(), Layer.name);
-                EditorGUILayout.LabelField("Required dependency roots", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("Required assemblies", EditorStyles.boldLabel);
                 foreach (var Dependency in Inspection.Contract.dependencyRoots)
                     EditorGUILayout.SelectableLabel(Dependency, GUILayout.Height(EditorGUIUtility.singleLineHeight));
             }
             if (Inspection.Manifest != null)
             {
                 EditorGUILayout.Space();
-                EditorGUILayout.LabelField("Generated package (recorded)", Inspection.Manifest.packageVersion);
-                EditorGUILayout.LabelField("PEAK installation (recorded)");
+                EditorGUILayout.LabelField("Configured Creator package", Inspection.Manifest.packageVersion);
+                EditorGUILayout.LabelField("Configured PEAK installation");
                 EditorGUILayout.SelectableLabel(Inspection.Manifest.peakRoot, EditorStyles.wordWrappedLabel,
                     GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
                 EditorGUILayout.LabelField("Managed providers", EditorStyles.boldLabel);
@@ -88,19 +88,19 @@ namespace PLL.Creator.Editor
                         EditorGUILayout.LabelField(Assembly.name, EditorStyles.boldLabel);
                         string Identity;
                         if (Inspection.InspectedIdentities.TryGetValue(Assembly.name ?? string.Empty, out Identity))
-                            EditorGUILayout.SelectableLabel("Inspected source: " + Identity, EditorStyles.wordWrappedLabel,
+                            EditorGUILayout.SelectableLabel("Assembly: " + Identity, EditorStyles.wordWrappedLabel,
                                 GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
-                        EditorGUILayout.SelectableLabel("Recorded source: " + Assembly.sourcePath,
+                        EditorGUILayout.SelectableLabel("Source: " + Assembly.sourcePath,
                             EditorStyles.wordWrappedLabel, GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
-                        EditorGUILayout.SelectableLabel("Recorded SHA-256: " + Assembly.sourceSha256,
+                        EditorGUILayout.SelectableLabel("SHA-256: " + Assembly.sourceSha256,
                             EditorStyles.wordWrappedLabel, GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
                         if (!string.IsNullOrEmpty(Assembly.providerAssetPath))
                             EditorGUILayout.SelectableLabel("Project provider: " + Assembly.providerAssetPath,
                                 EditorStyles.wordWrappedLabel, GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
                     }
             }
-            EditorGUILayout.HelpBox("Ready means the generated installation passed setup and compilation checks. "
-                + "This view does not inspect a game profile or establish that content was tested in PEAK.", MessageType.Info);
+            EditorGUILayout.HelpBox("Ready means setup and compilation checks passed. "
+                + "Test built content in PEAK before publishing it.", MessageType.Info);
             EditorGUILayout.EndScrollView();
         }
     }

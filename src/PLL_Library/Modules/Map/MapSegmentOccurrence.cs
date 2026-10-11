@@ -175,7 +175,7 @@ internal sealed class FeatureOccurrence
         {
             var Instance = HazardInstances[Index].Instance;
             if (Instance.Source && !TransformOwnership.Contains(Root.transform, Instance.Source.transform)) continue;
-            AuthoringCleanup.Capture(ref Failures, Instance.Retire);
+            CleanupOperations.Capture(ref Failures, Instance.Retire);
             if (Instance.Source) Instance.Source.Binding = null;
             HazardInstances.RemoveAt(Index);
         }
@@ -183,7 +183,7 @@ internal sealed class FeatureOccurrence
         {
             var Instance = EntityInstances[Index].Instance;
             if (Instance.Source && !TransformOwnership.Contains(Root.transform, Instance.Source.transform)) continue;
-            AuthoringCleanup.Capture(ref Failures, Instance.Retire);
+            CleanupOperations.Capture(ref Failures, Instance.Retire);
             if (Instance.Source) Instance.Source.Binding = null;
             EntityInstances.RemoveAt(Index);
         }
@@ -277,7 +277,7 @@ internal sealed class FeatureOccurrence
         List<Exception>? Failures = null;
         foreach (var Zone in EntityZones)
             if (Zone is PluginEntityPopulation Plugin)
-                AuthoringCleanup.Capture(ref Failures, Plugin.Retire);
+                CleanupOperations.Capture(ref Failures, Plugin.Retire);
         if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
         if (Failures is { Count: > 1 })
             throw new AggregateException("Plugin entity population retirement failed.", Failures);
@@ -462,8 +462,8 @@ internal sealed class MapSlot
         NativeProgressionBoundaryKind ProgressionBoundary,
         Transform? NativeCampfireSupport,
         NativeTerrainMapProxy.ExternalSupport? NativeCampfireSurface,
-        ResolvedSegment? CustomResolved, PlacementFrame Frame,
-        bool IsClone, bool TerrainReady, bool CampfireReady)
+        ResolvedSegment? CustomResolved, NativeModifierRuntime? Modifiers,
+        PlacementFrame Frame, bool IsClone, bool TerrainReady, bool CampfireReady)
     {
         this.Index = Index;
         this.Source = Source;
@@ -474,6 +474,7 @@ internal sealed class MapSlot
         this.NativeCampfireSupport = NativeCampfireSupport;
         this.NativeCampfireSurface = NativeCampfireSurface;
         this.CustomResolved = CustomResolved;
+        this.Modifiers = Modifiers;
         this.Frame = Frame;
         this.IsClone = IsClone;
         this.TerrainReady = TerrainReady;
@@ -497,6 +498,7 @@ internal sealed class MapSlot
     internal Transform? NativeCampfireSupport { get; }
     internal NativeTerrainMapProxy.ExternalSupport? NativeCampfireSurface { get; }
     internal ResolvedSegment? CustomResolved { get; }
+    internal NativeModifierRuntime? Modifiers { get; }
     internal PlacementFrame Frame { get; }
     internal Vector3 Offset => Frame.Offset;
     internal bool IsClone { get; }

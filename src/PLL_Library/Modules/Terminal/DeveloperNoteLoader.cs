@@ -55,9 +55,7 @@ internal static class DeveloperNoteLoader
             Request = null;
             if (CreatedRequest is null) Handler.Dispose();
             else CreatedRequest.Dispose();
-            Fail(
-                "Developer note unavailable because the request could not start.",
-                "Developer note request could not start. Check the network connection.");
+            Fail("Developer note request could not start. Check the network connection.");
             return;
         }
         if (State == DeveloperNoteRequestState.Loading) Publish(LoadingText);
@@ -73,7 +71,7 @@ internal static class DeveloperNoteLoader
         ResultAvailable = null;
         if (WasLoading)
         {
-            Result = "Developer note unavailable because PLL stopped before the request completed.";
+            Result = "PLL stopped before the developer note finished loading.";
             State = DeveloperNoteRequestState.Finished;
         }
         if (CurrentOperation is not null) CurrentOperation.completed -= Complete;
@@ -103,44 +101,32 @@ internal static class DeveloperNoteLoader
             var Handler = (BoundedTextDownloadHandler)CurrentRequest.downloadHandler;
             if (Handler.LimitExceeded)
             {
-                Fail(
-                    $"Developer note unavailable because the response exceeded {ByteLimit} bytes.",
-                    $"Developer note response exceeded {ByteLimit} bytes. Reduce the published note size.");
+                Fail($"Developer note exceeds {ByteLimit} bytes. Reduce the published note size.");
                 return;
             }
             if (CurrentRequest.result == UnityWebRequest.Result.ConnectionError)
             {
-                Fail(
-                    "Developer note unavailable because the network could not be reached.",
-                    "Developer note request could not reach the server. Check the network connection.");
+                Fail("Developer note server could not be reached. Check the network connection.");
                 return;
             }
             if (CurrentRequest.result == UnityWebRequest.Result.ProtocolError)
             {
-                Fail(
-                    $"Developer note unavailable because the server returned HTTP {CurrentRequest.responseCode}.",
-                    $"Developer note request returned HTTP {CurrentRequest.responseCode}. Check the published note URL.");
+                Fail($"Developer note server returned HTTP {CurrentRequest.responseCode}. Check the published note URL.");
                 return;
             }
             if (CurrentRequest.result != UnityWebRequest.Result.Success)
             {
-                Fail(
-                    "Developer note unavailable because the response could not be processed.",
-                    "Developer note response could not be processed. Check the published note data.");
+                Fail("Developer note response could not be read. Check the published note data.");
                 return;
             }
             if (!Handler.TryGetText(out var Text))
             {
-                Fail(
-                    "Developer note unavailable because the response is not valid UTF-8 text.",
-                    "Developer note response is not valid UTF-8 text. Publish a UTF-8 encoded note.");
+                Fail("Developer note is not valid UTF-8 text. Publish a UTF-8 encoded note.");
                 return;
             }
             if (string.IsNullOrWhiteSpace(Text))
             {
-                Fail(
-                    "Developer note unavailable because the response is empty.",
-                    "Developer note response is empty. Publish note content.");
+                Fail("Developer note is empty. Publish note content.");
                 return;
             }
             Finish(Text);
@@ -151,10 +137,10 @@ internal static class DeveloperNoteLoader
         }
     }
 
-    static void Fail(string DisplayText, string Warning)
+    static void Fail(string Text)
     {
-        Plugin.PLLLog.LogWarning(Warning);
-        Finish(DisplayText);
+        Plugin.PLLLog.LogWarning(Text);
+        Finish(Text);
     }
 
     static void Finish(string Text)

@@ -582,17 +582,17 @@ internal sealed class NativeMechanicalHazards
         internal override void Suspend()
         {
             List<Exception>? Failures = null;
-            AuthoringCleanup.Capture(ref Failures, StopNative);
+            CleanupOperations.Capture(ref Failures, StopNative);
             foreach (var (Collider, _) in Contacts)
-                if (Collider) AuthoringCleanup.Capture(ref Failures, () => Collider.enabled = false);
-            AuthoringCleanup.Capture(ref Failures, StopSounds);
+                if (Collider) CleanupOperations.Capture(ref Failures, () => Collider.enabled = false);
+            CleanupOperations.Capture(ref Failures, StopSounds);
             GeneratedGeometryBudget.ThrowFailures(Failures);
         }
         void StopSounds()
         {
             List<Exception>? Failures = null;
             foreach (var Handle in Sounds)
-                AuthoringCleanup.Capture(ref Failures, () => NativeFlowRuntime.StopSound(Handle));
+                CleanupOperations.Capture(ref Failures, () => NativeFlowRuntime.StopSound(Handle));
             Sounds.Clear(); GeneratedGeometryBudget.ThrowFailures(Failures);
         }
         internal override void Retire()
@@ -600,27 +600,27 @@ internal sealed class NativeMechanicalHazards
             if (Retired) return;
             Retired = true;
             List<Exception>? Failures = null;
-            AuthoringCleanup.Capture(ref Failures, Suspend);
+            CleanupOperations.Capture(ref Failures, Suspend);
             for (var i = Objects.Count - 1; i >= 0; i--)
                 if (Objects[i])
                 {
                     var Value = Objects[i];
-                    AuthoringCleanup.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRoot(Value));
-                    AuthoringCleanup.Capture(ref Failures, () => { Value.SetActive(false); Object.DestroyImmediate(Value); });
+                    CleanupOperations.Capture(ref Failures, () => NativeFogRenderRuntime.RetireRoot(Value));
+                    CleanupOperations.Capture(ref Failures, () => { Value.SetActive(false); Object.DestroyImmediate(Value); });
                 }
             Objects.Clear();
             for (var i = Components.Count - 1; i >= 0; i--)
-                if (Components[i]) { var Value = Components[i]; AuthoringCleanup.Capture(ref Failures, () => Object.DestroyImmediate(Value)); }
+                if (Components[i]) { var Value = Components[i]; CleanupOperations.Capture(ref Failures, () => Object.DestroyImmediate(Value)); }
             Components.Clear();
             foreach (var Asset in Assets)
             {
                 if (Asset is SFX_Instance Sound) SoundOwners.Remove(Sound);
-                if (Asset) AuthoringCleanup.Capture(ref Failures, () => Object.DestroyImmediate(Asset));
+                if (Asset) CleanupOperations.Capture(ref Failures, () => Object.DestroyImmediate(Asset));
             }
             Assets.Clear();
             foreach (var (Collider, Enabled) in Contacts) if (Collider) Collider.enabled = Enabled;
             Contacts.Clear();
-            AuthoringCleanup.Capture(ref Failures, RestoreAuthoringPose);
+            CleanupOperations.Capture(ref Failures, RestoreAuthoringPose);
             if (Source && ReferenceEquals(Source.Binding, this)) Source.Binding = null;
             Budget.ReleaseNativeOutput(this);
             GeneratedGeometryBudget.ThrowFailures(Failures);
@@ -840,13 +840,13 @@ internal sealed class NativeMechanicalHazards
         {
             List<Exception>? Failures = null;
             if (Trap)
-                AuthoringCleanup.Capture(ref Failures, () => { Trap.enabled = false; Trap.StopAllCoroutines(); Trap._isAttacking = false; });
+                CleanupOperations.Capture(ref Failures, () => { Trap.enabled = false; Trap.StopAllCoroutines(); Trap._isAttacking = false; });
             if (Spikes)
             {
-                AuthoringCleanup.Capture(ref Failures, () => Spikes.DOKill(false));
-                AuthoringCleanup.Capture(ref Failures, () => { if (Rest) Spikes.position = Rest.position; Spikes.gameObject.SetActive(false); });
+                CleanupOperations.Capture(ref Failures, () => Spikes.DOKill(false));
+                CleanupOperations.Capture(ref Failures, () => { if (Rest) Spikes.position = Rest.position; Spikes.gameObject.SetActive(false); });
             }
-            if (Hitbox) AuthoringCleanup.Capture(ref Failures, () => Hitbox.SetActive(false));
+            if (Hitbox) CleanupOperations.Capture(ref Failures, () => Hitbox.SetActive(false));
             GeneratedGeometryBudget.ThrowFailures(Failures);
         }
         protected override void RestoreAuthoringPose()

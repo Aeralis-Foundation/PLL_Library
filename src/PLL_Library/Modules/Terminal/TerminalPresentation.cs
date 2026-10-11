@@ -25,27 +25,22 @@ internal static class TerminalPresentation
     }
 
     internal static OwnedTerminalImage LoadEmbeddedImage(
-        Type ResourceOwner, string ResourceName, string AssetName,
-        Func<string, Exception> MissingResourceFailure)
+        Type ResourceOwner, string ResourceName, string AssetName)
     {
         using var Stream = ResourceOwner.Assembly.GetManifestResourceStream(ResourceName)
-            ?? throw MissingResourceFailure($"Embedded resource '{ResourceName}' is missing.");
+            ?? throw new InvalidDataException($"Embedded resource '{ResourceName}' is missing.");
         using var Reader = new BinaryReader(Stream);
         var Bytes = Reader.ReadBytes(checked((int)Stream.Length));
         if (Bytes.Length != Stream.Length)
             throw new EndOfStreamException($"Embedded resource '{ResourceName}' ended early.");
 
         var Texture = new Texture2D(2, 2, TextureFormat.RGBA32, false) { name = AssetName };
-        if (!ImageConversion.LoadImage(Texture, Bytes, true))
-        {
-            UnityEngine.Object.Destroy(Texture);
-            throw new InvalidDataException($"Embedded resource '{ResourceName}' is not a valid image.");
-        }
-
         Sprite? CreatedSprite = null;
         var Created = false;
         try
         {
+            if (!ImageConversion.LoadImage(Texture, Bytes, true))
+                throw new InvalidDataException($"Embedded resource '{ResourceName}' is not a valid image.");
             CreatedSprite = Sprite.Create(
                 Texture,
                 new Rect(0f, 0f, Texture.width, Texture.height),

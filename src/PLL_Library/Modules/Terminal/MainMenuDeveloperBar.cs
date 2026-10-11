@@ -64,21 +64,15 @@ internal static class MainMenuDeveloperBar
     {
         var CurrentControl = Control;
         Control = null;
-        var Failures = new List<Exception>();
-        void Release(Action ReleaseAction)
-        {
-            try { ReleaseAction(); }
-            catch (Exception Failure) { Failures.Add(Failure); }
-        }
-
+        List<Exception>? Failures = null;
         if (CurrentControl)
         {
-            Release(CurrentControl.Dispose);
-            Release(() => UnityEngine.Object.Destroy(CurrentControl));
+            CleanupOperations.Capture(ref Failures, CurrentControl.Dispose);
+            CleanupOperations.Capture(ref Failures, () => UnityEngine.Object.Destroy(CurrentControl));
         }
-        Release(DeveloperNoteLoader.Shutdown);
-        if (Failures.Count == 1) ExceptionPropagation.Throw(Failures[0]);
-        if (Failures.Count != 0)
+        CleanupOperations.Capture(ref Failures, DeveloperNoteLoader.Shutdown);
+        if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
+        if (Failures is not null)
             throw new AggregateException("Main-menu developer content shutdown failed.", Failures);
     }
 
@@ -210,7 +204,7 @@ internal static class MainMenuDeveloperBar
                 || Menu.aggrocrabButton.targetGraphic is not Image AggroCrabImage
                 || Bar.parent is not RectTransform MainPage)
             {
-                Failure = "PLL Library could not add the Aeralis Foundation menu mark because PEAK's developer bar is unavailable.";
+                Failure = "PEAK's developer bar is missing. The Aeralis Foundation menu mark could not be added.";
                 return false;
             }
 
@@ -230,13 +224,13 @@ internal static class MainMenuDeveloperBar
                 || !NormalText || !ShillNormalNote || !ShillNormalText || !ShillPromoNote
                 || DevMessage.texts is not { Length: > 0 } OfficialTexts)
             {
-                Failure = "PLL Library could not add the Aeralis Foundation menu note because PEAK's creator-message panel is unavailable.";
+                Failure = "PEAK's creator-message panel is missing. The Aeralis Foundation note could not be added.";
                 return false;
             }
             for (var Index = 0; Index < OfficialTexts.Length; Index++)
             {
                 if (OfficialTexts[Index]) continue;
-                Failure = "PLL Library could not add the Aeralis Foundation menu note because PEAK's creator-message panel is unavailable.";
+                Failure = "PEAK's creator-message panel is missing. The Aeralis Foundation note could not be added.";
                 return false;
             }
 
@@ -318,8 +312,7 @@ internal static class MainMenuDeveloperBar
         internal static MainMenuOwnedContent Create(MainMenuBinding Binding)
         {
             var LoadedLogoImage = TerminalPresentation.LoadEmbeddedImage(
-                typeof(MainMenuDeveloperBar), LogoResource, "Aeralis Foundation Logo",
-                static Message => new InvalidOperationException(Message));
+                typeof(MainMenuDeveloperBar), LogoResource, "Aeralis Foundation Logo");
             GameObject? CreatedLogoRoot = null;
             GameObject? CreatedNoteRoot = null;
             MainMenuDeveloperLogoBob? CreatedLandfallLogo = null;

@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
@@ -7,13 +6,9 @@ namespace PLL.Library;
 
 internal static class NativeBridgeCollision
 {
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(BreakableBridge), nameof(BreakableBridge.AddCollisionModifiers))]
     static class AddCollisionModifiersPatch
     {
-        static MethodBase TargetMethod() => AccessTools.DeclaredMethod(
-            typeof(BreakableBridge), nameof(BreakableBridge.AddCollisionModifiers), Type.EmptyTypes)
-            ?? throw new MissingMethodException("BreakableBridge.AddCollisionModifiers was not found.");
-
         [HarmonyPrefix]
         static bool Prefix(BreakableBridge __instance)
         {

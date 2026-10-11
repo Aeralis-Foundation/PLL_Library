@@ -15,7 +15,7 @@ internal static class QuicksaveRoomGate
     {
         if (Active && Failure is null
             && Current is ClientState.Disconnecting or ClientState.Disconnected)
-            Failure = "PLL Library cancelled quicksave restoration because the room connection failed.";
+            Failure = "The room connection failed. Quicksave restoration stopped.";
     }
 
     internal static void MatchmakingFailed(string Operation, short ReturnCode, string Message)
@@ -27,7 +27,7 @@ internal static class QuicksaveRoomGate
     internal static void RoomLeft()
     {
         if (Active && Failure is null)
-            Failure = "PLL Library cancelled quicksave restoration because the host left its room.";
+            Failure = "The host left the room. Quicksave restoration stopped.";
     }
 
     static Exception? DisposeLoad(IEnumerator Load, Exception? FailureValue)
@@ -66,14 +66,14 @@ internal static class QuicksaveRoomGate
             || string.IsNullOrEmpty(Host.RoomName))
         {
             Plugin.PLLLog.LogError(
-                "PLL Library could not resolve PEAK's quicksave host-room state.");
+                "The quicksave host room is unavailable.");
             return false;
         }
         if (!PhotonNetwork.CreateRoom(
             Host.RoomName, Peak.Network.NetworkingUtilities.HostRoomOptions(), null, null))
         {
             Plugin.PLLLog.LogError(
-                "PLL Library could not enqueue PEAK's quicksave room creation.");
+                "The quicksave room could not be created.");
             return false;
         }
         Started = true;
@@ -85,7 +85,7 @@ internal static class QuicksaveRoomGate
         if (Active)
         {
             Plugin.PLLLog.LogError(
-                "PLL Library cancelled a duplicate quicksave configuration gate.");
+                "Quicksave restoration is already running.");
             if (DisposeLoad(Load, null) is { } DisposeFailure) ExceptionPropagation.Throw(DisposeFailure);
             yield break;
         }
@@ -118,7 +118,7 @@ internal static class QuicksaveRoomGate
                         or ClientState.ConnectingToMasterServer or ClientState.ConnectedToMasterServer))
                 {
                     Plugin.PLLLog.LogError(
-                        "PLL Library cancelled quicksave restoration before the host joined its room.");
+                        "The host did not join the room. Quicksave restoration stopped.");
                     yield break;
                 }
                 bool RoomStarted;
@@ -141,13 +141,13 @@ internal static class QuicksaveRoomGate
                 || PhotonNetwork.NetworkClientState != ClientState.Joined)
             {
                 Plugin.PLLLog.LogError(
-                    "PLL Library cancelled quicksave restoration because room authority is unavailable.");
+                    "The host no longer controls the room. Quicksave restoration stopped.");
                 yield break;
             }
             if (!Room.BroadcastPropertiesChangeToAll)
             {
                 Plugin.PLLLog.LogError(
-                    "PLL Library cannot verify quicksave room configuration publication without server property echoes.");
+                    "The server does not confirm room settings. Quicksave restoration stopped.");
                 yield break;
             }
 
@@ -180,16 +180,16 @@ internal static class QuicksaveRoomGate
             {
                 IslandLoadPublication.Fail(
                     Request,
-                    "PLL Library cancelled quicksave restoration because room authority changed after configuration confirmation.");
+                    "The host or room settings changed. Quicksave restoration stopped.");
                 if (Request.Failure is null)
                     Plugin.PLLLog.LogError(
-                        "PLL Library's quicksave room configuration was invalidated after confirmation.");
+                        "The confirmed quicksave room settings changed.");
                 yield break;
             }
             if (!IslandLoadPublication.Consume(Request))
             {
                 Plugin.PLLLog.LogError(
-                    "PLL Library's quicksave room configuration could not be consumed atomically.");
+                    "The quicksave room settings are no longer available for loading.");
                 yield break;
             }
             HandedOff = true;

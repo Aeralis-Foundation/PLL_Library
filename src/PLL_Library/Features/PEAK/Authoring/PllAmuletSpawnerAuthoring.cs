@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PLL.Library;
@@ -152,6 +153,65 @@ public sealed class PllAmuletSpawnerAuthoring : MonoBehaviour
             : throw new ArgumentException("An Authored biome requires an explicit amulet opportunity category.", nameof(Category)),
         _ => throw new ArgumentException("The amulet opportunity category is undefined.", nameof(Category))
     };
+#if PLL_CREATOR_SDK
+    public
+#else
+    internal
+#endif
+    static (int Coverage, int Maximum) CapturePotential<T>(Transform Root,
+        IReadOnlyList<PllVariationAuthoring> Groups, IReadOnlyList<T> Sources,
+        Func<T, (Transform Root, int Category)> ReadSource)
+    {
+        var Coverage = 0;
+        var Maximum = 0;
+        foreach (var Value in Sources)
+        {
+            var Source = ReadSource(Value);
+            if (!TransformOwnership.Contains(Root, Source.Root)) continue;
+            var InAlternative = false;
+            foreach (var Group in Groups)
+                foreach (var Entry in Group.Entries)
+                    if (Entry.Root.transform != Root && TransformOwnership.Contains(Root, Entry.Root.transform)
+                        && TransformOwnership.Contains(Entry.Root.transform, Source.Root)) InAlternative = true;
+            if (InAlternative || !PotentiallyActive(Source.Root, Root)) continue;
+            Coverage |= 1 << Source.Category;
+            Maximum++;
+        }
+        foreach (var Group in Groups)
+        {
+            if (Group.Entries.Count == 0 || !TransformOwnership.Contains(Root, Group.Entries[0].Root.transform)
+                || Group.Entries[0].Root.transform == Root) continue;
+            if (!TransformOwnership.Contains(Root, Group.transform)
+                || !PotentiallyActive(Group.transform, Root)) continue;
+            var Nested = false;
+            foreach (var Other in Groups)
+            {
+                if (ReferenceEquals(Group, Other)) continue;
+                foreach (var Entry in Other.Entries)
+                    if (Entry.Root.transform != Root && TransformOwnership.Contains(Root, Entry.Root.transform)
+                        && TransformOwnership.Contains(Entry.Root.transform, Group.Entries[0].Root.transform)) Nested = true;
+            }
+            if (Nested) continue;
+            var Common = 15;
+            var AlternativeMaximum = 0;
+            foreach (var Entry in Group.Entries)
+            {
+                var Alternative = CapturePotential(Entry.Root.transform, Groups, Sources, ReadSource);
+                Common &= Alternative.Coverage;
+                AlternativeMaximum = Math.Max(AlternativeMaximum, Alternative.Maximum);
+            }
+            Coverage |= Common;
+            Maximum += AlternativeMaximum;
+        }
+        return (Coverage, Maximum);
+    }
+
+    static bool PotentiallyActive(Transform Source, Transform Root)
+    {
+        for (var Node = Source; Node != Root; Node = Node.parent)
+            if (!Node.gameObject.activeSelf && !Node.GetComponent<PLLFinalGeneration>()) return false;
+        return true;
+    }
 #if PLL_CREATOR_SDK
     public PllZoneVolume Volume => VolumeValue;
     public PllAmuletPresentation Presentation => PresentationValue;

@@ -66,6 +66,7 @@ namespace PLL.Creator.Editor
                 throw new InvalidOperationException("The selected object has no supported surface renderer.");
             var Component = Object.GetComponent<PllSurfaceTextureAuthoring>();
             if (Component) { Selection.activeObject = Component; return; }
+            PllSourceIdentityValidator.ResolveEditableOwner(Object, "Add Surface Textures");
             Component = Undo.AddComponent<PllSurfaceTextureAuthoring>(Object);
             var Serialized = new SerializedObject(Component);
             var Renderers = Serialized.FindProperty("RenderersValue");

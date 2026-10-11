@@ -1,32 +1,31 @@
 using System;
-using System.Threading;
 using Photon.Pun;
 
 namespace PLL.Library;
 
-internal sealed class MapLoadKeepAliveLease : IDisposable
+internal sealed class PhotonLoadKeepAliveLease : IDisposable
 {
-
     static Retention? Active;
     Retention? Owner;
 
-    MapLoadKeepAliveLease(Retention Owner)
+    PhotonLoadKeepAliveLease(Retention Owner)
     {
         this.Owner = Owner;
         Owner.Leases++;
     }
 
-    internal static MapLoadKeepAliveLease? Acquire()
+    internal static PhotonLoadKeepAliveLease? Acquire()
     {
-        if (PhotonNetwork.OfflineMode || PhotonNetwork.CurrentRoom is null) return null;
+        if (PhotonNetwork.OfflineMode) return null;
         var Handler = PhotonHandler.Instance;
         if (Active is null || Active.Handler != Handler) Active = new Retention(Handler);
-        return new MapLoadKeepAliveLease(Active);
+        return new PhotonLoadKeepAliveLease(Active);
     }
 
     public void Dispose()
     {
-        var Retained = Interlocked.Exchange(ref Owner, null);
+        var Retained = Owner;
+        Owner = null;
         if (Retained is null || --Retained.Leases != 0) return;
         Retained.Handler.KeepAliveInBackground = Retained.PreviousKeepAliveInBackground;
         if (ReferenceEquals(Active, Retained)) Active = null;

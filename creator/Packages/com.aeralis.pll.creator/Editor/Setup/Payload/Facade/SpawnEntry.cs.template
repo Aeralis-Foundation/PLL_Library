@@ -1,0 +1,7 @@
+ [System.Serializable]
+ public class SpawnEntry
+ {
+    public UnityEngine.GameObject prefab;
+    public int weight;
+    public float percentageOdds;
+ }

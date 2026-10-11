@@ -52,9 +52,7 @@ namespace PLL.Creator.Editor
                 PllHookedPropGenerationSourceContract.ValidateCandidate(Node.SourceRoot.transform);
                 foreach (var Edge in Node.Edges) Add(Edge.TargetPath);
             }
-            var Nodes = new List<PrefabNode>(Reachable.Count);
-            foreach (var Node in Graph.Nodes) if (Reachable.Contains(Node.SourcePath)) Nodes.Add(Node);
-            Candidates = Nodes.ToArray();
+            Candidates = Array.FindAll(Graph.Nodes, Node => Reachable.Contains(Node.SourcePath));
             if (Sources.Length != 0)
             {
                 SourceAssets.Add(Definition.RootPrefab, Identity(Definition.RootPrefab));

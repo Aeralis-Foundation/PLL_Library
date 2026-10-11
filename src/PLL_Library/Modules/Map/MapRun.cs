@@ -188,6 +188,8 @@ internal sealed class MapRun
         WorldInteractions = new WorldInteractionLedger(this);
         PropInteractions = new PropInteractionInstances(this, GamefeelHandler.instance);
         SurfaceTextures = new SurfaceTextureInstances(this);
+        NativeMaterials = new NativeMaterialInstances(this);
+        NativeSpawners = new NativeSpawnerInstances(this);
         HookedGeneration = new HookedPropGeneration(this);
         LightVolumes = new LightVolumeRun(Identity);
         SceneHandle = Handler.gameObject.scene.handle;
@@ -216,6 +218,8 @@ internal sealed class MapRun
     internal WorldInteractionLedger WorldInteractions { get; }
     internal PropInteractionInstances PropInteractions { get; }
     internal SurfaceTextureInstances SurfaceTextures { get; }
+    internal NativeMaterialInstances NativeMaterials { get; }
+    internal NativeSpawnerInstances NativeSpawners { get; }
     internal HookedPropGeneration HookedGeneration { get; }
     internal bool PresentationClockReady => InitialGenerationCohort is null || HookedGeneration.PresentationClockReady;
     internal double PresentationClock => InitialGenerationCohort is not null
@@ -428,6 +432,8 @@ internal sealed class MapRun
         ExecuteCleanup(WorldInteractions.Clear);
         ExecuteCleanup(PropInteractions.Clear);
         ExecuteCleanup(SurfaceTextures.Clear);
+        ExecuteCleanup(NativeMaterials.Clear);
+        ExecuteCleanup(NativeSpawners.Clear);
         ExecuteCleanup(ClimbingFixtures.Clear);
         ExecuteCleanup(NativeSpawns.Clear);
         if (NativeAmulets is not null) ExecuteCleanup(NativeAmulets.Dispose);

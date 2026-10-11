@@ -419,10 +419,15 @@ internal static class PropInteractionNativeGates
     {
         static IEnumerable<MethodBase> TargetMethods()
         {
-            foreach (var Name in new[] { "Awake", "NetworkStart", "Update", "FixedUpdate", "OnBridgeCollision",
-                "ShakeBridge_Rpc", "Fall_Rpc", "SyncHoldsPeopleRPC", "OnPlayerEnteredRoom" })
-                yield return AccessTools.DeclaredMethod(typeof(BreakableBridge), Name)
-                    ?? throw new MissingMethodException(typeof(BreakableBridge).FullName, Name);
+            yield return SymbolExtensions.GetMethodInfo(() => ((BreakableBridge)null!).Awake());
+            yield return AccessTools.DeclaredMethod(typeof(BreakableBridge), nameof(BreakableBridge.NetworkStart));
+            yield return SymbolExtensions.GetMethodInfo(() => ((BreakableBridge)null!).Update());
+            yield return SymbolExtensions.GetMethodInfo(() => ((BreakableBridge)null!).FixedUpdate());
+            yield return SymbolExtensions.GetMethodInfo(() => ((BreakableBridge)null!).OnBridgeCollision(null!, null!, null!, null!));
+            yield return SymbolExtensions.GetMethodInfo(() => ((BreakableBridge)null!).ShakeBridge_Rpc());
+            yield return SymbolExtensions.GetMethodInfo(() => ((BreakableBridge)null!).Fall_Rpc());
+            yield return SymbolExtensions.GetMethodInfo(() => ((BreakableBridge)null!).SyncHoldsPeopleRPC(default));
+            yield return AccessTools.DeclaredMethod(typeof(BreakableBridge), nameof(BreakableBridge.OnPlayerEnteredRoom));
         }
         [HarmonyPrefix]
         static bool Prefix(BreakableBridge __instance) => !__instance.GetComponent<PllPropInteractionDriver>()

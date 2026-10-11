@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace PLL.Library;
 
-[System.CodeDom.Compiler.GeneratedCode("PLL.UnityVisualSchema", "6000.3.15f1/v2")]
+[System.CodeDom.Compiler.GeneratedCode("PLL.UnityVisualSchema", "6000.3.15f1/v3")]
 internal sealed partial class VisualFingerprintWriter
 {
     void WriteWritableProperties(object Value)
@@ -617,7 +617,7 @@ internal sealed partial class VisualFingerprintWriter
 
     void WriteProperties(UnityEngine.ParticleSystemRenderer Value)
     {
-        Writer.Write(46);
+        Writer.Write(45);
         Writer.Write(nameof(Value.alignment)); WriteValue(Value.alignment);
         Writer.Write(nameof(Value.allowOcclusionWhenDynamic)); WriteValue(Value.allowOcclusionWhenDynamic);
         Writer.Write(nameof(Value.allowRoll)); WriteValue(Value.allowRoll);
@@ -634,7 +634,6 @@ internal sealed partial class VisualFingerprintWriter
         Writer.Write(nameof(Value.lightProbeUsage)); WriteValue(Value.lightProbeUsage);
         Writer.Write(nameof(Value.lightmapIndex)); WriteValue(Value.lightmapIndex);
         Writer.Write(nameof(Value.lightmapScaleOffset)); WriteValue(Value.lightmapScaleOffset);
-        Writer.Write(nameof(Value.localBounds)); WriteValue(Value.localBounds);
         Writer.Write(nameof(Value.maskInteraction)); WriteValue(Value.maskInteraction);
         Writer.Write(nameof(Value.maxParticleSize)); WriteValue(Value.maxParticleSize);
         Writer.Write(nameof(Value.meshDistribution)); WriteValue(Value.meshDistribution);

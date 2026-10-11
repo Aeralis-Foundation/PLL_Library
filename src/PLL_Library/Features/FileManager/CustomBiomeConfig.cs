@@ -481,7 +481,7 @@ internal static class CustomBiomeConfigRegistry
     static readonly UTF8Encoding StrictUtf8 = new(false, true);
     static BepInPlugin? ownerMetadata;
     static string? directory;
-    static bool StartupSealed;
+    static CustomBiomeConfig[]? StartupConfigurations;
     static bool registrySealed;
 
     internal static void Initialize(BepInPlugin metadata, string configDirectory)
@@ -503,7 +503,7 @@ internal static class CustomBiomeConfigRegistry
         IReadOnlyList<CustomBiomeConfigDefaults> defaults)
     {
         if (defaults is null) throw new ArgumentNullException(nameof(defaults));
-        if (StartupSealed)
+        if (StartupConfigurations is not null)
             throw new InvalidOperationException("The startup custom biome configuration registry is sealed.");
         var incoming = new HashSet<BiomeId>();
         var ids = new BiomeId[defaults.Count];
@@ -623,11 +623,13 @@ internal static class CustomBiomeConfigRegistry
 
     internal static void SealStartup()
     {
-        if (StartupSealed) return;
+        if (StartupConfigurations is not null) return;
         if (Pending.Count != 0)
             throw new InvalidOperationException(
                 $"The startup custom biome configuration registry has {Pending.Count} uncommitted entries.");
-        StartupSealed = true;
+        var Ordered = Configurations.Values.ToArray();
+        Array.Sort(Ordered, static (Left, Right) => StringComparer.Ordinal.Compare(Left.BiomeId.Value, Right.BiomeId.Value));
+        StartupConfigurations = Ordered;
     }
 
     internal static void SealRegistry() => registrySealed = true;
@@ -640,8 +642,8 @@ internal static class CustomBiomeConfigRegistry
 
     internal static BiomeLayoutConfigSnapshot Capture(IReadOnlyDictionary<string, string> NativeVariations)
     {
-        var OrderedConfigurations = SortedConfigurations();
-        var Values = new BiomeLayoutConfigValues[OrderedConfigurations.Count];
+        var OrderedConfigurations = StartupConfigurations!;
+        var Values = new BiomeLayoutConfigValues[OrderedConfigurations.Length];
         for (var i = 0; i < Values.Length; i++)
         {
             var Configuration = OrderedConfigurations[i];
@@ -656,7 +658,7 @@ internal static class CustomBiomeConfigRegistry
                 BiomeLayoutConfigSnapshot.ParseConfiguredIds(Configuration.After.Value, id),
                 Math.Max(0, Math.Min(100, Configuration.SpawnChance.Value)), VariationValues);
         }
-        var Spatial = new BiomeSpatialSettings[FileManager.NativeSpatial.Count + OrderedConfigurations.Count];
+        var Spatial = new BiomeSpatialSettings[FileManager.NativeSpatial.Count + OrderedConfigurations.Length];
         var SpatialIndex = 0;
         foreach (var Configuration in FileManager.NativeSpatial) Spatial[SpatialIndex++] = Configuration.Capture();
         foreach (var Configuration in OrderedConfigurations) Spatial[SpatialIndex++] = Configuration.Spatial.Capture();
@@ -671,14 +673,7 @@ internal static class CustomBiomeConfigRegistry
             return false;
         }
         return BiomeLayoutConfigSnapshot.TryDeserialize(
-            data, SortedConfigurations(), out snapshot, LegacySpatial);
-    }
-
-    static List<CustomBiomeConfig> SortedConfigurations()
-    {
-        var result = new List<CustomBiomeConfig>(Configurations.Values);
-        result.Sort((left, right) => StringComparer.Ordinal.Compare(left.BiomeId.Value, right.BiomeId.Value));
-        return result;
+            data, StartupConfigurations!, out snapshot, LegacySpatial);
     }
 
     static CustomBiomeConfig[] Prepare(
@@ -767,17 +762,17 @@ internal static class CustomBiomeConfigRegistry
         BiomeTitle.Value = Defaults.DisplayTitle;
         var ContentRevision = Config.Bind(
             "Version", "Content Revision", Defaults.ContentRevision,
-            "Identifies the loaded biome bundle content revision.");
+            "Identifies the biome content in the loaded bundle.");
         if (!string.Equals(ContentRevision.Value, Defaults.ContentRevision, StringComparison.Ordinal))
             ContentRevision.Value = Defaults.ContentRevision;
         var Favorites = Config.Bind(Section, "Favorites", FormatDefaults(Defaults.Favorites),
-            "Prefers these biomes beside this biome when resolving layout choices. Separate IDs with >; empty sets no preference.");
+            "Prefers these neighboring biomes when PLL chooses a layout. Separate IDs with >; leave empty for no preference.");
         var Overwrites = Config.Bind(Section, "Overwrites", FormatDefaults(Defaults.Overwrites),
-            "Allows this biome as a replacement for these biome ID tokens. Named and segment-ID tokens keep their chosen source. Separate IDs with >; empty replaces none.");
+            "Allows this biome to replace the listed biome IDs. Names and segment IDs keep their selected source. Separate IDs with >; leave empty to disable replacement.");
         var Before = Config.Bind(Section, "Before", FormatDefaults(Defaults.Before),
-            "Prefers these biomes immediately after this biome when resolving layout choices. Separate IDs with >; empty sets no preference.");
+            "IDs of biomes this biome should come immediately before. Separate IDs with >; leave empty for no preference.");
         var After = Config.Bind(Section, "After", FormatDefaults(Defaults.After),
-            "Prefers these biomes immediately before this biome when resolving layout choices. Separate IDs with >; empty sets no preference.");
+            "IDs of biomes this biome should come immediately after. Separate IDs with >; leave empty for no preference.");
         var SpawnChance = Config.Bind(Section, "Spawn Chance", Defaults.SpawnChance,
             new ConfigDescription("Generative Map only: chance from 0 to 100 to include this biome. Ordered layouts do not use this chance.",
                 new AcceptableValueRange<int>(0, 100)));
@@ -815,14 +810,13 @@ internal static class CustomBiomeConfigRegistry
         while ((RawLine = Reader.ReadLine()) is not null)
         {
             var Line = RawLine.Trim();
-            if (Line.StartsWith("[", StringComparison.Ordinal)
-                && Line.EndsWith("]", StringComparison.Ordinal))
+            if (Line.StartsWith('[') && Line.EndsWith(']'))
             {
                 InVersionSection = string.Equals(
                     Line.Substring(1, Line.Length - 2), "Version", StringComparison.Ordinal);
                 continue;
             }
-            if (!InVersionSection || Line.StartsWith("#", StringComparison.Ordinal)) continue;
+            if (!InVersionSection || Line.StartsWith('#')) continue;
             var Separator = Line.IndexOf('=');
             if (Separator < 0
                 || !string.Equals(
@@ -876,15 +870,26 @@ internal sealed class VariationGroupConfig
     internal const string EntryIdComment = "PLL variation entry: ";
     internal const string WeightPrefix = "Weight - ";
     internal const string IdentityPrefix = "Entry ID - ";
-    readonly VariationContract Contract;
+    readonly struct Entry
+    {
+        internal readonly string Id, Title;
+        internal readonly float DefaultWeight;
+        internal Entry(string Id, string Title, float DefaultWeight)
+        { this.Id = Id; this.Title = Title; this.DefaultWeight = DefaultWeight; }
+    }
+
+    readonly Entry[] Entries;
     readonly int[] EntryOrder;
     readonly string Section;
 
     internal VariationGroupConfig(ConfigFile File, VariationContract Contract, Dictionary<string, string> Raw)
     {
-        this.Contract = Contract;
-        Section = "Variations." + Uri.EscapeDataString(Contract.Id);
-        EntryOrder = new int[Contract.EntryCount];
+        Id = Contract.Id;
+        Entries = new Entry[Contract.EntryCount];
+        for (var i = 0; i < Entries.Length; i++)
+            Entries[i] = new Entry(Contract.EntryId(i), Contract.EntryTitle(i), Contract.DefaultWeight(i));
+        Section = "Variations." + Uri.EscapeDataString(Id);
+        EntryOrder = new int[Entries.Length];
         var Labels = new string[EntryOrder.Length + 1];
         Labels[0] = "Random";
         var Titles = new string[EntryOrder.Length];
@@ -892,7 +897,7 @@ internal sealed class VariationGroupConfig
         for (var i = 0; i < Titles.Length; i++)
         {
             var Title = new StringBuilder();
-            foreach (var Character in Contract.EntryTitle(i))
+            foreach (var Character in Entries[i].Title)
                 Title.Append(char.IsControl(Character) || "=\\\"'[],".IndexOf(Character) >= 0 ? ' ' : Character);
             Titles[i] = Title.ToString().Trim();
             if (Titles[i].Length == 0) Titles[i] = "Variation";
@@ -903,12 +908,12 @@ internal sealed class VariationGroupConfig
         {
             var Label = Titles[i];
             if (Counts[Label] > 1)
-                for (var Length = 1; Length <= Contract.EntryId(i).Length; Length++)
+                for (var Length = 1; Length <= Entries[i].Id.Length; Length++)
                 {
-                    var Prefix = Contract.EntryId(i).Substring(0, Length);
+                    var Prefix = Entries[i].Id.Substring(0, Length);
                     var Unique = true;
                     for (var j = 0; j < Titles.Length; j++)
-                        if (i != j && Titles[j] == Titles[i] && Contract.EntryId(j).StartsWith(Prefix, StringComparison.Ordinal))
+                        if (i != j && Titles[j] == Titles[i] && Entries[j].Id.StartsWith(Prefix, StringComparison.Ordinal))
                         { Unique = false; break; }
                     if (!Unique) continue;
                     while (!Reserved.Add(Titles[i] + " (" + Prefix + ")")) Prefix += "-";
@@ -922,30 +927,30 @@ internal sealed class VariationGroupConfig
         {
             EntryOrder[i] = i;
             var Key = WeightPrefix + Labels[i + 1];
-            var Weight = File.Bind(Section, Key, Contract.DefaultWeight(i), new ConfigDescription(
-                "Random weight for " + Labels[i + 1] + ". Weights are relative, not percentages; zero excludes this entry only from Random.\n"
-                    + EntryIdComment + Contract.EntryId(i),
+            var Weight = File.Bind(Section, Key, Entries[i].DefaultWeight, new ConfigDescription(
+                "Random weight for " + Labels[i + 1] + ". Weights are relative, not percentages. Zero prevents random selection but still allows manual selection.\n"
+                    + EntryIdComment + Entries[i].Id,
                 new AcceptableValueRange<float>(0f, 100f)));
             Weight.Value = ReadWeight(WeightSettings, i);
             RequiresSave |= !Raw.TryGetValue(Section + "\n" + IdentityPrefix + Labels[i + 1], out var PersistedId)
-                || PersistedId != Contract.EntryId(i);
+                || PersistedId != Entries[i].Id;
         }
-        Array.Sort(EntryOrder, (Left, Right) => string.CompareOrdinal(Contract.EntryId(Left), Contract.EntryId(Right)));
+        Array.Sort(EntryOrder, (Left, Right) => string.CompareOrdinal(Entries[Left].Id, Entries[Right].Id));
         var Selected = ReadSelection(Raw);
         var Selection = File.Bind(Section, "Selected", "Random", new ConfigDescription(
             "Selects one entry for every occurrence, even with zero weight. Random chooses using the relative weights.",
             new AcceptableValueList<string>(Labels)));
         if (Selected.Length != 0)
-            for (var i = 0; i < Contract.EntryCount; i++)
-                if (Contract.EntryId(i) == Selected) Selection.Value = Labels[i + 1];
+            for (var i = 0; i < Entries.Length; i++)
+                if (Entries[i].Id == Selected) Selection.Value = Labels[i + 1];
         RequiresSave |= !Raw.TryGetValue(Section + "\nSelected", out var PersistedSelection)
             || PersistedSelection != Selection.Value;
     }
 
-    internal string Id => Contract.Id;
+    internal string Id { get; }
     internal bool RequiresSave { get; }
     internal int EntryCount => EntryOrder.Length;
-    internal string EntryId(int Index) => Contract.EntryId(EntryOrder[Index]);
+    internal string EntryId(int Index) => Entries[EntryOrder[Index]].Id;
 
     internal VariationGroupValues Capture(Dictionary<string, string> Raw, BiomeId Biome)
     {
@@ -996,10 +1001,10 @@ internal sealed class VariationGroupConfig
 
     float ReadWeight(Dictionary<string, string> Weights, int Index)
     {
-        if (!Weights.TryGetValue(Contract.EntryId(Index), out var Value)) return Contract.DefaultWeight(Index);
+        if (!Weights.TryGetValue(Entries[Index].Id, out var Value)) return Entries[Index].DefaultWeight;
         if (!float.TryParse(Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var Weight)
             || !PllAuthoringValueContract.IsVariationWeight(Weight))
-            throw new InvalidDataException($"Variation group '{Id}' entry '{Contract.EntryTitle(Index)}' has an invalid weight '{Value}'.");
+            throw new InvalidDataException($"Variation group '{Id}' entry '{Entries[Index].Title}' has an invalid weight '{Value}'.");
         return Weight == 0f ? 0f : Weight;
     }
 
@@ -1007,10 +1012,10 @@ internal sealed class VariationGroupConfig
     {
         if (!Raw.TryGetValue(Section + "\nSelected", out var Value) || Value == "Random") return string.Empty;
         if (Raw.TryGetValue(Section + "\n" + IdentityPrefix + Value, out var Identity))
-            for (var i = 0; i < Contract.EntryCount; i++)
-                if (Identity == Contract.EntryId(i)) return Identity;
-        for (var i = 0; i < Contract.EntryCount; i++)
-            if (Value.EndsWith(" [" + Contract.EntryId(i) + "]", StringComparison.Ordinal)) return Contract.EntryId(i);
+            for (var i = 0; i < Entries.Length; i++)
+                if (Identity == Entries[i].Id) return Identity;
+        for (var i = 0; i < Entries.Length; i++)
+            if (Value.EndsWith(" [" + Entries[i].Id + "]", StringComparison.Ordinal)) return Entries[i].Id;
         throw new InvalidDataException($"Variation group '{Id}' has an unknown selected entry. Select Random or a listed entry.");
     }
 

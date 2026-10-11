@@ -112,7 +112,7 @@ namespace PLL.Creator.Editor
                 return Result;
             }
             if (!Definition.BiomeId.IsValid)
-                Error(Result, "Biome ID must be one canonical lowercase 'namespace/name' value.", Definition, "biomeId");
+                Error(Result, "Biome ID must use lowercase 'namespace/name'.", Definition, "biomeId");
             if (!PllAuthoringValueContract.IsDefined(Definition.Behavior))
                 Error(Result, "Behavior must be Authored or one explicit native compatibility preset.", Definition, "behavior");
             if (string.IsNullOrEmpty(Definition.ContentRevision))
@@ -128,11 +128,11 @@ namespace PLL.Creator.Editor
             if (Root.activeSelf)
                 Error(Result, "Root Prefab must be inactive so PLL can stage mechanics before activation.", Root);
             if (!PrefabUtility.IsPartOfPrefabAsset(Root) || Root.transform.parent)
-                Error(Result, "Root Prefab must be a parentless persistent prefab asset.", Root);
+                Error(Result, "Root Prefab must be a saved prefab root, not a child object.", Root);
             var Runtimes = Root.GetComponentsInChildren<CustomSegmentRuntime>(true);
             if (Runtimes.Length != 1 || Runtimes[0].gameObject != Root)
                 Error(Result, "Root Prefab must directly own exactly one CustomSegmentRuntime.", Root);
-            if (Root.GetComponentsInChildren<PllFogAuthoring>(true).Length == 0)
+            if (Root.GetComponentsInChildren<PllFogAuthoring>(true).Length != 1)
                 Error(Result, "Root Prefab must contain exactly one PllFogAuthoring on its fog origin.", Root);
             var Anchors = Root.GetComponentsInChildren<PllBiomePrefabAnchors>(true);
             if (Anchors.Length != 1 || Anchors[0] != Definition.Anchors)
@@ -232,10 +232,44 @@ namespace PLL.Creator.Editor
                 if (PllEntityValueContract.Failure(Entity) is string Failure) Error(Result, Failure, Entity);
             }
             else if (Component is PllLuggageAuthoring) ValidateLuggage((PllLuggageAuthoring)Component, Result);
+            else if (Component is PllAmuletSpawnerAuthoring Amulet)
+            {
+                var Anchors = Amulet.transform.root.GetComponentInChildren<PllBiomePrefabAnchors>(true);
+                if (!Anchors || !Anchors.FloorRoot)
+                    Error(Result, "Amulet Spawner needs biome anchors with a Floor Root.", Amulet);
+                else
+                    try
+                    {
+                        PllGenerationAuthoringValidator.ValidateAmulet(Amulet, Anchors.FloorRoot.transform);
+                        if (Amulet.Category == PllAmuletOpportunityCategory.InheritBiome)
+                        {
+                            if (LinkedBehavior(Amulet) is { } Behavior)
+                                PllAmuletSpawnerAuthoring.ResolveCategory(Amulet.Category, Behavior);
+                            else Info(Result, "Use Validate Selected Biome to check the inherited amulet category.", Amulet);
+                        }
+                    }
+                    catch (Exception Failure) when (Failure is ArgumentException or InvalidOperationException)
+                    { Error(Result, Failure.Message, Amulet); }
+            }
             else if (Component is PllEffectAuthoring) ValidateEffect((PllEffectAuthoring)Component, Result);
             else if (Component is PllVisualAuthoring) ValidateVisual((PllVisualAuthoring)Component, Result);
             else if (Component is PllAtmosphereAuthoring)
                 ValidateAtmosphere((PllAtmosphereAuthoring)Component, Result);
+            else if (Component is NativeModifiers Modifiers)
+            {
+                try { NativeModifiers.Capture(Modifiers.transform.root); }
+                catch (ArgumentException Failure) { Error(Result, Failure.Message, Modifiers); }
+            }
+            else if (Component is PllNativeMaterialAuthoring Material)
+            {
+                try { Material.Capture(); }
+                catch (ArgumentException Failure) { Error(Result, Failure.Message, Material); }
+            }
+            else if (Component is PllNativeSpawnerAuthoring Spawner)
+            {
+                try { Spawner.Capture(); }
+                catch (ArgumentException Failure) { Error(Result, Failure.Message, Spawner); }
+            }
             else if (Component is PllCustomVisualAuthoring)
                 ValidateCustomVisual((PllCustomVisualAuthoring)Component, Result);
             else if (Component is PllSoundEmitterAuthoring) ValidateEmitter((PllSoundEmitterAuthoring)Component, Result);
@@ -300,33 +334,9 @@ namespace PLL.Creator.Editor
         {
             ValidateLighting(Root, Result);
             var ActorIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var Component in SupportedComponents(Root)) Validate(Component, Result, ActorIds);
+            foreach (var Component in Root.GetComponentsInChildren<MonoBehaviour>(true))
+                Validate(Component, Result, ActorIds);
             ValidateEffectZoneActions(Root, Result);
-        }
-
-        static IEnumerable<Component> SupportedComponents(GameObject Root)
-        {
-            var Types = new[]
-            {
-                typeof(PllCampfireAuthoring), typeof(PllCollisionAuthoring), typeof(PllClimbSurfaceAuthoring),
-                typeof(PllClimbSurfaceMaterialAuthoring), typeof(PllBiomeGroupAuthoring),
-                typeof(ClimbModifierSurface),
-                typeof(PllStatueAuthoring), typeof(PllLuggageAuthoring),
-                typeof(PllRestPointAuthoring), typeof(PllHangingRopeAuthoring),
-                typeof(PllBreakablePropAuthoring), typeof(PllSwingingPropAuthoring), typeof(PllVineAuthoring), typeof(PllSurfaceTextureAuthoring),
-                typeof(PllHazardAuthoring), typeof(PllEntityAuthoring),
-                typeof(PllEffectAuthoring), typeof(PllVisualAuthoring), typeof(PllCustomVisualAuthoring),
-                typeof(PllAtmosphereAuthoring),
-                typeof(PllSoundEmitterAuthoring), typeof(PllBiomeStingerAuthoring), typeof(PllFogAuthoring),
-                typeof(PllVariationAuthoring), typeof(PllEffectZoneAuthoring), typeof(PllFogZoneAuthoring), typeof(PllPropZoneAuthoring),
-                typeof(PllEntityZoneAuthoring), typeof(PllHazardZoneAuthoring),
-                typeof(PLLNativeResolver), typeof(PLLNativeVisualResolver), typeof(PLLNoPropSpawn),
-                typeof(PllChildPropAuthoring),
-                typeof(PllItemSpawnerAuthoring), typeof(PLLForceSpawner), typeof(PLLFinalGeneration), typeof(PLLCriticalGeneration),
-                typeof(PLLHookedProp), typeof(PllHookedPropGenerationAuthoring)
-            };
-            foreach (var Type in Types)
-                foreach (var Component in Root.GetComponentsInChildren(Type, true).Cast<Component>()) yield return Component;
         }
 
         static void ValidateAtmosphere(
@@ -419,7 +429,7 @@ namespace PLL.Creator.Editor
                 if (!PllClimbSurfaceAuthoringValidator.ValidMaterial(
                         Rule.PhysicsMaterial))
                     Error(Result,
-                        "Each climb material rule requires a persistent PhysicsMaterial asset with finite friction and bounciness.",
+                        "Each climb material rule needs a saved PhysicsMaterial with finite friction and bounciness.",
                         Value);
                 if (!PllClimbSurfaceAuthoringValidator.ValidValues(
                         Rule.Mode, Rule.EmitHook,
@@ -438,8 +448,10 @@ namespace PLL.Creator.Editor
             RequireOwned(Value, Value.SmokeParticlesOff, "Smoke Particles Off", Result);
             RequireOwned(Value, Value.SmokeParticlesLit, "Smoke Particles Lit", Result);
             RequireStrictChild(Value, Value.LogRoot, "Log Root", Result);
-            var Particles = new[] { Value.FireParticles, Value.SmokeParticlesOff, Value.SmokeParticlesLit };
-            if (Particles.Any(Particle => !Particle) || Particles.Where(Particle => Particle).Distinct().Count() != 3)
+            if (!Value.FireParticles || !Value.SmokeParticlesOff || !Value.SmokeParticlesLit
+                || Value.FireParticles == Value.SmokeParticlesOff
+                || Value.FireParticles == Value.SmokeParticlesLit
+                || Value.SmokeParticlesOff == Value.SmokeParticlesLit)
                 Error(Result, "Fire, unlit smoke, and lit smoke must be three distinct owned ParticleSystems.", Value);
             else
             {
@@ -527,17 +539,21 @@ namespace PLL.Creator.Editor
             if (Value.Mode == PllEffectMode.EmitHook && !PllAuthoringValueContract.IsHook(Value.EmitHook))
                 Error(Result, "Hook must contain 1 to 128 UTF-16 code units and no whitespace, control character, '\\', '>', or malformed surrogate pair.", Value);
             else if (Value.Mode == PllEffectMode.EmitHook && !LooksNamespaced(Value.EmitHook))
-                Warning(Result, "Hook should be author-namespaced, for example 'aurora/crystal-caves/breakable-vine'.", Value);
+                Warning(Result, "Prefix the hook with the author and biome, for example 'aurora/crystal-caves/breakable-vine'.", Value);
             if (Value.Mode != PllEffectMode.EmitHook && !string.IsNullOrEmpty(Value.EmitHook))
                 Error(Result, "Emit Hook is used only by EmitHook effects.", Value);
             if (!float.IsFinite(Value.Duration) || Value.Duration < 0f)
                 Error(Result, "Duration must be finite and nonnegative.", Value);
             else if (Value.Mode == PllEffectMode.Timed && Value.Duration <= 0f)
                 Error(Result, "Timed effects require a positive Duration.", Value);
-            var Particles = Value.Particles.Where(Particle => Particle).ToArray();
-            if (Particles.Length != Value.Particles.Count || Particles.Distinct().Count() != Particles.Length
-                || Particles.Any(Particle => !TransformOwnership.Contains(Value.transform, Particle.transform)))
-                Error(Result, "Particles must be distinct owned systems under the effect Root.", Value);
+            var Particles = new HashSet<ParticleSystem>();
+            foreach (var Particle in Value.Particles)
+                if (!Particle || !Particles.Add(Particle)
+                    || !TransformOwnership.Contains(Value.transform, Particle.transform))
+                {
+                    Error(Result, "Particles must be distinct systems under the effect Root.", Value);
+                    break;
+                }
             if (Value.PresentationRoot && (Value.PresentationRoot.transform == Value.transform || !TransformOwnership.Contains(Value.transform, Value.PresentationRoot.transform)))
                 Error(Result, "Presentation Root must be an owned strict descendant.", Value);
             if (Value.PresentationRoot)
@@ -561,7 +577,7 @@ namespace PLL.Creator.Editor
                     Error(Result, "Presentation Root contains unsupported component '"
                         + Component.GetType().FullName + "'.", Component);
                 }
-            Info(Result, "Build staging sets copied particles to playOnAwake=false and stopped/cleared; source preview state is unchanged.", Value);
+            Info(Result, "The build stops and clears copied particles and disables Play On Awake. Source previews stay unchanged.", Value);
         }
 
         static void ValidateVisual(PllVisualAuthoring Value, ICollection<PllCreatorDiagnostic> Result)
@@ -570,7 +586,7 @@ namespace PLL.Creator.Editor
             if (Value.Transition.CoverDelaySeconds > 0f && string.IsNullOrEmpty(Value.PropertyName))
                 Error(Result, "Cover Delay requires a resolved Float or Range material property.", Value);
             RequireOwnRoot(Value, Value.Root, Result);
-            var Renderers = Value.Root ? Value.Root.GetComponentsInChildren<Renderer>(true).Where(Renderer => Renderer).ToArray()
+            var Renderers = Value.Root ? Value.Root.GetComponentsInChildren<Renderer>(true)
                 : Array.Empty<Renderer>();
             if (Renderers.Length == 0) Error(Result, "Visual Root must contain at least one Renderer.", Value);
             if ((Value.Shader || Value.Material) && string.IsNullOrEmpty(Value.PropertyName))
@@ -638,7 +654,7 @@ namespace PLL.Creator.Editor
                         if (PllAuthoringValueContract.ParticleTransitionFailure(Particle) is { } Failure)
                             Error(Result, Failure, Particle);
                 }
-                Info(Result, "Build staging preserves source preview settings, sets playOnAwake=false, stops and clears every system, and starts the copied root inactive.", Value);
+                Info(Result, "The build stops and clears copied particles, disables Play On Awake and starts the copied root inactive. Source previews stay unchanged.", Value);
             }
             catch (InvalidOperationException Exception)
             {
@@ -690,8 +706,8 @@ namespace PLL.Creator.Editor
             if ((Value.Mode == PllBiomeStingerMode.EmitHook
                     || Value.Mode == PllBiomeStingerMode.OnEnterAndEmitHook)
                 && PllAuthoringValueContract.IsHook(Value.EmitHook) && !LooksNamespaced(Value.EmitHook))
-                Warning(Result, "Hook should be author-namespaced, for example 'aurora/crystal-caves/climb-stinger'.", Value);
-            Info(Result, "Build staging clears only the copied mixer route, disables play on awake, and stops the copy at sample zero; source preview state is unchanged.", Value);
+                Warning(Result, "Prefix the hook with the author and biome, for example 'aurora/crystal-caves/climb-stinger'.", Value);
+            Info(Result, "The build clears the copied mixer route, disables Play On Awake and resets playback to sample zero. Source previews stay unchanged.", Value);
         }
 
         static void ValidateVariation(PllVariationAuthoring Value, ICollection<PllCreatorDiagnostic> Result)
@@ -732,7 +748,7 @@ namespace PLL.Creator.Editor
             else if (Value.OccupancyHook.Length != 0
                 && !LooksNamespaced(Value.OccupancyHook))
                 Warning(Result,
-                    "Occupancy Hook should be author-namespaced, for example 'aurora/crystal-caves/mist-zone'.",
+                    "Prefix the occupancy hook with the author and biome, for example 'aurora/crystal-caves/mist-zone'.",
                     Value);
             if (Value.Effects.Count == 0 && Value.ActionCount == 0
                 && Value.OccupancyHook.Length == 0 && Value.EnvironmentFog != PllEffectZoneEnvironmentFog.EnvironmentalFogless)
@@ -829,8 +845,8 @@ namespace PLL.Creator.Editor
             if (Value.Kind == PLLNativeResolverKind.SporeCloud && Value.Volume.Shape != PllZoneShape.Sphere)
                 Error(Result, "SporeCloud requires one Sphere Volume.", Value);
             else if (Value.Kind == PLLNativeResolverKind.SporeCloud && FinitePositive(Value.Volume.Radius))
-                Info(Result, "Final world radius must match the sealed live Roots SporeCloud source within 0.01; "
-                    + "structural validation and build can pass before compatibility sealing.", Value);
+                Info(Result, "The final world radius must match PEAK's Roots SporeCloud radius within 0.01. "
+                    + "Test the built biome in PEAK.", Value);
         }
 
         static void ValidateNativeVisualResolver(
@@ -843,7 +859,7 @@ namespace PLL.Creator.Editor
                 || !Enum.IsDefined(typeof(PllNativeVisualPreset), Value.Preset))
                 Error(Result, "Choose one supported native visual Preset. None cannot be built.", Value);
             else
-                Info(Result, "The native presentation catalog resolves this preset only during live compatibility sealing.", Value);
+                Info(Result, "PEAK loads and checks this preset when loading the biome.", Value);
         }
 
         static void ValidateChildProps(PllChildPropAuthoring Value, ICollection<PllCreatorDiagnostic> Result)
@@ -876,7 +892,7 @@ namespace PLL.Creator.Editor
             if (!PllAuthoringValueContract.IsHook(Value.Hook))
                 Error(Result, "Hook must contain 1 to 128 UTF-16 code units and no whitespace, control character, '\\', '>', or malformed surrogate pair.", Value);
             else if (!LooksNamespaced(Value.Hook))
-                Warning(Result, "Hook should be author-namespaced, for example 'aurora/crystal-caves/breakable-vine'.", Value);
+                Warning(Result, "Prefix the hook with the author and biome, for example 'aurora/crystal-caves/breakable-vine'.", Value);
         }
 
         static void ValidateZone(Component Owner, PllZoneVolume Volume, ICollection<PllCreatorDiagnostic> Result)
@@ -970,21 +986,11 @@ namespace PLL.Creator.Editor
     [CustomEditor(typeof(PllBiomeDefinition))]
     internal sealed class PllBiomeDefinitionEditor : UnityEditor.Editor
     {
-        static readonly Type[] CatalogTypes =
-        {
-            typeof(PllCampfireAuthoring), typeof(PllClimbSurfaceAuthoring),
-            typeof(PllClimbSurfaceMaterialAuthoring), typeof(PllStatueAuthoring), typeof(PllLuggageAuthoring),
-            typeof(PllVariationAuthoring), typeof(PllEffectAuthoring), typeof(PllEffectZoneAuthoring), typeof(PllFogZoneAuthoring),
-            typeof(PllVisualAuthoring), typeof(PllCustomVisualAuthoring), typeof(PllSoundEmitterAuthoring),
-            typeof(PllBiomeStingerAuthoring), typeof(PLLNativeResolver), typeof(PLLNativeVisualResolver),
-            typeof(PllPropZoneAuthoring), typeof(PLLNoPropSpawn), typeof(PllChildPropAuthoring),
-            typeof(PllItemSpawnerAuthoring), typeof(PLLForceSpawner), typeof(PLLFinalGeneration), typeof(PLLCriticalGeneration),
-            typeof(PLLHookedProp), typeof(PllHookedPropGenerationAuthoring)
-        };
         bool CatalogExpanded = true;
         bool CatalogLoaded;
         Hash128 CatalogHash;
         DefinitionCatalog Catalog;
+        PLLForceSpawner[] ForceSpawners;
         string CatalogError;
 
         public override void OnInspectorGUI()
@@ -1022,15 +1028,17 @@ namespace PLL.Creator.Editor
                 : "Invalid: " + Native.Length + " root resolvers");
             var Custom = PllSourceIdentityValidator.DiscoverComponents<PllCustomVisualAuthoring>(Root);
             var Gates = PllSourceIdentityValidator.DiscoverComponents<PllVisualAuthoring>(Root);
-            DrawVisualSummary("Constant Particles", Custom);
-            DrawVisualSummary("Renderer Gates", Gates);
+            using (new EditorGUI.DisabledScope(true))
+            {
+                DrawVisualSummary("Constant Particles", Custom);
+                DrawVisualSummary("Renderer Gates", Gates);
+            }
         }
 
         static void DrawVisualSummary<T>(string Label, IReadOnlyList<T> Values) where T : Component
         {
             EditorGUILayout.LabelField(Label, Values.Count.ToString());
-            using (new EditorGUI.DisabledScope(true))
-                foreach (var Value in Values) EditorGUILayout.ObjectField(Value, typeof(T), false);
+            foreach (var Value in Values) EditorGUILayout.ObjectField(Value, typeof(T), false);
         }
 
         void DrawCatalog(PllBiomeDefinition Definition)
@@ -1046,6 +1054,7 @@ namespace PLL.Creator.Editor
                 try
                 {
                     Catalog = new PllSourceCatalogValidator().Validate(Definition);
+                    ForceSpawners = PllSourceIdentityValidator.DiscoverGraphComponents<PLLForceSpawner>(Catalog.Graph);
                 }
                 catch (InvalidOperationException Exception)
                 {
@@ -1054,27 +1063,62 @@ namespace PLL.Creator.Editor
             }
             if (Catalog == null)
             {
-                EditorGUILayout.HelpBox("Authoritative source catalogs are unavailable: " + CatalogError, MessageType.Error);
+                EditorGUILayout.HelpBox("The source catalog is unavailable: " + CatalogError, MessageType.Error);
                 return;
             }
 
             using (new EditorGUI.DisabledScope(true))
-                foreach (var Type in CatalogTypes)
-                {
-                    var Values = PllSourceIdentityValidator.DiscoverGraphComponents(Catalog.Graph, Type);
-                    var Label = Type == typeof(PllBiomeStingerAuthoring)
-                        ? "Stinger Definitions" : ObjectNames.NicifyVariableName(Type.Name);
-                    EditorGUILayout.LabelField(Label + " (" + Values.Length + ")", EditorStyles.miniBoldLabel);
-                    foreach (var Value in Values) EditorGUILayout.ObjectField(Value, Type, false);
-                }
-            EditorGUILayout.HelpBox("Read-only preview of the validated reachable source-prefab graph. Build staging decides which entries become definition catalogs or sealed markers.", MessageType.None);
+            {
+                DrawVisualSummary("Campfires", Catalog.Campfires);
+                DrawVisualSummary("Climb Surfaces", Catalog.ClimbSurfaces);
+                EditorGUILayout.ObjectField("Climb Material Rules", Catalog.ClimbSurfaceCatalog.MaterialAuthoring,
+                    typeof(PllClimbSurfaceMaterialAuthoring), false);
+                DrawVisualSummary("Statues", Catalog.Statues);
+                DrawVisualSummary("Luggage", Catalog.Luggage);
+                DrawVisualSummary("Rest Points", Catalog.RestPoints);
+                DrawVisualSummary("Hanging Ropes", Catalog.HangingRopes);
+                DrawVisualSummary("Variations", Catalog.Variations);
+                DrawVisualSummary("Effects", Catalog.Effects);
+                DrawVisualSummary("Effect Zones", Catalog.EffectZones);
+                DrawVisualSummary("Fog Zones", Catalog.FogZones);
+                DrawVisualSummary("Visuals", Catalog.Visuals);
+                EditorGUILayout.LabelField("Custom Visuals", Catalog.CustomVisuals.Length.ToString());
+                foreach (var Visual in Catalog.CustomVisuals)
+                    EditorGUILayout.ObjectField(Visual.Authoring, typeof(PllCustomVisualAuthoring), false);
+                EditorGUILayout.ObjectField("Atmosphere", Catalog.Atmosphere, typeof(PllAtmosphereAuthoring), false);
+                DrawVisualSummary("Sound Emitters", Catalog.SoundEmitters);
+                DrawVisualSummary("Stinger Definitions", Catalog.Stingers);
+                DrawVisualSummary("Native Resolvers", Catalog.NativeResolvers);
+                DrawVisualSummary("Native Visual Resolvers", Catalog.NativeVisualResolvers);
+                DrawVisualSummary("Prop Zones", Catalog.PropZones);
+                DrawVisualSummary("No Prop Spawn", Catalog.NoPropSpawn);
+                DrawVisualSummary("Child Props", Catalog.ChildProps);
+                DrawVisualSummary("Item Spawners", Catalog.ItemSpawners);
+                DrawVisualSummary("Native Spawners", Catalog.NativeSpawners);
+                DrawVisualSummary("Force Spawners", ForceSpawners);
+                DrawVisualSummary("Final Generation", Catalog.FinalGeneration);
+                DrawVisualSummary("Critical Generation", Catalog.CriticalGeneration);
+                DrawVisualSummary("Hooked Props", Catalog.HookedProps);
+                DrawVisualSummary("Hooked Generation", Catalog.HookedGeneration.Sources);
+                DrawVisualSummary("Entity Zones", Catalog.EntityZones);
+                DrawVisualSummary("Hazard Zones", Catalog.HazardZones);
+                DrawVisualSummary("Entities", Catalog.Entities);
+                DrawVisualSummary("Hazards", Catalog.Hazards);
+                DrawVisualSummary("Amulet Spawners", Catalog.AmuletSpawners);
+                DrawVisualSummary("Surface Textures", Catalog.SurfaceTextures);
+                DrawVisualSummary("Native Materials", Catalog.NativeMaterials);
+                DrawVisualSummary("Breakable Props", Catalog.BreakableProps);
+                DrawVisualSummary("Swinging Props", Catalog.SwingingProps);
+                DrawVisualSummary("Vines", Catalog.Vines);
+            }
+            EditorGUILayout.HelpBox("Shows components in this biome and its referenced source prefabs. The list is read-only.", MessageType.None);
         }
 
         internal static void DrawDiagnostics(IReadOnlyList<PllCreatorDiagnostic> Diagnostics)
         {
             if (Diagnostics.Count == 0)
             {
-                EditorGUILayout.HelpBox("No local authoring issues detected. Validate Selected Biome performs the complete source-graph audit.", MessageType.Info);
+                EditorGUILayout.HelpBox("No local issues found. Use Validate Selected Biome to check the biome and its referenced prefabs.", MessageType.Info);
                 return;
             }
             EditorGUILayout.Space();
@@ -1120,10 +1164,10 @@ namespace PLL.Creator.Editor
         static readonly string[] ResolverKindLabels =
             { "Choose Kind", "Water", "Rain", "Wind", "Snow", "Spore Cloud (Roots)", "Lava", "Custom Fluid" };
         static readonly GUIContent HookLabel = new GUIContent("Hook",
-            "Required 1-128 character token. Author-namespace it, for example aurora/crystal-caves/breakable-vine.");
+            "Use 1-128 characters without spaces. Include the author and biome, for example aurora/crystal-caves/breakable-vine.");
         static readonly GUIContent OccupancyHookLabel = new GUIContent(
             "Occupancy Hook",
-            "Optional outbound local occupancy hook. Empty disables publication. Author-namespace it, for example aurora/crystal-caves/mist-zone.");
+            "Optional local hook for players entering or leaving. Leave empty to disable it. Include the author and biome, for example aurora/crystal-caves/mist-zone.");
         static readonly PllEffectZoneEnvironmentFog[] EnvironmentFogModes =
             { PllEffectZoneEnvironmentFog.Inherit, PllEffectZoneEnvironmentFog.EnvironmentalFogless };
         static readonly string[] EnvironmentFogModeLabels =
@@ -1454,11 +1498,11 @@ namespace PLL.Creator.Editor
         {
             string Message = null;
             if (Component is PllCampfireAuthoring)
-                Message = "Source contains only the custom model and PLL references. Build staging supplies Campfire and Photon mechanics.";
+                Message = "Keep only the custom model and PLL references here. PLL adds the campfire and networking components during the build.";
             else if (Component is PllClimbSurfaceAuthoring)
-                Message = "Build staging retains this inert rule and adds one neutral native ClimbModifierSurface to its Collider GameObject.";
+                Message = "PLL adds a ClimbModifierSurface to this collider during the build and applies the configured rule in PEAK.";
             else if (Component is PllClimbSurfaceMaterialAuthoring)
-                Message = "Build staging retains these inert rules and adds neutral native targets for exact shared PhysicsMaterial matches.";
+                Message = "PLL applies these rules to colliders using the exact assigned PhysicsMaterial assets.";
             else if (Component is PllStatueAuthoring)
                 Message = "Source contains no RespawnChest or PhotonView. Empty Items creates a revive-only statue.";
             else if (Component is PllLuggageAuthoring)
@@ -1467,32 +1511,31 @@ namespace PLL.Creator.Editor
                     ? "Authored biomes cannot use Native Progression. Fixed luggage stays inactive under CampfireRoot; generated luggage is one active PropSpawner candidate root. Build staging supplies PEAK mechanics."
                     : "Choose Native Progression, one native luggage contents ID, or weighted custom items. Fixed luggage stays inactive under CampfireRoot; generated luggage is one active PropSpawner candidate root.";
             else if (Component is PllEffectAuthoring)
-                Message = "Source particle preview state is preserved. Staging sets assigned particles to playOnAwake=false, stopped, and cleared, and starts Presentation inactive.";
+                Message = "The build stops and clears copied particles, disables Play On Awake and starts Presentation inactive. Source previews stay unchanged.";
             else if (Component is PllEffectZoneAuthoring)
-                Message = "NativeSourceTriggers activate or deactivate Water or Lava Sources and biome-root Lava Zones. Environmental Fogless locally applies PEAK's sealed Caldera environmental fog while this zone contains the observed character. Occupancy publication remains local and does not add network or quicksave state.";
+                Message = "Native Source Triggers turn Water or Lava Sources and biome-root Lava Zones on or off. Environmental Fogless applies Caldera fog while the observed character is inside. Occupancy hooks are local and are not saved.";
             else if (Component is PLLForceSpawner)
-                Message = "Enter only the exact live GameObject name. Target resolution remains deferred until PEAK catalog sealing.";
+                Message = "Enter the exact native GameObject name. PEAK finds it when loading the biome.";
             else if (Component is PLLFinalGeneration)
-                Message = "This permanent source target stays active. PLL makes only the staged copy inactive and invokes it through PEAK finalization.";
+                Message = "Keep this source active. PLL starts its built copy inactive and generates it during PEAK's final generation phase.";
             else if (Component is PLLCriticalGeneration)
-                Message = "Primary steps run before ordinary Early work, ordered by Order then sealed source key. Native deferred child and post-spawn work still waits for its normal barrier.";
+                Message = "Runs before ordinary Early generation, sorted by Order and then source key. Deferred child and post-spawn work keeps its normal timing.";
             else if (Component is PLLNoPropSpawn)
-                Message = "This inert marker uses the raycast-hit Collider ancestor. It never rewrites materials, tags, layers, or Colliders.";
+                Message = "Prevents prop placement when a raycast hits a collider beneath this marker. Materials, tags, layers and colliders stay unchanged.";
             else if (Component is PllVisualAuthoring)
-                Message = "Leave Shader, Material, and Property Name empty for toggle-only behavior. Custom materials remain serialized bundle dependencies.";
+                Message = "Leave Shader, Material and Property Name empty to toggle renderers only. Custom materials are included in the bundle.";
             else if (Component is PllCustomVisualAuthoring)
-                Message = "This root owns always-on current-biome particles. Source preview state is preserved; only the staged graph is stopped, cleared, and made inactive.";
+                Message = "These particles run while this biome is current. The build stops and clears the copied particles; source previews stay unchanged.";
             else if (Component is PllFogAuthoring)
-                Message = "Mode is the canonical content setting. Build staging derives only the copied FogSphereOrigin.disableFog flag and never mutates the source prefab.";
+                Message = "Mode controls the built copy's FogSphereOrigin.disableFog setting. The source prefab stays unchanged.";
             else if (Component is PllBiomeStingerAuthoring)
-                Message = "Each component is one independent track. Multiple automatic stingers intentionally play together as layers, not random alternatives or a playlist.";
+                Message = "Each component is a separate track. Multiple automatic stingers play together, not as random choices or a playlist.";
             else if (Component is PLLNativeVisualResolver)
-                Message = "This selects a sealed native presentation catalog entry. Suppression omits only "
-                    + "that preset's occurrence-owned ambient particle clones; Creator never resolves or mutates a live PEAK asset.";
+                Message = "Selects native visuals from PEAK. Suppress Native Particles disables that preset's ambient particles in this biome.";
             else if (Component is PllPropZoneAuthoring)
-                Message = "The assigned spawners receive this exact transformed Volume. Source validation checks ownership; the preview flags no detectable sampling overlap.";
+                Message = "The volume applies to each assigned spawner. The preview warns when its sampling bounds do not overlap the zone.";
             else if (Component is PLLHookedProp)
-                Message = "Hook marks live instances for an optional external plugin. It adds no serialized callback, networking, or registration.";
+                Message = "Hook identifies spawned instances for an external plugin. It does not run a callback or add networking.";
             if (Message != null) EditorGUILayout.HelpBox(Message, MessageType.Info);
 
             var Resolver = Component as PLLNativeResolver;
@@ -1540,7 +1583,7 @@ namespace PLL.Creator.Editor
                 EditorGUILayout.LabelField("Native Profile", Resolver.Kind + " / " + Resolver.SourceProfile);
                 EditorGUILayout.LabelField("Geometry", "Generated from the final placed pose in PEAK");
                 EditorGUILayout.LabelField("Inputs", "Owned anchors and asset bindings; runtime outputs are not authored");
-                EditorGUILayout.LabelField("Live Binding", "Sealed native provider recipe at compatibility admission");
+                EditorGUILayout.LabelField("Live Binding", "Loaded and checked in PEAK");
                 return;
             }
             switch (Resolver.Kind)
@@ -1588,10 +1631,10 @@ namespace PLL.Creator.Editor
             EditorGUILayout.LabelField("Day / Night", "One live native source profile");
             EditorGUILayout.LabelField("Ambient Particles", Resolver.SuppressNativeParticles
                 ? "Suppressed for this authored biome"
-                : "Enabled structurally assigned visual-only graphs");
+                : "Enabled for this preset");
             EditorGUILayout.LabelField("Special Day", "Optional primary non-global visual values");
             EditorGUILayout.LabelField("Excluded", "Audio, hazards, lava, gameplay, networking, camera, and cutscenes");
-            EditorGUILayout.LabelField("Live Binding", "Deferred until native visual catalog compatibility sealing");
+            EditorGUILayout.LabelField("Live Binding", "Loaded and checked in PEAK");
         }
 
         static void DrawFogPreview(PllFogAuthoring Fog)
@@ -1609,7 +1652,7 @@ namespace PLL.Creator.Editor
                     break;
                 case PllFogMode.Fogless:
                     EditorGUILayout.LabelField("Rising Fog", "Suppressed for this occurrence");
-                    EditorGUILayout.LabelField("Environment", "Live Caldera-equivalent fog-only clear");
+                    EditorGUILayout.LabelField("Environment", "Uses Caldera's environmental fog");
                     break;
                 default:
                     EditorGUILayout.LabelField("Rising Fog", "Invalid Mode");
@@ -1898,8 +1941,7 @@ namespace PLL.Creator.Editor
         static void DrawVariationPreview(PllVariationAuthoring Variation)
         {
             EditorGUILayout.LabelField("Spawner Ownership Preview", EditorStyles.boldLabel);
-            var Spawners = Variation.GetComponentsInChildren<PropSpawner>(true)
-                .Where(Value => Value).OrderBy(Value => PllHierarchy.NamePath(Variation.transform, Value.transform), StringComparer.Ordinal).ToArray();
+            var Spawners = Variation.GetComponentsInChildren<PropSpawner>(true);
             if (Spawners.Length == 0)
             {
                 EditorGUILayout.LabelField("No descendant PropSpawner components.");
@@ -1907,10 +1949,15 @@ namespace PLL.Creator.Editor
             }
             foreach (var Spawner in Spawners)
             {
-                var Owners = Variation.Entries.Where(Entry => Entry != null && Entry.Root
-                    && Spawner.transform.IsChildOf(Entry.Root.transform)).ToArray();
-                var Ownership = Owners.Length == 0 ? "Shared" : Owners.Length == 1
-                    ? "Entry: " + Owners[0].Root.name : "Invalid overlapping entries";
+                GameObject Owner = null;
+                var Overlapping = false;
+                foreach (var Entry in Variation.Entries)
+                {
+                    if (Entry == null || !Entry.Root || !Spawner.transform.IsChildOf(Entry.Root.transform)) continue;
+                    if (Owner) { Overlapping = true; break; }
+                    Owner = Entry.Root;
+                }
+                var Ownership = Overlapping ? "Invalid overlapping entries" : Owner ? "Entry: " + Owner.name : "Shared";
                 EditorGUILayout.LabelField(PllHierarchy.NamePath(Variation.transform, Spawner.transform), Ownership);
             }
         }
@@ -1920,8 +1967,7 @@ namespace PLL.Creator.Editor
             EditorGUILayout.LabelField("Exact Final Target", EditorStyles.boldLabel);
             using (new EditorGUI.DisabledScope(true))
                 EditorGUILayout.ObjectField(Final.gameObject, typeof(GameObject), true);
-            var Steps = Final.GetComponentsInChildren<LevelGenStep>(true).Where(Value => Value)
-                .OrderBy(Value => PllHierarchy.NamePath(Final.transform, Value.transform), StringComparer.Ordinal).ToArray();
+            var Steps = Final.GetComponentsInChildren<LevelGenStep>(true);
             EditorGUILayout.LabelField("Owned Generator Steps", Steps.Length.ToString());
             using (new EditorGUI.DisabledScope(true))
                 foreach (var Step in Steps) EditorGUILayout.ObjectField(Step, Step.GetType(), true);
@@ -2049,9 +2095,21 @@ namespace PLL.Creator.Editor
         public override void OnInspectorGUI()
         {
             using (new EditorGUI.DisabledScope(true)) DrawDefaultInspector();
-            EditorGUILayout.HelpBox("PLL > Biomes > Create Biome owns these stable topology bindings. Edit the referenced source objects, not runtime IDs or internal fixtures.", MessageType.Info);
+            EditorGUILayout.HelpBox("Use PLL > Biomes > Create Biome to create these bindings. Edit the referenced source objects, not runtime IDs or generated components.", MessageType.Info);
         }
     }
+
+    [CustomEditor(typeof(NativeModifiers))]
+    internal sealed class PllNativeModifiersEditor : PllAuthoringComponentEditor { }
+
+    [CustomEditor(typeof(PllNativeMaterialAuthoring))]
+    internal sealed class PllNativeMaterialEditor : PllAuthoringComponentEditor { }
+
+    [CustomEditor(typeof(PllFoodSpawnerAuthoring))]
+    internal sealed class PllFoodSpawnerEditor : PllAuthoringComponentEditor { }
+
+    [CustomEditor(typeof(PllContentSpawnerAuthoring))]
+    internal sealed class PllContentSpawnerEditor : PllAuthoringComponentEditor { }
 
     [CustomEditor(typeof(CustomSegmentRuntime))]
     internal sealed class PllCustomSegmentRuntimeEditor : PllReadOnlyBindingEditor { }

@@ -180,53 +180,57 @@ internal sealed class NativeTerrainMapProxy : IDisposable
             length,
             rayMask,
             QueryTriggerInteraction.UseGlobal);
-        Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
-        Collider? collider = null;
-        var nearestDistance = 0f;
-        foreach (var hit in hits)
+        Collider? Collider = null;
+        var NearestDistance = float.PositiveInfinity;
+        var NearestDistinctDistance = float.PositiveInfinity;
+        foreach (var Hit in hits)
         {
-            if (collider && !Mathf.Approximately(hit.distance, nearestDistance)) break;
-            var candidate = hit.collider;
-            if (!candidate || !candidate.enabled || candidate.isTrigger
-                || candidate.attachedRigidbody || !candidate.gameObject.activeInHierarchy
-                || candidate.gameObject.scene != Frame.gameObject.scene
-                || InsideAny(candidate.transform, authoredContainers)
-                || NativeCollision.IsGeneratedOutput(candidate.transform.root, candidate.transform)) continue;
-            if (!collider)
+            if (Hit.distance >= NearestDistinctDistance) continue;
+            var Candidate = Hit.collider;
+            if (!IsActiveSupport(Candidate)) continue;
+            if (Hit.distance < NearestDistance)
             {
-                collider = candidate;
-                nearestDistance = hit.distance;
-                continue;
+                if (Candidate != Collider) NearestDistinctDistance = NearestDistance;
+                Collider = Candidate;
+                NearestDistance = Hit.distance;
             }
-            if (candidate != collider)
-                throw new InvalidOperationException(
-                    $"PEAK's native {Source.Id} Campfire ray has ambiguous external support collision.");
+            else if (Candidate != Collider) NearestDistinctDistance = Hit.distance;
         }
-        if (!collider && Frame.parent is { } externalRoot)
-            foreach (var candidate in externalRoot.GetComponentsInChildren<Collider>(true))
+        if (Collider && Mathf.Approximately(NearestDistinctDistance, NearestDistance))
+            throw new InvalidOperationException(
+                $"PEAK's native {Source.Id} Campfire ray has ambiguous external support collision.");
+
+        if (!Collider && Frame.parent is { } ExternalRoot)
+            foreach (var Candidate in ExternalRoot.GetComponentsInChildren<Collider>(true))
             {
-                if (!candidate || !candidate.enabled || candidate.isTrigger
-                    || candidate.attachedRigidbody || candidate.gameObject.activeInHierarchy
-                    || !NativePlacement.ActiveWithin(candidate.transform, externalRoot)
-                    || candidate.gameObject.scene != Frame.gameObject.scene
-                    || InsideAny(candidate.transform, authoredContainers)
-                    || NativeCollision.IsGeneratedOutput(externalRoot, candidate.transform)
-                    || (rayMask & (1 << candidate.gameObject.layer)) == 0
-                    || !NativePlacement.CanCopyCollider(candidate)
-                    || !NativePlacement.TryWorldBounds(candidate, out var candidateBounds)
-                    || !Nonempty(candidateBounds)
-                    || !candidateBounds.IntersectRay(ray, out var distance) || distance > length) continue;
-                if (collider)
+                if (!Candidate || !Candidate.enabled || Candidate.isTrigger
+                    || Candidate.attachedRigidbody || Candidate.gameObject.activeInHierarchy
+                    || !NativePlacement.ActiveWithin(Candidate.transform, ExternalRoot)
+                    || Candidate.gameObject.scene != Frame.gameObject.scene
+                    || InsideAny(Candidate.transform, authoredContainers)
+                    || NativeCollision.IsGeneratedOutput(ExternalRoot, Candidate.transform)
+                    || (rayMask & (1 << Candidate.gameObject.layer)) == 0
+                    || !NativePlacement.CanCopyCollider(Candidate)
+                    || !NativePlacement.TryWorldBounds(Candidate, out var CandidateBounds)
+                    || !Nonempty(CandidateBounds)
+                    || !CandidateBounds.IntersectRay(ray, out var Distance) || Distance > length) continue;
+                if (Collider)
                     throw new InvalidOperationException(
                         $"PEAK's native {Source.Id} Campfire ray has ambiguous inactive external support collision.");
-                collider = candidate;
+                Collider = Candidate;
             }
 
-        if (!collider || !NativePlacement.CanCopyCollider(collider)
-            || !NativePlacement.TryWorldBounds(collider, out var bounds) || !Nonempty(bounds))
+        if (!Collider || !NativePlacement.CanCopyCollider(Collider)
+            || !NativePlacement.TryWorldBounds(Collider, out var Bounds) || !Nonempty(Bounds))
             throw new InvalidOperationException(
                 $"PEAK's native {Source.Id} Campfire ray has no usable external static support collider.");
-        return new ExternalSupport(collider, Frame);
+        return new ExternalSupport(Collider, Frame);
+
+        bool IsActiveSupport(Collider Candidate) => Candidate && Candidate.enabled && !Candidate.isTrigger
+            && !Candidate.attachedRigidbody && Candidate.gameObject.activeInHierarchy
+            && Candidate.gameObject.scene == Frame.gameObject.scene
+            && !InsideAny(Candidate.transform, authoredContainers)
+            && !NativeCollision.IsGeneratedOutput(Candidate.transform.root, Candidate.transform);
     }
 
     public void Dispose()

@@ -55,8 +55,8 @@ namespace PLL.Creator.Editor
         {
             EditorGUILayout.LabelField("Source Assets", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Creates an inactive editable course prefab, definition, DayNightProfile, meshes, and material in one project folder. "
-                + "The course uses an editable unlit material, a dynamic-lighting profile, and no copied PEAK assets or runtime IDs.",
+                "Creates an inactive editable course prefab, biome definition, DayNightProfile, meshes and material in one project folder. "
+                + "The course uses dynamic lighting and an unlit material.",
                 MessageType.Info);
             OutputFolder = (DefaultAsset)EditorGUILayout.ObjectField("Output Folder", OutputFolder, typeof(DefaultAsset), false);
             Course = (StarterCourse)EditorGUILayout.EnumPopup("Starter Course", Course);
@@ -69,10 +69,8 @@ namespace PLL.Creator.Editor
                 SourceProfile, typeof(DayNightProfile), false);
             EditorGUILayout.Space();
             EditorGUILayout.HelpBox(
-                "PLL does not rebake custom occurrences. Baked or Mixed lights and renderers relying on serialized "
-                + "lightmaps or Contribute GI with lightmap reception are unsupported and reported as warnings; use Realtime lights, dynamic "
-                + "light-probe materials, or unlit shaders. Effect PresentationRoot lights must be finite "
-                + "Realtime lights.", MessageType.Warning);
+                "PLL does not rebake lighting. Baked and Mixed lights, saved lightmaps and Contribute GI with lightmap reception are not supported. "
+                + "Use Realtime lights, light probes or unlit shaders. Effect PresentationRoot lights must use Realtime.", MessageType.Warning);
             GUILayout.FlexibleSpace();
             using (new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode))
                 if (GUILayout.Button("Create Biome", GUILayout.Height(30f))) CreateFromUi();
@@ -113,7 +111,7 @@ namespace PLL.Creator.Editor
                 throw new ArgumentOutOfRangeException(nameof(Course));
             PLL.Library.BiomeId Id;
             if (!PLL.Library.BiomeId.TryParse(IdText, out Id))
-                throw new InvalidOperationException("Biome ID must be one canonical lowercase 'namespace/name' value.");
+                throw new InvalidOperationException("Biome ID must use lowercase 'namespace/name'.");
             PllSourceIdentityValidator.ValidateToken(Entry, "Entry connector");
             PllSourceIdentityValidator.ValidateToken(Exit, "Exit connector");
             if (!AssetDatabase.IsValidFolder(OutputPath)
@@ -351,7 +349,7 @@ namespace PLL.Creator.Editor
             if (Source)
             {
                 if (!EditorUtility.IsPersistent(Source))
-                    throw new InvalidOperationException("Profile To Duplicate must be a persistent project or package asset.");
+                    throw new InvalidOperationException("Profile To Duplicate must be a saved project or package asset.");
                 Profile = Instantiate(Source);
             }
             else
@@ -411,15 +409,7 @@ namespace PLL.Creator.Editor
             {
                 Action();
             }
-            catch (InvalidOperationException Failure)
-            {
-                EditorUtility.DisplayDialog("PLL Creator", Failure.Message, "Close");
-            }
-            catch (ArgumentException Failure)
-            {
-                EditorUtility.DisplayDialog("PLL Creator", Failure.Message, "Close");
-            }
-            catch (UnityException Failure)
+            catch (Exception Failure) when (Failure is InvalidOperationException or ArgumentException or UnityException)
             {
                 EditorUtility.DisplayDialog("PLL Creator", Failure.Message, "Close");
             }
