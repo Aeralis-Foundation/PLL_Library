@@ -123,7 +123,6 @@ internal static class Sounds
         internal int SceneHandle { get; }
         internal AudioMixerGroup Group { get; }
     }
-    static readonly MethodInfo AmbienceStart = BindAmbienceStart();
     static readonly MethodInfo BiomeIsPresent = AccessTools.DeclaredMethod(
         typeof(MapHandler), nameof(MapHandler.BiomeIsPresent), new[] { typeof(Biome.BiomeType) })!;
     static readonly FieldInfo PositionZ = AccessTools.DeclaredField(typeof(Vector3), nameof(Vector3.z))!;
@@ -154,14 +153,6 @@ internal static class Sounds
     static RunRoute? runRoute;
 
     static long releasingRunIdentity;
-
-    static MethodInfo BindAmbienceStart()
-    {
-        var method = AccessTools.DeclaredMethod(typeof(AmbienceAudio), "Start", Type.EmptyTypes);
-        if (method is null || method.IsStatic || method.ReturnType != typeof(void))
-            throw new MissingMethodException("AmbienceAudio.Start must be an instance parameterless Void method.");
-        return method;
-    }
 
     internal static bool TryGetStingerRoute(out AudioMixerGroup group)
     {
@@ -393,11 +384,9 @@ internal static class Sounds
         if (ReverbZone) ReverbZone.enabled = true;
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(AmbienceAudio), nameof(AmbienceAudio.Start))]
     static class AmbienceStartPatch
     {
-        static MethodBase TargetMethod() => AmbienceStart;
-
         [HarmonyPostfix]
         static void Postfix(AmbienceAudio __instance)
         {

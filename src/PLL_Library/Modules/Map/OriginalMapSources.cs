@@ -575,11 +575,11 @@ internal sealed class OriginalMapSources
         if (Candidates.Count == 0) return;
         if (Run.SceneHandle != SceneHandle || !Run.Active || Run.OriginalMapSourcesRetired)
             throw new InvalidOperationException("The map run cannot retire its original map sources.");
-        if (OriginalPeakHandler && InsideAny(OriginalPeakHandler.transform, Candidates))
+        if (OriginalPeakHandler && TransformOwnership.Contains(Candidates, OriginalPeakHandler.transform))
         {
             if (!InstalledPeakHandler
                 || InstalledPeakHandler.GetInstanceID() == OriginalPeakHandler.GetInstanceID()
-                || InsideAny(InstalledPeakHandler.transform, Candidates))
+                || TransformOwnership.Contains(Candidates, InstalledPeakHandler.transform))
                 throw new InvalidOperationException("The published map has no independent Peak end-cutscene owner.");
         }
         try { ReleasedSlotRetirement.ReleaseRetirementBatch(Run, Candidates); }
@@ -650,12 +650,5 @@ internal sealed class OriginalMapSources
         foreach (var Source in Unit.Sources)
             if (!Source || !TransformOwnership.Contains(Unit.Owner.transform, Source))
                 throw new InvalidOperationException("An ordinary native Biome source left its retirement owner.");
-    }
-
-    static bool InsideAny(Transform Value, IReadOnlyList<GameObject> Roots)
-    {
-        foreach (var Root in Roots)
-            if (TransformOwnership.Contains(Root.transform, Value)) return true;
-        return false;
     }
 }

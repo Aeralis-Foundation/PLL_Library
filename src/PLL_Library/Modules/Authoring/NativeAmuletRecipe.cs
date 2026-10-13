@@ -83,8 +83,8 @@ internal sealed class NativeAmuletRecipe : IDisposable
         TargetOffset.angleBasedAdditiveSide = Offset.angleBasedAdditiveSide;
         TargetOffset.angleBasedAdditiveDown = Offset.angleBasedAdditiveDown;
         var Normal = (PSC_Normal)Source.constraints[0];
-        var TargetNormal = (PSC_Normal)Target.constraints[0];
-        TargetNormal.minAngle = Normal.minAngle; TargetNormal.maxAngle = Normal.maxAngle;
+        Target.constraints[0] = new AuthoredNormalConstraint
+        { minAngle = Normal.minAngle, maxAngle = Normal.maxAngle };
         PSC_Embedded? Embedded = null;
         foreach (var Constraint in Source.postConstraints)
             if (Constraint is PSCP_LateConstraintCheck { Constraint: PSC_Embedded Value }) Embedded = Value;
@@ -95,6 +95,16 @@ internal sealed class NativeAmuletRecipe : IDisposable
         TargetEmbedded.DesiredResult = Embedded.DesiredResult;
         TargetEmbedded.PostSpawnTransformName = Embedded.PostSpawnTransformName;
         NativePrefabContracts.ValidationConstraints(Target) = new List<IValidationConstraint> { TargetEmbedded };
+    }
+
+    sealed class AuthoredNormalConstraint : PSC_Normal
+    {
+        public override bool CheckConstraint(PropSpawner.SpawnData Data)
+        {
+            var Angle = Vector3.Angle(Vector3.up, Data.normal);
+            return Angle < maxAngle
+                && (Angle > minAngle || Angle == 0f && minAngle == 0f);
+        }
     }
 
     public void Dispose()

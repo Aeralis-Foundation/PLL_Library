@@ -31,6 +31,7 @@ internal static class BiomeRegistration
     static readonly Guid RuntimeMvid = typeof(Plugin).Assembly.ManifestModule.ModuleVersionId;
     static RegistrationPhase Phase;
     static NativeVisualSeal? NativeVisualOwner;
+    static NativeCondorSource? NativeCondorOwner;
 
     internal static void RequireToolBundle(string FileName, string Sha256)
     {
@@ -260,11 +261,13 @@ internal static class BiomeRegistration
         PluginEntityFactoryRegistry.Seal();
         NativeLuggageCatalog? Native = null;
         NativeVisualSeal? PendingVisuals = null;
+        NativeCondorSource? PendingCondors = null;
         var StartupTicket = NativeContentTools.CaptureStartupTicket();
         try
         {
             NativeLuggageCatalog.Clear();
             BiomeAuthoringCatalog.ClearExternal();
+            ReleaseNativeCondors();
             var PreviousVisualOwner = NativeVisualOwner;
             NativeVisualOwner = null;
             PreviousVisualOwner?.Release();
@@ -325,7 +328,7 @@ internal static class BiomeRegistration
                     var ZombieProvider = File.RequiresNativeZombies
                         ? (Zombies ??= new Lazy<NativeZombieSource>(() => NativeZombieSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value : null;
                     var CondorProvider = File.RequiresNativeCondors
-                        ? (Condors ??= new Lazy<NativeCondorSource>(() => NativeCondorSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value : null;
+                        ? (Condors ??= new Lazy<NativeCondorSource>(() => PendingCondors = NativeCondorSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value : null;
                     var TornadoProvider = File.RequiresNativeTornados
                         ? (Tornados ??= new Lazy<NativeTornadoSource>(() => NativeTornadoSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value : null;
                     var TumbleweedProvider = File.RequiresNativeTumbleweeds
@@ -394,7 +397,7 @@ internal static class BiomeRegistration
                 var ZombieSource = (Zombies ??= new Lazy<NativeZombieSource>(
                     () => NativeZombieSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value;
                 var CondorSource = (Condors ??= new Lazy<NativeCondorSource>(
-                    () => NativeCondorSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value;
+                    () => PendingCondors = NativeCondorSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value;
                 var TornadoSource = (Tornados ??= new Lazy<NativeTornadoSource>(
                     () => NativeTornadoSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value;
                 var TumbleweedSource = (Tumbleweeds ??= new Lazy<NativeTumbleweedSource>(
@@ -446,6 +449,8 @@ internal static class BiomeRegistration
                 }
             NativeVisualOwner = Visuals;
             PendingVisuals = null;
+            NativeCondorOwner = PendingCondors;
+            PendingCondors = null;
             NativeLuggageCatalog.Publish(Native);
             if (Phase == RegistrationPhase.FinalSealed)
             {
@@ -474,19 +479,31 @@ internal static class BiomeRegistration
             ClearLiveCatalogs();
             throw;
         }
-        finally { PendingVisuals?.Release(); }
+        finally
+        {
+            try { PendingVisuals?.Release(); }
+            finally { PendingCondors?.Release(); }
+        }
     }
 
     internal static void ClearLiveCatalogs()
     {
         NativeLuggageCatalog.Clear();
         BiomeAuthoringCatalog.ClearExternal();
+        ReleaseNativeCondors();
         NativeSpawnCatalog.Clear();
         NativeResolverSourceCatalog.Clear();
         NativeFogRuntime.Clear();
         var VisualOwner = NativeVisualOwner;
         NativeVisualOwner = null;
         VisualOwner?.Release();
+    }
+
+    static void ReleaseNativeCondors()
+    {
+        var Owner = NativeCondorOwner;
+        NativeCondorOwner = null;
+        Owner?.Release();
     }
 
     static byte[] CreateExternalFingerprint(

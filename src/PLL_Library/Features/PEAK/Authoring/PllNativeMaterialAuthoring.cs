@@ -23,6 +23,7 @@ public sealed class PllNativeMaterialAuthoring : MonoBehaviour
     const int TextureReferenceWidth = 3;
     public int MaterialSlot;
     public string NativeMaterial = "";
+    public bool UsePreviewProperties;
     public PllNativeTextureReference[] Textures = Array.Empty<PllNativeTextureReference>();
     [SerializeField, HideInInspector] string[]? BundleTextureReferences = null;
 
@@ -86,28 +87,31 @@ public sealed class PllNativeMaterialAuthoring : MonoBehaviour
                 PllNativeMaterialSelection.RequireTextureProperty(Materials[MaterialSlot].shader, Texture.Property);
         }
         return new PllNativeMaterialSelection(Renderers[0], MaterialSlot,
-            Materials[MaterialSlot], NativeMaterial, (PllNativeTextureReference[])Textures.Clone());
+            Materials[MaterialSlot], NativeMaterial, (PllNativeTextureReference[])Textures.Clone(), UsePreviewProperties);
     }
 }
 
 public sealed class PllNativeMaterialSelection
 {
     internal PllNativeMaterialSelection(Renderer Renderer, int Slot, Material Preview,
-        string NativeMaterial, PllNativeTextureReference[] Textures)
+        string NativeMaterial, PllNativeTextureReference[] Textures, bool UsePreviewProperties)
     {
         this.Renderer = Renderer; this.Slot = Slot; this.Preview = Preview;
         this.NativeMaterial = NativeMaterial; this.Textures = Array.AsReadOnly(Textures);
+        this.UsePreviewProperties = UsePreviewProperties;
     }
 
     public Renderer Renderer { get; }
     public int Slot { get; }
     public Material Preview { get; }
     public string NativeMaterial { get; }
+    public bool UsePreviewProperties { get; }
     public IReadOnlyList<PllNativeTextureReference> Textures { get; }
 
     public bool HasSameReferences(PllNativeMaterialSelection Other)
     {
-        if (Slot != Other.Slot || NativeMaterial != Other.NativeMaterial || Textures.Count != Other.Textures.Count) return false;
+        if (Slot != Other.Slot || NativeMaterial != Other.NativeMaterial
+            || UsePreviewProperties != Other.UsePreviewProperties || Textures.Count != Other.Textures.Count) return false;
         for (var Index = 0; Index < Textures.Count; Index++)
         {
             var Left = Textures[Index]; var Right = Other.Textures[Index];
@@ -127,7 +131,7 @@ public sealed class PllNativeMaterialSelection
 
     public void WriteManifest(BinaryWriter Writer)
     {
-        Writer.Write(Slot); Writer.Write(NativeMaterial); Writer.Write(Textures.Count);
+        Writer.Write(Slot); Writer.Write(NativeMaterial); Writer.Write(UsePreviewProperties); Writer.Write(Textures.Count);
         foreach (var Texture in Textures)
         {
             Writer.Write(Texture.Property); Writer.Write(Texture.SourceMaterial);

@@ -6,7 +6,7 @@ namespace PLL.Library;
 
 internal static class NativePlacement
 {
-    static readonly float[] FormationSamples = { 0.25f, 0.5f, 0.75f };
+    const float PlayerClearanceRadius = 1f;
 
     enum ColliderCopyKind : byte
     {
@@ -18,343 +18,256 @@ internal static class NativePlacement
         Terrain
     }
 
-    sealed class StartSurface
-    {
-        readonly MeshCollider source;
-        GameObject? proxyObject;
-        Collider? proxy;
-
-        internal StartSurface(MeshCollider source, Bounds bounds)
-        {
-            this.source = source;
-            Bounds = bounds;
-        }
-
-        internal Bounds Bounds { get; }
-
-        internal bool Raycast(Ray ray, out RaycastHit hit, float distance)
-        {
-            if (source.gameObject.activeInHierarchy) return source.Raycast(ray, out hit, distance);
-            if (!proxy)
-            {
-                var value = proxyObject = new GameObject("PLL Native Start Surface");
-                try
-                {
-                    value.hideFlags = HideFlags.HideAndDontSave;
-                    value.layer = source.gameObject.layer;
-                    value.SetActive(false);
-                    value.transform.SetPositionAndRotation(source.transform.position, source.transform.rotation);
-                    value.transform.localScale = source.transform.lossyScale;
-                    proxy = CopyCollider(source, value);
-                    value.SetActive(true);
-                    Physics.SyncTransforms();
-                }
-                catch
-                {
-                    UnityEngine.Object.DestroyImmediate(value);
-                    throw;
-                }
-            }
-            return proxy!.Raycast(ray, out hit, distance);
-        }
-
-        internal void Destroy()
-        {
-            if (proxyObject) UnityEngine.Object.DestroyImmediate(proxyObject);
-            proxyObject = null;
-            proxy = null;
-        }
-    }
-
-    sealed class StartSupport
-    {
-        readonly List<StartSurface> surfaces = new();
-
-        internal StartSupport(StartSurface surface, int order)
-        {
-            Bounds = surface.Bounds;
-            Order = order;
-            surfaces.Add(surface);
-        }
-
-        internal Bounds Bounds { get; private set; }
-        internal int Order { get; }
-
-        internal void Add(StartSurface surface)
-        {
-            var bounds = Bounds;
-            bounds.Encapsulate(surface.Bounds);
-            Bounds = bounds;
-            surfaces.Add(surface);
-        }
-
-        internal bool Raycast(Ray ray, float distance, out RaycastHit result)
-        {
-            result = default;
-            var found = false;
-            foreach (var surface in surfaces)
-            {
-                var bounds = surface.Bounds;
-                if (ray.origin.x < bounds.min.x || ray.origin.x > bounds.max.x
-                    || ray.origin.z < bounds.min.z || ray.origin.z > bounds.max.z
-                    || !surface.Raycast(ray, out var hit, distance)
-                    || Vector3.Dot(hit.normal, Vector3.up) <= 0.5f
-                    || found && hit.point.y <= result.point.y) continue;
-                result = hit;
-                found = true;
-            }
-            return found;
-        }
-    }
-
     internal sealed class StartFormation
     {
-        readonly int[] indices;
-        readonly Vector3[] offsets;
+        readonly Vector3[] Offsets;
 
-        internal StartFormation(Pose start, int[] indices, Vector3[] offsets)
+        internal StartFormation(Pose Start, Vector3[] Offsets, Pose? PlanePose)
         {
-            Start = start;
-            this.indices = indices;
-            this.offsets = offsets;
+            this.Start = Start;
+            this.Offsets = Offsets;
+            this.PlanePose = PlanePose;
         }
 
         internal Pose Start { get; }
+        internal Pose? PlanePose { get; }
 
-        internal void Place(Transform spawnRoot, Pose target)
+        internal void Place(Transform[] Spawns, Pose Target)
         {
-            if (!spawnRoot) throw new ArgumentNullException(nameof(spawnRoot));
-            var spawns = spawnRoot.GetComponentsInChildren<SpawnPoint>(true);
-            Array.Sort(spawns, (left, right) => left.index.CompareTo(right.index));
-            if (spawns.Length != indices.Length)
-                throw new InvalidOperationException("PEAK's placed native start formation does not match its resolved SpawnPoints.");
-            for (var i = 0; i < spawns.Length; i++)
-            {
-                if (spawns[i].index != indices[i])
-                    throw new InvalidOperationException("PEAK's placed native start formation has different SpawnPoint indices.");
-                spawns[i].transform.position = target.position + target.rotation * offsets[i];
-            }
+            for (var i = 0; i < Spawns.Length; i++)
+                Spawns[i].position = Target.position + Target.rotation * Offsets[i];
         }
-    }
-
-    internal sealed class ResolvedLayoutStart
-    {
-        internal ResolvedLayoutStart(Pose Pose, StartFormation? NativeFormation)
-        {
-            this.Pose = Pose;
-            this.NativeFormation = NativeFormation;
-        }
-
-        internal Pose Pose { get; }
-        internal StartFormation? NativeFormation { get; }
-    }
-
-    internal static ResolvedLayoutStart ResolveLayoutStart(
-        LayoutSegmentSource Source, Transform SpawnRoot, Transform PrimarySpawn)
-    {
-        if (Source is PeakAttachmentSource)
-            throw new InvalidOperationException("Peak cannot begin a layout.");
-        if (Source.Start is { } Start) return new ResolvedLayoutStart(Start, null);
-        if (Source is not NativeOrdinarySegmentSource)
-            throw new InvalidOperationException($"Segment '{Source.Id}' has no explicit Start port.");
-        var Formation = ResolveStart(Source, SpawnRoot, PrimarySpawn);
-        return new ResolvedLayoutStart(Formation.Start, Formation);
     }
 
     internal static StartFormation ResolveStart(
-        LayoutSegmentSource Source,
-        Transform spawnRoot,
-        Transform primarySpawn)
+        MapSlot First, Transform[] Spawns, Transform Plane, bool PlacePlane)
     {
+        var Source = First.Source;
+        if (Source is not NativeOrdinarySegmentSource)
+            throw new InvalidOperationException($"Segment '{Source.Id}' has no explicit Start port.");
         Physics.SyncTransforms();
-        if (!spawnRoot || !primarySpawn || !TransformOwnership.Contains(spawnRoot, primarySpawn))
-            throw new InvalidOperationException("PEAK's native start formation is unavailable.");
-        var spawns = spawnRoot.GetComponentsInChildren<SpawnPoint>(true);
-        Array.Sort(spawns, (left, right) => left.index.CompareTo(right.index));
-        if (spawns.Length != 4 || spawns[0].transform != primarySpawn)
-            throw new InvalidOperationException("PEAK's native four-player start formation is invalid.");
-        for (var i = 1; i < spawns.Length; i++)
-            if (spawns[i - 1].index == spawns[i].index)
-                throw new InvalidOperationException("PEAK's native start formation has duplicate SpawnPoint indices.");
-
-        var offsets = new Vector3[spawns.Length];
-        var minimumOffset = Vector3.zero;
-        var maximumOffset = Vector3.zero;
-        for (var i = 0; i < spawns.Length; i++)
+        var PrimarySpawn = Spawns[0];
+        var Offsets = new Vector3[Spawns.Length];
+        var MinimumOffset = Vector3.zero;
+        var MaximumOffset = Vector3.zero;
+        for (var i = 0; i < Spawns.Length; i++)
         {
-            offsets[i] = spawns[i].transform.position - primarySpawn.position;
-            minimumOffset = Vector3.Min(minimumOffset, offsets[i]);
-            maximumOffset = Vector3.Max(maximumOffset, offsets[i]);
+            Offsets[i] = Spawns[i].position - PrimarySpawn.position;
+            MinimumOffset = Vector3.Min(MinimumOffset, Offsets[i]);
+            MaximumOffset = Vector3.Max(MaximumOffset, Offsets[i]);
         }
+        var MeshAssets = new NativeMeshAssets();
+        var Shape = new PlaneFootprint(Plane, PrimarySpawn.position, PlacePlane ? MeshAssets : null);
+        MinimumOffset = Vector3.Min(MinimumOffset, Shape.MinimumWorldOffset);
+        MaximumOffset = Vector3.Max(MaximumOffset, Shape.MaximumWorldOffset);
 
-        var Root = Source.SegmentParent.transform;
-        var terrainMask = HelperFunctions.terrainMapMask.value;
-        var surfaces = new List<StartSurface>();
-        var supports = new List<StartSupport>();
-        var supportByOwner = new Dictionary<Transform, StartSupport>();
-
-        try
+        var Root = First.Segment.segmentParent.transform;
+        var CollisionMask = HelperFunctions.GetMask(HelperFunctions.LayerType.AllPhysicalExceptCharacter).value;
+        var GroundByCollider = new Dictionary<int, bool>();
+        var CollisionBounds = default(Bounds);
+        var GroundGeometry = new Dictionary<int, NativeMeshGeometry>();
+        var RayHits = new RaycastHit[NativeCollision.InitialQueryHits];
+        var OverlapHits = new Collider[NativeCollision.InitialQueryHits];
+        foreach (var Collider in Root.GetComponentsInChildren<Collider>())
         {
-            var order = 0;
-            foreach (var Collider in Root.GetComponentsInChildren<MeshCollider>(true))
+            if (!Collider.enabled || Collider.isTrigger
+                || (CollisionMask & (1 << Collider.gameObject.layer)) == 0
+                || !TryWorldBounds(Collider, out var bounds) || bounds.size.sqrMagnitude <= 0f) continue;
+            var Ground = Collider is MeshCollider { convex: false } && !Collider.attachedRigidbody;
+            if (GroundByCollider.Count == 0) CollisionBounds = bounds;
+            else CollisionBounds.Encapsulate(bounds);
+            GroundByCollider.Add(Collider.GetInstanceID(), Ground);
+        }
+        if (GroundByCollider.Count == 0)
+            throw new InvalidOperationException($"No solid collision was found in '{Source.Id}'.");
+
+        var Width = MaximumOffset.x - MinimumOffset.x;
+        var Depth = MaximumOffset.z - MinimumOffset.z;
+        var Entry = First.PlacedEntry;
+        var Forward = First.PlacedProgressionAxis;
+        var RearOffset = Forward.x * (Forward.x < 0f ? MaximumOffset.x : MinimumOffset.x)
+            + Forward.z * (Forward.z < 0f ? MaximumOffset.z : MinimumOffset.z);
+        var Anchor = Entry - Forward * Math.Min(0f, RearOffset);
+        var Clearance = Math.Max(Physics.defaultContactOffset, 0f);
+        var Distance = CollisionBounds.size.y + Clearance * 2f;
+        var Top = CollisionBounds.max.y + Clearance;
+        var Hits = new RaycastHit[Spawns.Length];
+        var BestHits = new RaycastHit[Spawns.Length];
+        var BestDistance = double.PositiveInfinity;
+        Pose? BestPlane = null;
+        var Ambiguous = false;
+        var Columns = Mathf.CeilToInt(Width / PlayerClearanceRadius);
+        var Rows = Mathf.CeilToInt(Depth / PlayerClearanceRadius);
+        ConsiderFormation(new Vector3(Anchor.x, Top, Anchor.z));
+        for (var z = 0; z <= Rows; z++)
+            for (var x = 0; x <= Columns; x++)
+                ConsiderFormation(new Vector3(
+                    Anchor.x + Mathf.Lerp(-Width, Width, (float)x / Columns), Top,
+                    Anchor.z + Mathf.Lerp(-Depth, Depth, (float)z / Rows)));
+        if (double.IsPositiveInfinity(BestDistance))
+            throw new InvalidOperationException($"No clear landing area was found near the entrance to '{Source.Id}'.");
+        if (Ambiguous)
+            throw new InvalidOperationException($"More than one landing area in '{Source.Id}' is equally close to the entrance.");
+        var Primary = BestHits[0].point;
+        var InverseRotation = Quaternion.Inverse(PrimarySpawn.rotation);
+        for (var i = 0; i < Offsets.Length; i++)
+            Offsets[i] = InverseRotation * (BestHits[i].point - Primary);
+        return new StartFormation(new Pose(Primary, PrimarySpawn.rotation), Offsets, BestPlane);
+
+        void ConsiderFormation(Vector3 Center)
+        {
+            if (Vector3.Dot(Center - new Vector3(Entry.x, Top, Entry.z), Forward) + RearOffset < 0f) return;
+            var CandidateOffset = Center - Anchor;
+            var CandidateDistance = (double)CandidateOffset.x * CandidateOffset.x + (double)CandidateOffset.z * CandidateOffset.z;
+            if (CandidateDistance > BestDistance) return;
+            for (var i = 0; i < Offsets.Length; i++)
             {
-                if (!Collider || !Collider.enabled || Collider.isTrigger || Collider.convex || !Collider.sharedMesh
-                    || Collider.attachedRigidbody || !ActiveWithin(Collider.transform, Root)
-                    || NativeCollision.IsGeneratedOutput(Root, Collider.transform)
-                    || (terrainMask & (1 << Collider.gameObject.layer)) == 0
-                    || !TryWorldBounds(Collider, out var bounds) || bounds.size.sqrMagnitude <= 0f) continue;
-                var Surface = new StartSurface(Collider, bounds);
-                surfaces.Add(Surface);
-                var Owner = SupportOwner(Root, Collider.transform);
-                if (supportByOwner.TryGetValue(Owner, out var support)) support.Add(Surface);
-                else
-                {
-                    support = new StartSupport(Surface, order++);
-                    supportByOwner.Add(Owner, support);
-                    supports.Add(support);
-                }
+                var Origin = Center + new Vector3(Offsets[i].x, 0f, Offsets[i].z);
+                if (!RaycastGround(new Ray(Origin, Vector3.down), out Hits[i])) return;
             }
-            if (supports.Count == 0)
-                throw new InvalidOperationException($"PEAK's native {Source.Id} has no usable Terrain/Map collision surface for its Start port.");
-
-            var width = maximumOffset.x - minimumOffset.x;
-            var depth = maximumOffset.z - minimumOffset.z;
-            supports.RemoveAll(value => value.Bounds.size.x < width || value.Bounds.size.z < depth);
-            if (supports.Count == 0)
-                throw new InvalidOperationException($"PEAK's native {Source.Id} has no collision surface large enough for its four-player Start formation.");
-            var Entry = Source.AuthoredPosition(Source.EntryPorts[0].Pose);
-            supports.Sort((left, right) =>
+            var LowestPlayer = Hits[0].point.y;
+            var HighestPlayer = LowestPlayer;
+            foreach (var Hit in Hits)
             {
-                var Compared = BoundsSquaredDistance(Entry, left.Bounds).CompareTo(
-                    BoundsSquaredDistance(Entry, right.Bounds));
-                return Compared != 0 ? Compared : left.Order.CompareTo(right.Order);
-            });
-
-            StartFormation? result = null;
-            var squaredDistance = double.PositiveInfinity;
-            var ambiguous = false;
-            foreach (var support in supports)
-            {
-                if (BoundsSquaredDistance(Entry, support.Bounds) > squaredDistance) break;
-                if (!TryFormation(
-                        Source, support, surfaces, spawns, primarySpawn, offsets, minimumOffset, maximumOffset,
-                        Entry, out var formation, out var candidateSquaredDistance)
-                    || candidateSquaredDistance > squaredDistance) continue;
-                if (candidateSquaredDistance < squaredDistance)
-                {
-                    result = formation;
-                    squaredDistance = candidateSquaredDistance;
-                    ambiguous = false;
-                }
-                else if (result is not null) ambiguous = true;
+                LowestPlayer = Mathf.Min(LowestPlayer, Hit.point.y);
+                HighestPlayer = Mathf.Max(HighestPlayer, Hit.point.y);
             }
-            if (result is null)
-                throw new InvalidOperationException($"PEAK's native {Source.Id} has no grounded four-player Start formation.");
-            if (ambiguous)
-                throw new InvalidOperationException($"PEAK's native {Source.Id} has multiple equally near Start support surfaces.");
-            return result;
-        }
-        finally
-        {
-            foreach (var surface in surfaces) surface.Destroy();
-        }
-    }
-
-    static bool TryFormation(
-        LayoutSegmentSource Source,
-        StartSupport support,
-        List<StartSurface> surfaces,
-        SpawnPoint[] spawns,
-        Transform primarySpawn,
-        Vector3[] sourceOffsets,
-        Vector3 minimumOffset,
-        Vector3 maximumOffset,
-        Vector3 entry,
-        out StartFormation result,
-        out double squaredDistance)
-    {
-        var clearance = Math.Max(Physics.defaultContactOffset, 0f);
-        var bounds = support.Bounds;
-        var distance = bounds.size.y + clearance * 2f;
-        var top = bounds.max.y + clearance;
-        var hits = new RaycastHit[sourceOffsets.Length];
-        var bestHits = new RaycastHit[sourceOffsets.Length];
-        squaredDistance = double.PositiveInfinity;
-        foreach (var z in FormationSamples)
-            foreach (var x in FormationSamples)
+            if (HighestPlayer - LowestPlayer > PlayerClearanceRadius * 2f) return;
+            foreach (var Hit in Hits)
+                if (Intersects(new Bounds(Hit.point + Vector3.up * (PlayerClearanceRadius / Hit.normal.y + Clearance),
+                        Vector3.one * (PlayerClearanceRadius * 2f)), true)) return;
+            Pose? PlanePose = null;
+            if (PlacePlane)
             {
-                var center = new Vector3(
-                    Mathf.Lerp(bounds.min.x - minimumOffset.x, bounds.max.x - maximumOffset.x, x),
-                    top,
-                    Mathf.Lerp(bounds.min.z - minimumOffset.z, bounds.max.z - maximumOffset.z, z));
-                var valid = true;
-                for (var i = 0; i < sourceOffsets.Length; i++)
-                {
-                    var origin = center + new Vector3(sourceOffsets[i].x, 0f, sourceOffsets[i].z);
-                    if (support.Raycast(new Ray(origin, Vector3.down), distance, out hits[i])) continue;
-                    valid = false;
-                    break;
-                }
-                if (!valid) continue;
-                if (HasHorizontalHit(hits, surfaces)) continue;
-                var candidateSquaredDistance = SquaredDistance(entry, hits[0].point);
-                if (candidateSquaredDistance >= squaredDistance) continue;
-                squaredDistance = candidateSquaredDistance;
-                Array.Copy(hits, bestHits, hits.Length);
+                var Position = Center + Shape.PivotWorldOffset;
+                var Translation = new Vector3(Center.x - PrimarySpawn.position.x, 0f, Center.z - PrimarySpawn.position.z);
+                if (!GroundPlane(Translation, new Bounds(
+                        new Vector3(Position.x + Shape.CenterWorldOffset.x, CollisionBounds.center.y,
+                            Position.z + Shape.CenterWorldOffset.z),
+                        new Vector3(Shape.Size.x, CollisionBounds.size.y + Clearance * 2f, Shape.Size.z)), out var Separation)) return;
+                Position.y = Plane.position.y + Separation + Clearance;
+                if (Position.y + Shape.CenterWorldOffset.y - Shape.Size.y * 0.5f - LowestPlayer > Shape.Size.y) return;
+                if (Intersects(new Bounds(Position + Shape.CenterWorldOffset, Shape.Size), false)) return;
+                PlanePose = new Pose(Position, Shape.Rotation);
             }
-        if (double.IsPositiveInfinity(squaredDistance))
-        {
-            result = null!;
-            return false;
+            if (CandidateDistance == BestDistance)
+            {
+                if (BestHits[0].point != Hits[0].point) Ambiguous = true;
+                return;
+            }
+            BestDistance = CandidateDistance;
+            BestPlane = PlanePose;
+            Ambiguous = false;
+            Array.Copy(Hits, BestHits, Hits.Length);
         }
 
-        var primary = bestHits[0].point;
-        var inverseRotation = Quaternion.Inverse(primarySpawn.rotation);
-        var indices = new int[spawns.Length];
-        var offsets = new Vector3[spawns.Length];
-        for (var i = 0; i < spawns.Length; i++)
+        bool GroundPlane(Vector3 Translation, Bounds Bounds, out float Separation)
         {
-            indices[i] = spawns[i].index;
-            offsets[i] = inverseRotation * (bestHits[i].point - primary);
-        }
-        result = new StartFormation(
-            new Pose(
-                Source.Container.InverseTransformPoint(primary),
-                Quaternion.Inverse(Source.Container.rotation) * primarySpawn.rotation),
-            indices,
-            offsets);
-        return true;
-    }
-
-    static bool HasHorizontalHit(RaycastHit[] hits, List<StartSurface> surfaces)
-    {
-        foreach (var hit in hits)
-        {
-            var origin = hit.point + Vector3.up * 1f;
-            for (var z = -1; z <= 1; z++)
-                for (var x = -1; x <= 1; x++)
+            Separation = float.NegativeInfinity;
+            while (true)
+            {
+                var Count = Physics.OverlapBoxNonAlloc(Bounds.center, Bounds.extents, OverlapHits,
+                    Quaternion.identity, CollisionMask, QueryTriggerInteraction.Ignore);
+                if (Count == OverlapHits.Length)
                 {
-                    if (x == 0 && z == 0) continue;
-                    var ray = new Ray(origin, new Vector3(x, 0f, z).normalized);
-                    foreach (var surface in surfaces)
+                    if (OverlapHits.Length == NativeCollision.MaximumQueryHits)
+                        throw new InvalidOperationException($"A landing clearance query reached its {NativeCollision.MaximumQueryHits}-hit limit.");
+                    Array.Resize(ref OverlapHits, OverlapHits.Length * 2);
+                    continue;
+                }
+                for (var i = 0; i < Count; i++)
+                {
+                    var Collider = OverlapHits[i];
+                    var Id = Collider.GetInstanceID();
+                    if (!GroundByCollider.TryGetValue(Id, out var Ground) || !Ground) continue;
+                    if (!GroundGeometry.TryGetValue(Id, out var Geometry))
                     {
-                        if (!surface.Bounds.IntersectRay(ray, out var boundsDistance) || boundsDistance > 1f) continue;
-                        if (surface.Raycast(ray, out _, 1f)) return true;
+                        Geometry = MeshAssets.Resolve((MeshCollider)Collider);
+                        GroundGeometry.Add(Id, Geometry);
                     }
+                    foreach (var Model in Shape.Geometry)
+                        if (Model.TryVerticalSeparation(Geometry, Translation, out var Required))
+                            Separation = Mathf.Max(Separation, Required);
                 }
+                return !float.IsNegativeInfinity(Separation);
+            }
         }
-        return false;
+
+        bool RaycastGround(Ray Ray, out RaycastHit Result)
+        {
+            Result = default;
+            while (true)
+            {
+                var Count = Physics.RaycastNonAlloc(Ray, RayHits, Distance, CollisionMask, QueryTriggerInteraction.Ignore);
+                if (Count < RayHits.Length)
+                {
+                    var Found = false;
+                    var Ground = false;
+                    for (var i = 0; i < Count; i++)
+                    {
+                        var Hit = RayHits[i];
+                        if (!GroundByCollider.TryGetValue(Hit.collider.GetInstanceID(), out var CandidateGround)
+                            || Found && Hit.point.y < Result.point.y) continue;
+                        if (Found && Hit.point.y == Result.point.y)
+                        {
+                            Ground &= CandidateGround && Hit.normal.y > 0.5f;
+                            continue;
+                        }
+                        Result = Hit; Found = true; Ground = CandidateGround && Hit.normal.y > 0.5f;
+                    }
+                    return Found && Ground;
+                }
+                if (RayHits.Length == NativeCollision.MaximumQueryHits)
+                    throw new InvalidOperationException($"A landing ray reached its {NativeCollision.MaximumQueryHits}-hit limit.");
+                Array.Resize(ref RayHits, RayHits.Length * 2);
+            }
+        }
+
+        bool Intersects(Bounds Bounds, bool Player)
+        {
+            while (true)
+            {
+                var Count = Player
+                    ? Physics.OverlapSphereNonAlloc(Bounds.center, PlayerClearanceRadius, OverlapHits, CollisionMask, QueryTriggerInteraction.Ignore)
+                    : Physics.OverlapBoxNonAlloc(Bounds.center, Bounds.extents, OverlapHits, Quaternion.identity, CollisionMask, QueryTriggerInteraction.Ignore);
+                for (var i = 0; i < Count; i++)
+                    if (GroundByCollider.TryGetValue(OverlapHits[i].GetInstanceID(), out var Ground) && (Player || !Ground)) return true;
+                if (Count < OverlapHits.Length) return false;
+                if (OverlapHits.Length == NativeCollision.MaximumQueryHits)
+                    throw new InvalidOperationException($"A landing clearance query reached its {NativeCollision.MaximumQueryHits}-hit limit.");
+                Array.Resize(ref OverlapHits, OverlapHits.Length * 2);
+            }
+        }
     }
 
-    static Transform SupportOwner(Transform root, Transform value)
+    readonly struct PlaneFootprint
     {
-        for (var current = value; current != root; current = current.parent)
+        internal PlaneFootprint(Transform Plane, Vector3 PlayerAnchor, NativeMeshAssets? MeshAssets)
         {
-            if (!current)
-                throw new InvalidOperationException("PEAK's native Start surface is outside its segment root.");
-            if (current.GetComponent<Ashley.MeshSplitter.MeshSplitter>()) return current;
+            var Renderers = Plane.GetComponentsInChildren<MeshRenderer>(true);
+            if (Renderers.Length == 0) throw new InvalidOperationException("The crashed plane has no mesh renderers.");
+            var Bounds = Renderers[0].bounds;
+            for (var i = 1; i < Renderers.Length; i++) Bounds.Encapsulate(Renderers[i].bounds);
+            MinimumWorldOffset = Bounds.min - PlayerAnchor;
+            MaximumWorldOffset = Bounds.max - PlayerAnchor;
+            MinimumWorldOffset.y = MaximumWorldOffset.y = 0f;
+            PivotWorldOffset = Plane.position - PlayerAnchor;
+            CenterWorldOffset = Bounds.center - Plane.position;
+            Size = Bounds.size;
+            Rotation = Plane.rotation;
+            if (MeshAssets is null) { Geometry = Array.Empty<NativeMeshGeometry>(); return; }
+            var Count = 0;
+            foreach (var Renderer in Renderers)
+                if (Renderer.enabled && Renderer.gameObject.activeInHierarchy) Count++;
+            Geometry = new NativeMeshGeometry[Count];
+            var Index = 0;
+            foreach (var Renderer in Renderers)
+                if (Renderer.enabled && Renderer.gameObject.activeInHierarchy)
+                    Geometry[Index++] = MeshAssets.Resolve(Renderer.GetComponent<MeshFilter>());
         }
-        return value;
+        internal readonly Vector3 MinimumWorldOffset, MaximumWorldOffset, PivotWorldOffset, CenterWorldOffset, Size;
+        internal readonly Quaternion Rotation;
+        internal readonly NativeMeshGeometry[] Geometry;
     }
 
     internal static double BoundsSquaredDistance(Vector3 Point, Bounds BoundsValue)

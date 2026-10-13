@@ -525,6 +525,66 @@ internal sealed class NativeMeshGeometry
         return result;
     }
 
+    internal bool TryVerticalSeparation(NativeMeshGeometry Ground, Vector3 Translation, out float Separation)
+    {
+        var Maximum = double.NegativeInfinity;
+        if (nodes.Length != 0 && Ground.nodes.Length != 0) Compare(0, 0);
+        Separation = (float)Maximum;
+        if ((double)Separation < Maximum) Separation = NextRepresentableFloat(Separation);
+        return !double.IsNegativeInfinity(Maximum);
+
+        void Compare(int ModelIndex, int GroundIndex)
+        {
+            var ModelNode = nodes[ModelIndex];
+            var GroundNode = Ground.nodes[GroundIndex];
+            if (ModelNode.Maximum.x + Translation.x < GroundNode.Minimum.x
+                || ModelNode.Minimum.x + Translation.x > GroundNode.Maximum.x
+                || ModelNode.Maximum.z + Translation.z < GroundNode.Minimum.z
+                || ModelNode.Minimum.z + Translation.z > GroundNode.Maximum.z
+                || (double)GroundNode.Maximum.y - (ModelNode.Minimum.y + Translation.y) <= Maximum) return;
+            if (!ModelNode.IsLeaf)
+            {
+                Compare(ModelIndex + 1, GroundIndex);
+                Compare(ModelNode.StartOrRight, GroundIndex);
+                return;
+            }
+            if (!GroundNode.IsLeaf)
+            {
+                Compare(ModelIndex, GroundIndex + 1);
+                Compare(ModelIndex, GroundNode.StartOrRight);
+                return;
+            }
+            Span<ProjectedPoint> Subject = stackalloc ProjectedPoint[3];
+            Span<ProjectedPoint> Intersection = stackalloc ProjectedPoint[MaximumProjectedPolygonVertices];
+            for (var i = 0; i < ModelNode.Count; i++)
+            {
+                var ModelTriangle = triangles[ModelNode.StartOrRight + i];
+                var a = Translate(vertices[ModelTriangle.A], Translation);
+                var b = Translate(vertices[ModelTriangle.B], Translation);
+                var c = Translate(vertices[ModelTriangle.C], Translation);
+                if (Cross(b - a, c - a).Y == 0d) continue;
+                var ModelProjection = new ProjectedGroundTriangle(ModelTriangle.Order, a, b, c);
+                Subject[0] = ModelProjection.A; Subject[1] = ModelProjection.B; Subject[2] = ModelProjection.C;
+                for (var j = 0; j < GroundNode.Count; j++)
+                {
+                    var GroundTriangle = Ground.triangles[GroundNode.StartOrRight + j];
+                    var d = new Point(Ground.vertices[GroundTriangle.A]);
+                    var e = new Point(Ground.vertices[GroundTriangle.B]);
+                    var f = new Point(Ground.vertices[GroundTriangle.C]);
+                    if (Cross(e - d, f - d).Y <= 0d) continue;
+                    var GroundProjection = new ProjectedGroundTriangle(GroundTriangle.Order, d, e, f);
+                    if (!ModelProjection.Overlaps(GroundProjection)) continue;
+                    var Count = ClipProjected(Subject, GroundProjection, Intersection);
+                    for (var k = 0; k < Count; k++)
+                    {
+                        var Point = Intersection[k];
+                        Maximum = Math.Max(Maximum, GroundProjection.Height(Point) - ModelProjection.Height(Point));
+                    }
+                }
+            }
+        }
+    }
+
     internal float GroundableTopEnvelopePenetration(
         NativeMeshGeometry entry,
         Vector3 entryTranslation,
@@ -813,26 +873,31 @@ internal sealed class NativeMeshGeometry
         ProjectedPolygon left,
         ProjectedGroundTriangle right) => ClipProjected(left.Vertices, right);
 
-    static ProjectedPolygon ClipProjected(
-        ReadOnlySpan<ProjectedPoint> subject,
-        ProjectedGroundTriangle clip)
+    static ProjectedPolygon ClipProjected(ReadOnlySpan<ProjectedPoint> Subject, ProjectedGroundTriangle Clip)
     {
-        Span<ProjectedPoint> first = stackalloc ProjectedPoint[MaximumProjectedPolygonVertices];
-        Span<ProjectedPoint> second = stackalloc ProjectedPoint[MaximumProjectedPolygonVertices];
-        subject.CopyTo(first);
-        var source = first;
-        var destination = second;
-        var count = subject.Length;
-        for (var edge = 0; edge < 3 && count != 0; edge++)
+        Span<ProjectedPoint> Vertices = stackalloc ProjectedPoint[MaximumProjectedPolygonVertices];
+        return CanonicalProjectedPolygon(Vertices, ClipProjected(Subject, Clip, Vertices));
+    }
+
+    static int ClipProjected(ReadOnlySpan<ProjectedPoint> Subject, ProjectedGroundTriangle Clip, Span<ProjectedPoint> Result)
+    {
+        Span<ProjectedPoint> First = stackalloc ProjectedPoint[MaximumProjectedPolygonVertices];
+        Span<ProjectedPoint> Second = stackalloc ProjectedPoint[MaximumProjectedPolygonVertices];
+        Subject.CopyTo(First);
+        var Source = First;
+        var Destination = Second;
+        var Count = Subject.Length;
+        for (var Edge = 0; Edge < 3 && Count != 0; Edge++)
         {
-            var start = edge == 0 ? clip.A : edge == 1 ? clip.B : clip.C;
-            var end = edge == 0 ? clip.B : edge == 1 ? clip.C : clip.A;
-            count = ClipProjectedEdge(source[..count], start, end, destination);
-            var swap = source;
-            source = destination;
-            destination = swap;
+            var Start = Edge == 0 ? Clip.A : Edge == 1 ? Clip.B : Clip.C;
+            var End = Edge == 0 ? Clip.B : Edge == 1 ? Clip.C : Clip.A;
+            Count = ClipProjectedEdge(Source[..Count], Start, End, Destination);
+            var Swap = Source;
+            Source = Destination;
+            Destination = Swap;
         }
-        return CanonicalProjectedPolygon(source, count);
+        Source[..Count].CopyTo(Result);
+        return Count;
     }
 
     static int ClipProjectedEdge(
@@ -986,8 +1051,8 @@ internal sealed class NativeMeshGeometry
     static double ProjectedDot(ProjectedPoint left, ProjectedPoint right) =>
         left.X * right.X + left.Z * right.Z;
 
-    static float NextRepresentableFloat(float value) =>
-        BitConverter.Int32BitsToSingle(BitConverter.SingleToInt32Bits(value) + 1);
+    static float NextRepresentableFloat(float Value) => Value == 0f ? float.Epsilon
+        : BitConverter.Int32BitsToSingle(BitConverter.SingleToInt32Bits(Value) + (Value > 0f ? 1 : -1));
 
     static int Build(
         Vector3[] vertices,

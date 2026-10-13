@@ -169,7 +169,7 @@ internal sealed class ResolvedRunConfiguration
 internal static class RunConfigurationCodec
 {
     internal const string PropertyKey = PLLLibrary.PluginGuid + "/c";
-    internal const string ProtocolRevision = "73";
+    internal const string ProtocolRevision = "75";
     internal const int MaximumPayloadBytes = short.MaxValue;
     static readonly UTF8Encoding StrictUtf8 = new(false, true);
 

@@ -331,19 +331,11 @@ internal static class LightVolumeHarmonyAdapter
         }
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(BLASPositionsPool), nameof(BLASPositionsPool.Add),
+        new[] { typeof(VertexBufferChunk), typeof(BlockAllocator.Allocation) },
+        new[] { ArgumentType.Normal, ArgumentType.Ref })]
     static class PositionCopyCommandBufferPatch
     {
-        static MethodBase TargetMethod() => AccessTools.DeclaredMethod(
-                typeof(BLASPositionsPool),
-                nameof(BLASPositionsPool.Add),
-                new[]
-                {
-                    typeof(VertexBufferChunk),
-                    typeof(BlockAllocator.Allocation).MakeByRefType()
-                })
-            ?? throw new MissingMethodException(typeof(BLASPositionsPool).FullName, nameof(BLASPositionsPool.Add));
-
         [HarmonyTranspiler]
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> Instructions) =>
             OwnCommandBuffer(

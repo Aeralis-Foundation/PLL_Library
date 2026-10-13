@@ -40,7 +40,9 @@ namespace PLL.Creator.Editor
             Pending.compilerErrorCount = 0;
             Pending.firstCompilerError = string.Empty;
             PllCreatorSetupStore.SavePending(Pending);
-            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            AssetDatabase.ImportAsset(PllCreatorEnvironment.GeneratedAssetRoot,
+                ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive
+                | ImportAssetOptions.ForceSynchronousImport);
             RequestCompilation(Pending);
         }
 

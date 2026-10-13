@@ -411,7 +411,9 @@ internal sealed class MapQuicksave
             FileManager.PeakAtEnd.Value) || (SavedBiomes?.HasForcedNativeVariation ?? HasLocalForcedNativeVariation());
     static bool HasLocalForcedNativeVariation()
     {
-        foreach (var Entry in FileManager.NativeVariations.Values) if (Entry.Value != "Random") return true;
+        foreach (var Entry in FileManager.NativeVariations)
+            if (Entry.Value.Value != VariationSequence.RandomChoice && (Entry.Value.Value != VariationSequence.PatternChoice
+                || !string.IsNullOrWhiteSpace(FileManager.NativeVariationPatterns[Entry.Key].Value))) return true;
         return false;
     }
     static bool LayoutPublicationRequired(
@@ -1187,16 +1189,10 @@ internal sealed class MapQuicksave
     static Luggage[] GetBaseCampLuggageForQuicksave(Segment SegmentValue) =>
         Map.Active && Map.HasPublishedLayout ? Array.Empty<Luggage>() : MapHandler.GetBaseCampLuggage(SegmentValue);
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(Peak.Quicksave.RunProgress), MethodType.Constructor,
+        new[] { typeof(Guid), typeof(string), typeof(Segment), typeof(bool) })]
     static class LuggageConstructorPatch
     {
-        static MethodBase TargetMethod() =>
-            AccessTools.DeclaredConstructor(
-                typeof(Peak.Quicksave.RunProgress),
-                new[] { typeof(Guid), typeof(string), typeof(Segment), typeof(bool) })
-            ?? throw new MissingMethodException(
-                "Peak.Quicksave.RunProgress(Guid, string, Segment, bool) was not found.");
-
         [HarmonyTranspiler]
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {

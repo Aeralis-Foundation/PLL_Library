@@ -2478,10 +2478,13 @@ internal sealed class HookedPropGeneration
             catch (Exception Failure) { Failures.Add(Failure); }
         }
         var Target = Declarations[RecordIndex(Key.RequestIndex)].Occurrence.HookedTargets[Key.TargetIndex];
-        Cleanup(() => Run.PropInteractions.Retire(Target.Root.gameObject));
-        Cleanup(() => Run.SurfaceTextures.Retire(Target.Root.gameObject));
-        Cleanup(() => Run.NativeMaterials.Retire(Target.Root.gameObject));
-        Cleanup(() => Run.NativeSpawners.Retire(Target.Root.gameObject));
+        if (!Run.SceneGone)
+        {
+            Cleanup(() => Run.PropInteractions.Retire(Target.Root.gameObject));
+            Cleanup(() => Run.SurfaceTextures.Retire(Target.Root.gameObject));
+            Cleanup(() => Run.NativeMaterials.Retire(Target.Root.gameObject));
+            Cleanup(() => Run.NativeSpawners.Retire(Target.Root.gameObject));
+        }
         if (EndSourceLifetime)
         {
             Cleanup(() => RetireSavedHistory(Output.TrackerIds));

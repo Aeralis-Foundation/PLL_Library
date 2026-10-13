@@ -20,6 +20,7 @@ internal sealed class NativeVisualSeal
         IReadOnlyDictionary<string, LayoutSegmentSource> Sources)
     {
         Inventory = new NativeVisualCatalog.Inventory(Handler, Sources);
+        NativeContentTools.CaptureMaterials(Inventory);
     }
 
     internal NativeVisualSources Prepare(

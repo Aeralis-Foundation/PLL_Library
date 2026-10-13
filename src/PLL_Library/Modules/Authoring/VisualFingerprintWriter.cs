@@ -718,13 +718,10 @@ internal sealed partial class VisualFingerprintWriter
         if (ValueMemberDescriptors.TryGetValue(RuntimeType, out var Existing)) return Existing;
         var Fields = RuntimeType.GetFields(BindingFlags.Instance | BindingFlags.Public);
         Array.Sort(Fields, (Left, Right) => StringComparer.Ordinal.Compare(Left.Name, Right.Name));
-        var Properties = RuntimeType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        var Properties = Array.FindAll(RuntimeType.GetProperties(BindingFlags.Instance | BindingFlags.Public),
+            Property => Property.CanRead && Property.CanWrite && Property.GetIndexParameters().Length == 0);
         Array.Sort(Properties, (Left, Right) => StringComparer.Ordinal.Compare(Left.Name, Right.Name));
-        var Readable = new List<PropertyInfo>();
-        foreach (var Property in Properties)
-            if (Property.CanRead && Property.CanWrite && Property.GetIndexParameters().Length == 0)
-                Readable.Add(Property);
-        var Descriptor = new ValueMemberDescriptor(Fields, Readable.ToArray());
+        var Descriptor = new ValueMemberDescriptor(Fields, Properties);
         ValueMemberDescriptors.Add(RuntimeType, Descriptor);
         return Descriptor;
     }

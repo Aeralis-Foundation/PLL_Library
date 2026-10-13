@@ -27,13 +27,11 @@ internal sealed class NativeFlowProvider
     internal readonly int[] DetailNodes;
     internal readonly WaterfallPusher? Pusher;
     internal readonly CollisionModifier? Contact;
-    internal readonly Lava? LocalLava;
-    internal readonly WaterZone? LocalWater;
 
     NativeFlowProvider(PLLNativeResolverKind Kind, LavaRiver River, SplineExtrude Extrude,
         Material Material, Lava? LocalLava, WaterZone? LocalWater)
     {
-        this.Kind = Kind; this.Material = Material; this.LocalLava = LocalLava; this.LocalWater = LocalWater;
+        this.Kind = Kind; this.Material = Material;
         if (LocalWater)
         {
             if (!LocalWater.waterPlane || !LocalWater.waterPlane.sharedMaterial)
@@ -2175,7 +2173,6 @@ internal abstract class NativeFlowRuntime : IDisposable
 
         protected override void Generate(PropSpawner.SpawnData Data)
         {
-            if (!Provider.LocalLava) throw new InvalidOperationException("PEAK's local Lava provider is missing.");
             Surface!.sharedMaterial = ResolveMaterial(Provider.ZoneMaterial!);
             var Bounds = NativeResolverVolume.WorldBounds(SourceTransform, Contract.Volume);
             if (Vector3.Angle(Surface!.transform.up, Vector3.up) > 0.01f

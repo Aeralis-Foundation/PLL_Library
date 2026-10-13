@@ -521,6 +521,22 @@ internal sealed class MapSlot
     internal Vector3 PlacedProgressionAxis => Frame.Direction(Source.ProgressionAxis);
     internal bool FeaturesReady => TerrainReady && CampfireReady && Occurrence.SupplementalReady;
 
+    internal int CountPreviousBiomeOccurrences()
+    {
+        var Custom = Source as CustomLayoutSegmentSource;
+        var Limit = Custom is null ? Index : Occurrence.Slots[0].Index;
+        var Count = 0;
+        for (var i = 0; i < Limit; i++)
+        {
+            var Previous = Occurrence.Run.Slots[i];
+            if (Custom is null ? Previous.Source.StableId == Source.StableId
+                : Previous.Source is CustomLayoutSegmentSource PreviousCustom
+                    && PreviousCustom.MetadataBiome == Custom.MetadataBiome
+                    && Previous.Index == Previous.Occurrence.Slots[0].Index) Count++;
+        }
+        return Count;
+    }
+
     internal void AttachPeak(Transform Attachment, Transform Respawn, PeakAttachmentSource Source)
     {
         if (PeakFacet is not PeakAttachmentFacet.Absent)

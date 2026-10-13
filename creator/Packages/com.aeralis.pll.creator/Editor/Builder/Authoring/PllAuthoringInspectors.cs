@@ -118,15 +118,15 @@ namespace PLL.Creator.Editor
             if (string.IsNullOrEmpty(Definition.ContentRevision))
                 Error(Result, "Content Revision is required and is never incremented automatically.", Definition, "contentRevision");
             if (!Definition.DayNightProfile)
-                Error(Result, "Assign a project-owned DayNightProfile or create one through PLL > Biomes > Create Day Night Profile.", Definition, "dayNightProfile");
+                Error(Result, "Assign a DayNightProfile asset from this project or create one through PLL > Biomes > Create Day Night Profile.", Definition, "dayNightProfile");
             var Root = Definition.RootPrefab;
             if (!Root)
             {
-                Error(Result, "Root Prefab is required. Use PLL > Biomes > Create Biome to create the stable source topology.", Definition, "rootPrefab");
+                Error(Result, "Assign the biome's root prefab. PLL > Biomes > Create Biome creates its required objects.", Definition, "rootPrefab");
                 return Result;
             }
             if (Root.activeSelf)
-                Error(Result, "Root Prefab must be inactive so PLL can stage mechanics before activation.", Root);
+                Error(Result, "Disable the root prefab before building the biome.", Root);
             if (!PrefabUtility.IsPartOfPrefabAsset(Root) || Root.transform.parent)
                 Error(Result, "Root Prefab must be a saved prefab root, not a child object.", Root);
             var Runtimes = Root.GetComponentsInChildren<CustomSegmentRuntime>(true);
@@ -1262,7 +1262,7 @@ namespace PLL.Creator.Editor
             if (Property.name == "TransitionValue")
             {
                 EditorGUILayout.PropertyField(Property.FindPropertyRelative("SecondsValue"),
-                    new GUIContent("Cover Delay (seconds)", "Symmetric fill/clear duration. Zero applies immediately."));
+                    new GUIContent("Cover Delay (seconds)", "Time to fill or clear the volume. Zero applies immediately."));
                 return;
             }
             if (Component is PllFogAuthoring && Property.name == "mode")
@@ -2054,8 +2054,8 @@ namespace PLL.Creator.Editor
             var Collision = (PllCollisionAuthoring)target;
             EditorGUILayout.HelpBox(Collision.Mode switch
             {
-                PllCollisionMode.Automatic => "Automatic collision preserves authored shapes and stages missing static MeshColliders.",
-                PllCollisionMode.Authored => "Authored collision requires an enabled nontrigger shape on this geometry or candidate owner.",
+                PllCollisionMode.Automatic => "Keeps existing colliders and adds static MeshColliders where they are missing.",
+                PllCollisionMode.Authored => "Use enabled colliders on this object or prefab. Trigger colliders do not provide solid collision.",
                 PllCollisionMode.None => "Decorative geometry receives no generated collision; existing shapes remain unchanged.",
                 _ => "Select a valid Collision mode."
             }, MessageType.Info);
@@ -2103,7 +2103,34 @@ namespace PLL.Creator.Editor
     internal sealed class PllNativeModifiersEditor : PllAuthoringComponentEditor { }
 
     [CustomEditor(typeof(PllNativeMaterialAuthoring))]
-    internal sealed class PllNativeMaterialEditor : PllAuthoringComponentEditor { }
+    internal sealed class PllNativeMaterialEditor : PllAuthoringComponentEditor
+    {
+        UnityEditor.Editor PreviewEditor;
+        Material Preview;
+
+        void OnDisable() { if (PreviewEditor) DestroyImmediate(PreviewEditor); }
+
+        public override void OnInspectorGUI()
+        {
+            if (GUILayout.Button("Browse PEAK Materials and Shaders"))
+                PllNativeMaterialsWindow.Open((PllNativeMaterialAuthoring)target);
+            base.OnInspectorGUI();
+            var Source = (PllNativeMaterialAuthoring)target;
+            var Renderer = Source.GetComponent<Renderer>();
+            var Materials = Renderer ? Renderer.sharedMaterials : Array.Empty<Material>();
+            var Current = Source.MaterialSlot >= 0 && Source.MaterialSlot < Materials.Length ? Materials[Source.MaterialSlot] : null;
+            if (Current != Preview)
+            {
+                if (PreviewEditor) DestroyImmediate(PreviewEditor);
+                Preview = Current;
+                PreviewEditor = Preview ? CreateEditor(Preview) : null;
+            }
+            if (!PreviewEditor) return;
+            EditorGUILayout.LabelField("Preview Material", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Enable Use Preview Properties to copy these settings into the native material. Native texture entries take priority over local texture fields.", MessageType.Info);
+            PreviewEditor.OnInspectorGUI();
+        }
+    }
 
     [CustomEditor(typeof(PllFoodSpawnerAuthoring))]
     internal sealed class PllFoodSpawnerEditor : PllAuthoringComponentEditor { }

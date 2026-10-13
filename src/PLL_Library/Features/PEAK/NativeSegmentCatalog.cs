@@ -152,17 +152,18 @@ internal sealed class NativeSegmentCatalog
                 : Sources[Biome].SegmentParent.transform;
             var Swappers = Root.GetComponentsInChildren<VariationSwapper>(true);
             var Variants = Root.GetComponentsInChildren<VariantObject>(true);
-            var Count = Variants.Length + 1;
+            var Count = Variants.Length + 2;
             foreach (var Swapper in Swappers) Count += Swapper.Variations.Length;
             var Choices = new string[Count];
-            Choices[0] = "Random";
+            Choices[0] = VariationSequence.RandomChoice;
+            Choices[Choices.Length - 1] = VariationSequence.PatternChoice;
             var Index = 1;
             foreach (var Swapper in Swappers)
                 foreach (var Variation in Swapper.Variations)
                     Choices[Index++] = VariationToken(Variation.parent.transform);
             foreach (var Variant in Variants) Choices[Index++] = VariationToken(Variant);
-            Array.Sort(Choices, 1, Choices.Length - 1, StringComparer.Ordinal);
-            for (var i = 2; i < Choices.Length; i++)
+            Array.Sort(Choices, 1, Choices.Length - 2, StringComparer.Ordinal);
+            for (var i = 2; i < Choices.Length - 1; i++)
                 if (Choices[i] == Choices[i - 1])
                     throw new InvalidOperationException($"Native biome '{Biome}' has duplicate variation '{Choices[i]}'.");
             ChoicesByBiome.Add(Biome, Choices);

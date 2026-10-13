@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PLL.Library
@@ -8,6 +9,13 @@ namespace PLL.Library
     {
         internal static bool Contains(Transform Root, Transform? Value) =>
             Value is not null && Value && (Value == Root || Value.IsChildOf(Root));
+
+        internal static bool Contains(IReadOnlyList<GameObject> Roots, Transform? Value)
+        {
+            foreach (var Root in Roots)
+                if (Contains(Root.transform, Value)) return true;
+            return false;
+        }
 
         internal static bool Overlaps(Transform Left, Transform Right) =>
             Contains(Left, Right) || Contains(Right, Left);

@@ -205,7 +205,7 @@ internal static class PlacementPlan
         if (ReplaceGenerated) return false;
         foreach (var Source in Placement.Sources)
         {
-            if (Configuration.NativeVariations.TryGetValue(Source.Id, out var Selected) && Selected != "Random") return false;
+            if (Configuration.NativeVariations.TryGetValue(Source.Id, out var Selected) && !Selected.IsRandom) return false;
             if (Source is PeakAttachmentSource) continue;
             if (!AuthoredTerrain.Contains(Source.SegmentParent.GetInstanceID())) return false;
             if (!Source.SegmentCampfire)

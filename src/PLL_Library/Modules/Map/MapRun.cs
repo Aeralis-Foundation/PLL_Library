@@ -419,7 +419,6 @@ internal sealed class MapRun
             catch (Exception Exception) { Failures.Add(Exception); }
         }
 
-        ExecuteCleanup(HookedGeneration.Release);
         ExecuteCleanup(() => OccurrenceHeightmapMeshes.ReleaseRun(this));
         ExecuteCleanup(Progress.Release);
         ExecuteCleanup(Weather.Release);

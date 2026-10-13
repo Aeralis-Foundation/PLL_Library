@@ -10,9 +10,6 @@ namespace PLL.Library;
 
 internal static class NativePropSpawnerGeneration
 {
-    const int InitialNativeLineCheckHits = 64;
-    const int MaximumNativeLineCheckHits = 1 << 16;
-
     sealed class ColliderReferenceComparer : IEqualityComparer<Collider>
     {
         internal static ColliderReferenceComparer Instance { get; } = new();
@@ -85,13 +82,13 @@ internal static class NativePropSpawnerGeneration
             Roots.DeepestRoot(Candidate, out _) is not null;
 
         internal RaycastHit[] LineCheckHits =>
-            LineCheckBuffer ??= new RaycastHit[InitialNativeLineCheckHits];
+            LineCheckBuffer ??= new RaycastHit[NativeCollision.InitialQueryHits];
 
         internal bool GrowLineCheckHits()
         {
             var Hits = LineCheckHits;
-            if (Hits.Length >= MaximumNativeLineCheckHits) return false;
-            LineCheckBuffer = new RaycastHit[Math.Min(Hits.Length * 2, MaximumNativeLineCheckHits)];
+            if (Hits.Length >= NativeCollision.MaximumQueryHits) return false;
+            LineCheckBuffer = new RaycastHit[Math.Min(Hits.Length * 2, NativeCollision.MaximumQueryHits)];
             return true;
         }
 
@@ -329,7 +326,7 @@ internal static class NativePropSpawnerGeneration
             if (Count < Hits.Length) break;
             if (!Generation.GrowLineCheckHits())
                 throw new InvalidOperationException(
-                    $"A native flow ray reached its {MaximumNativeLineCheckHits}-hit limit.");
+                    $"A native flow ray reached its {NativeCollision.MaximumQueryHits}-hit limit.");
         }
         var Buffer = Generation.LineCheckHits;
         var Result = default(RaycastHit);
@@ -418,7 +415,7 @@ internal static class NativePropSpawnerGeneration
             if (Count < Hits.Length) break;
             if (!Generation.GrowLineCheckHits())
                 throw new InvalidOperationException(
-                    $"A native prop ray reached its {MaximumNativeLineCheckHits}-hit limit.");
+                    $"A native prop ray reached its {NativeCollision.MaximumQueryHits}-hit limit.");
         }
 
         var Buffer = Generation.LineCheckHits;

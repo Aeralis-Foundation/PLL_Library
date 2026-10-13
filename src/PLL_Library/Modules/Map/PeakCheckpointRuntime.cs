@@ -370,11 +370,9 @@ internal sealed class PeakCheckpointRuntime
         }
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(Peak.ScoutStatue), nameof(Peak.ScoutStatue.ActivateScoutsHonorFXRoutine))]
     static class ScoutsHonorGenerationPatch
     {
-        static MethodBase TargetMethod() => ScoutsHonorRoutineMethod;
-
         [HarmonyPostfix]
         static void Postfix(Peak.ScoutStatue __instance, ref IEnumerator __result)
         {

@@ -26,7 +26,6 @@ internal static class PllSettingsSurface
 
     static void AttachPause(PauseMenuMainPage pausePage)
     {
-        PurgeStale();
         if (!pausePage) return;
         var handler = pausePage.GetComponentInParent<UIPageHandler>();
         var settingsPage = handler

@@ -55,8 +55,8 @@ namespace PLL.Creator.Editor
         {
             EditorGUILayout.LabelField("Source Assets", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Creates an inactive editable course prefab, biome definition, DayNightProfile, meshes and material in one project folder. "
-                + "The course uses dynamic lighting and an unlit material.",
+                "Creates a course prefab and its biome, lighting, mesh and material assets in one folder. "
+                + "The prefab starts inactive and uses dynamic lighting with an unlit material.",
                 MessageType.Info);
             OutputFolder = (DefaultAsset)EditorGUILayout.ObjectField("Output Folder", OutputFolder, typeof(DefaultAsset), false);
             Course = (StarterCourse)EditorGUILayout.EnumPopup("Starter Course", Course);

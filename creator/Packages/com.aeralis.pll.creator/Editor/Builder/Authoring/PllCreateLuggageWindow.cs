@@ -48,7 +48,7 @@ namespace PLL.Creator.Editor
             using (new EditorGUI.DisabledScope(true))
                 EditorGUILayout.ObjectField("Biome", Root, typeof(GameObject), true);
             EditorGUILayout.HelpBox(
-                "Creates a body, hinged lid, animation, collision and loot anchors. Fixed luggage stays inactive in CampfireRoot. Generated luggage becomes an active prefab asset referenced by the selected spawner; Undo removes its binding, not its assets.",
+                "Keep fixed luggage inactive under CampfireRoot. Generated luggage is saved as a prefab for the selected prop spawner. Undo removes the prefab reference, not the saved assets.",
                 MessageType.Info);
             DisplayName = EditorGUILayout.TextField("Display Name", DisplayName);
             Timing = (Placement)EditorGUILayout.EnumPopup("Placement", Timing);

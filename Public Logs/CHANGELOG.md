@@ -2,13 +2,120 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [5.9.4]
+## [5.9.9]
 <details open>
 <summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
 
 ### Fixed
 
+- Automatic plane placement fits the visible meshes to the ground instead of lifting their bounding box above nearby rocks.
+- Tornado velocity RPCs update the native field while source binding is pending.
+
+### Changed
+
+- Reused native mesh loading and bounding volume traversal for plane contact, including contact inside triangles rather than only at sampled vertices.
+- Removed two fixed target Harmony binding factories and a repeated settings page cleanup scan.
+- Shortened the Creator's luggage and native flow help text.
+
+</details>
+
+---
+
+## [5.9.8]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Automatic plane and player starts stay just inside the first biome's entrance instead of searching the whole map.
+- Solid generated rocks can support the landing.
+
+### Changed
+
+- Removed map wide support grouping and coarse whole mesh samples.
+
+</details>
+
+---
+
+## [5.9.7]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Automatic native starts use the placed map after prop generation.
+- Player clearance and the full plane footprint are checked before spawning players.
+
+### Changed
+
+- Start placement uses one captured player formation and one collision inventory.
+- Collision queries use Unity's spatial index and reusable hit buffers instead of scanning every collider.
+
+</details>
+
+---
+
+## [5.9.6]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Lazy Condor generation retains an inactive template instead of a scene object that native prop cleanup destroys.
+- Authored amulet spawners accept flat ground when the native minimum slope is zero.
+- Local lava generation uses its captured material without requiring the original scene component to remain alive.
+- Map teardown releases hooked outputs before destroying their source objects.
+- Run cancellation does not dispose a coroutine from inside its own active step, preserving the original failure.
+- Creator reconfiguration imports the generated SDK and scripts before compiling them.
+
+### Changed
+
+- Removed duplicate hierarchy membership helpers and six fixed target Harmony binding factories.
+- Simplified Creator dialogs and tooltips.
+
+</details>
+
+---
+
+## [5.9.5]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Added
+
+- Creator's native material browser lists PEAK materials, shaders, properties and texture previews.
+- Native Material can apply edited preview properties while retaining PEAK's shader and native keywords.
+
+### Fixed
+
+- Native start placement grounds the crashed plane separately from the player spawn points when the biome has no plane anchor.
+
+### Changed
+
+- Shared cleanup preserves individual failures without duplicated exception handlers.
+- Creator setup and authoring messages use shorter, concrete descriptions. =w=
+
+</details>
+
+---
+
+## [5.9.4]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
 - Initial FakeItem synchronization identifies scene roots by their unique names, not their positions in Unity's scene root array.
+- Native night cold respects biome roles instead of applying to every native biome, preserving Volcano and Citadel exclusions at ascent 5 and above.
+
+### Added
+
+- Native biome and custom variation group selections include Pattern with a companion string.
+
+### Changed
+
+- Creator's NativeModifiers component is grouped under PLL/Effects.
 
 </details>
 

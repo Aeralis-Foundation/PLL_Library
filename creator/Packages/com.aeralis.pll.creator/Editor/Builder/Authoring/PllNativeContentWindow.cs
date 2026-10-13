@@ -409,7 +409,7 @@ namespace PLL.Creator.Editor
             && Left.PeakSha256 == Right.PeakSha256 && Left.UnityVersion == Right.UnityVersion
             && Left.BundleFile == Right.BundleFile && Left.BundleSha256 == Right.BundleSha256;
 
-        static Texture2D ReadThumbnail(string CatalogPath, NativeContentEntry Entry)
+        internal static Texture2D ReadThumbnail(string CatalogPath, NativeContentEntry Entry)
         {
             var Path = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(CatalogPath), Entry.ImageFile);
             byte[] Bytes;

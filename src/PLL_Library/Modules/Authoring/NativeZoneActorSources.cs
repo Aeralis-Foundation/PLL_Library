@@ -270,33 +270,49 @@ internal sealed class NativeZombieSource
 
 internal sealed class NativeCondorSource
 {
+    readonly GameObject Holder;
     readonly byte[] Fingerprint;
 
-    NativeCondorSource(GameObject Prefab)
+    NativeCondorSource(GameObject Source)
     {
-        this.Prefab = Prefab;
-        SkinDescriptor = NativeEntitySkinDescriptor.Capture(Prefab);
-        var Bird = Prefab.GetComponent<Condor>();
-        Fingerprint = NativeNetworkPrefabGraph.Fingerprint(Prefab, "PLL/NativeCondor/v1", Writer =>
+        Holder = new GameObject("__PLL_CondorTemplate");
+        Holder.SetActive(false);
+        try
         {
-            ManifestEncoding.WriteScalar(Writer, Bird.radius); ManifestEncoding.WriteScalar(Writer, Bird.loopDuration);
-            ManifestEncoding.WriteScalar(Writer, Bird.noiseStrength); Writer.Write(Bird.seed);
-            ManifestEncoding.WriteScalar(Writer, Bird.extraDrag); ManifestEncoding.WriteScalar(Writer, Bird.grabForce);
-            ManifestEncoding.WriteScalar(Writer, Bird.swoopTime);
-            ManifestEncoding.WriteScalar(Writer, Bird.scanCharacterSuccessDistance);
-            ManifestEncoding.WriteScalar(Writer, Bird.headGrabMult); ManifestEncoding.WriteScalar(Writer, Bird.bodyGrabMult);
-            ManifestEncoding.WriteScalar(Writer, Bird.carryTime); ManifestEncoding.WriteScalar(Writer, Bird.moveToNestSpeed);
-            ManifestEncoding.WriteScalar(Writer, Bird.nestDropHeight); ManifestEncoding.WriteScalar(Writer, Bird.nestDropDistance);
-            ManifestEncoding.WriteScalar(Writer, Bird.returnToLoopDistance);
-            ManifestEncoding.WriteScalar(Writer, Bird.letGoForceFalloffTime);
-            NativeNetworkPrefabGraph.WriteCurve(Writer, Bird.swoopCurve);
-            Writer.Write(DeterministicObjectIdentity.RelativeComponentStructuralPath(Bird.dragToPoint, Prefab.transform));
-        });
+            Prefab = UnityEngine.Object.Instantiate(Source, Holder.transform, false);
+            Prefab.name = Source.name;
+            SkinDescriptor = NativeEntitySkinDescriptor.Capture(Prefab);
+            var Bird = Source.GetComponent<Condor>();
+            Fingerprint = NativeNetworkPrefabGraph.Fingerprint(Source, "PLL/NativeCondor/v1", Writer =>
+            {
+                ManifestEncoding.WriteScalar(Writer, Bird.radius); ManifestEncoding.WriteScalar(Writer, Bird.loopDuration);
+                ManifestEncoding.WriteScalar(Writer, Bird.noiseStrength); Writer.Write(Bird.seed);
+                ManifestEncoding.WriteScalar(Writer, Bird.extraDrag); ManifestEncoding.WriteScalar(Writer, Bird.grabForce);
+                ManifestEncoding.WriteScalar(Writer, Bird.swoopTime);
+                ManifestEncoding.WriteScalar(Writer, Bird.scanCharacterSuccessDistance);
+                ManifestEncoding.WriteScalar(Writer, Bird.headGrabMult); ManifestEncoding.WriteScalar(Writer, Bird.bodyGrabMult);
+                ManifestEncoding.WriteScalar(Writer, Bird.carryTime); ManifestEncoding.WriteScalar(Writer, Bird.moveToNestSpeed);
+                ManifestEncoding.WriteScalar(Writer, Bird.nestDropHeight); ManifestEncoding.WriteScalar(Writer, Bird.nestDropDistance);
+                ManifestEncoding.WriteScalar(Writer, Bird.returnToLoopDistance);
+                ManifestEncoding.WriteScalar(Writer, Bird.letGoForceFalloffTime);
+                NativeNetworkPrefabGraph.WriteCurve(Writer, Bird.swoopCurve);
+                Writer.Write(DeterministicObjectIdentity.RelativeComponentStructuralPath(Bird.dragToPoint, Source.transform));
+            });
+            PhotonCloneIdentity.Reset(Prefab);
+            Prefab.GetComponent<Condor>().nest = null;
+        }
+        catch
+        {
+            UnityEngine.Object.DestroyImmediate(Holder);
+            throw;
+        }
     }
 
     internal GameObject Prefab { get; }
 
     internal NativeEntitySkinDescriptor SkinDescriptor { get; }
+
+    internal void Release() => UnityEngine.Object.DestroyImmediate(Holder);
 
     internal static NativeCondorSource Capture(NativeSegmentCatalog Catalog)
     {

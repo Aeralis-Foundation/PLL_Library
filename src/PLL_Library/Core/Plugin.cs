@@ -18,6 +18,7 @@ public sealed class Plugin : BaseUnityPlugin, IInRoomCallbacks, IMatchmakingCall
 {
     Harmony? harmony;
     readonly HashSet<IEnumerator> mapRoutines = new();
+    readonly HashSet<IEnumerator> AdvancingMapRoutines = new();
     bool teardownStarted;
     static Plugin instance = null!;
 
@@ -125,7 +126,15 @@ public sealed class Plugin : BaseUnityPlugin, IInRoomCallbacks, IMatchmakingCall
     {
         try
         {
-            while (routine.MoveNext()) yield return routine.Current;
+            while (true)
+            {
+                bool Moved;
+                AdvancingMapRoutines.Add(routine);
+                try { Moved = routine.MoveNext(); }
+                finally { AdvancingMapRoutines.Remove(routine); }
+                if (!Moved || !mapRoutines.Contains(routine)) yield break;
+                yield return routine.Current;
+            }
         }
         finally
         {
@@ -142,6 +151,8 @@ public sealed class Plugin : BaseUnityPlugin, IInRoomCallbacks, IMatchmakingCall
         mapRoutines.Clear();
         Exception? failure = null;
         foreach (var routine in routines)
+        {
+            if (AdvancingMapRoutines.Contains(routine)) continue;
             try
             {
                 (routine as IDisposable)?.Dispose();
@@ -152,6 +163,7 @@ public sealed class Plugin : BaseUnityPlugin, IInRoomCallbacks, IMatchmakingCall
                     ? exception
                     : new AggregateException("Multiple map coroutine releases failed.", failure, exception);
             }
+        }
         if (failure is not null) ExceptionPropagation.Throw(failure);
     }
 

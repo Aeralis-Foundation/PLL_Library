@@ -884,11 +884,14 @@ internal sealed class NativeSpawnAdmission
         if (!View || !NativeActors.TryGetValue(View, out var Actor)) return false;
         if (Actor.Binding is ActorBinding.Retired) return true;
         if (Actor.Binding is not ActorBinding.Pending Pending) return false;
+        if (Actor.Origin.Kind == ActorKind.Tornado
+            && DeferredMapNetworkOperations.RpcMethod(Data) == nameof(global::Tornado.RPCA_SyncTornado)) return false;
         var Snapshot = new Hashtable(Data.Count);
         foreach (var Pair in Data) Snapshot.Add(Pair.Key, PhotonPropertyProtocol.Snapshot(Pair.Value));
         var Bytes = GeneratedRpcDeferral.SerializePhotonValue(Snapshot).Length;
         if (Bytes > GeneratedRpcDeferral.MaximumPropertyBytes - Pending.CallBytes)
-            throw new InvalidOperationException("Native actor initialization exceeded the deferred network capacity.");
+            throw new InvalidOperationException(
+                $"Pending {Actor.Origin.Kind} RPC '{DeferredMapNetworkOperations.RpcMethod(Data)}' exceeds the {GeneratedRpcDeferral.MaximumPropertyBytes}-byte queue limit ({(long)Pending.CallBytes + Bytes} bytes).");
         Pending.CallBytes += Bytes; Pending.Calls.Add((Snapshot, Sender)); return true;
     }
 

@@ -20,14 +20,25 @@ internal sealed class NativeModifierRuntime
         var Run = Map.CurrentRun;
         var Slot = Run?.ReadyCurrentSlot;
         if (Run is not null && Slot is null) return;
-        if (Run is null && !Singleton<MountainProgressHandler>.Instance) return;
         var Modifiers = Slot?.Modifiers;
         var Custom = Slot?.CustomResolved is not null;
         if (Custom && Modifiers is null) return;
+        var NightCold = Modifiers?.Settings.NightCold == true;
+        if (!Custom)
+        {
+            if (Slot is not null)
+                NightCold = Slot.NativeRole is Segment.Beach or Segment.Tropics or Segment.Alpine;
+            else
+            {
+                var Progress = Singleton<MountainProgressHandler>.Instance;
+                NightCold = Progress && Progress.maxProgressPointReached < (int)Segment.Caldera;
+            }
+        }
+        var Heat = Modifiers?.Settings.MesaHeatstroke == true;
+        if (!NightCold && !Heat) return;
         var DayNight = DayNightManager.instance;
         if (!DayNight) return;
-        var Heat = Modifiers?.Settings.MesaHeatstroke == true;
-        if ((!Custom || Modifiers?.Settings.NightCold == true) && Ascents.isNightCold)
+        if (NightCold && Ascents.isNightCold)
         {
             var Day = DayNight.isDay;
             if (Day < 0.5f)

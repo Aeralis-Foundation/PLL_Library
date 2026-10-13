@@ -47,6 +47,23 @@ internal sealed class NativeMaterialContract
     {
         var Source = Selection.NativeMaterial.Length == 0 ? Selection.Preview : Catalog.Require(Selection.NativeMaterial);
         var Shader = NativeFogRenderRuntime.CanonicalShader(Source.shader);
+        if (Selection.UsePreviewProperties)
+        {
+            var PreviewShader = Selection.Preview.shader;
+            for (var Index = 0; Index < PreviewShader.GetPropertyCount(); Index++)
+            {
+                var Name = PreviewShader.GetPropertyName(Index);
+                var Type = PreviewShader.GetPropertyType(Index);
+                var Target = Shader.FindPropertyIndex(Name);
+                if (Target < 0 || Shader.GetPropertyType(Target) != Type
+                    || Type == UnityEngine.Rendering.ShaderPropertyType.Texture
+                        && Shader.GetPropertyTextureDimension(Target) != PreviewShader.GetPropertyTextureDimension(Index))
+                    throw new ArgumentException($"Preview property '{Name}' does not match native shader '{Shader.name}'. Create its preview through the native material browser.");
+                if (Type == UnityEngine.Rendering.ShaderPropertyType.Texture && Selection.Preview.GetTexture(Name) is { } Texture
+                    && Texture && Texture.dimension != Shader.GetPropertyTextureDimension(Target))
+                    throw new ArgumentException($"Preview texture '{Name}' has the wrong texture dimension.");
+            }
+        }
         var Textures = new Texture[Selection.Textures.Count];
         using var Stream = new MemoryStream();
         using (var Writer = new BinaryWriter(Stream, System.Text.Encoding.UTF8, true))
@@ -69,6 +86,11 @@ internal sealed class NativeMaterialContract
         var Owned = new Material(Source) { name = "PLL Native Material", shader = Shader, renderQueue = Source.renderQueue };
         try
         {
+            if (Selection.UsePreviewProperties)
+            {
+                Owned.CopyMatchingPropertiesFromMaterial(Selection.Preview);
+                Owned.shaderKeywords = Source.shaderKeywords;
+            }
             for (var Index = 0; Index < Textures.Length; Index++)
                 Owned.SetTexture(Selection.Textures[Index].Property, Textures[Index]);
             using var Sha = System.Security.Cryptography.SHA256.Create();

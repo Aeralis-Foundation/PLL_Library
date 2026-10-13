@@ -52,7 +52,33 @@ namespace PLL.Library
         [DataMember(Order = 7, IsRequired = true)] public NativeContentEntry[] Entries = Array.Empty<NativeContentEntry>();
         [DataMember(Order = 8, IsRequired = true)] public NativeContentRig[] Rigs = Array.Empty<NativeContentRig>();
         [DataMember(Order = 9, IsRequired = true)] public NativeContentOccurrence[] Occurrences = Array.Empty<NativeContentOccurrence>();
+        [DataMember(Order = 10)] public NativeContentMaterial[] Materials = Array.Empty<NativeContentMaterial>();
     }
+
+    [DataContract]
+    internal sealed class NativeContentMaterial
+    {
+        [DataMember(Order = 0, IsRequired = true)] public string Name = "";
+        [DataMember(Order = 1, IsRequired = true)] public string Shader = "";
+        [DataMember(Order = 2, IsRequired = true)] public int RenderQueue;
+        [DataMember(Order = 3, IsRequired = true)] public NativeContentMaterialProperty[] Properties = Array.Empty<NativeContentMaterialProperty>();
+    }
+
+#nullable enable annotations
+    [DataContract]
+    internal sealed class NativeContentMaterialProperty
+    {
+        [DataMember(Order = 0, IsRequired = true)] public string Name = "";
+        [DataMember(Order = 1, IsRequired = true)] public string Label = "";
+        [DataMember(Order = 2, IsRequired = true)] public UnityEngine.Rendering.ShaderPropertyType Type;
+        [DataMember(Order = 3, IsRequired = true)] public UnityEngine.Rendering.TextureDimension Dimension;
+        [DataMember(Order = 4, IsRequired = true)] public float Minimum, Maximum;
+        [DataMember(Order = 5, IsRequired = true)] public float[] Values = Array.Empty<float>();
+        [DataMember(Order = 6, IsRequired = true)] public int Integer;
+        [DataMember(Order = 7, IsRequired = true)] public string Texture = "";
+        [DataMember(Order = 8)] public NativeContentEntry? Image;
+    }
+#nullable restore
 
     [DataContract]
     internal sealed class NativeContentOccurrence
@@ -234,6 +260,36 @@ namespace PLL.Library
                 || !Hash(Catalog.NativeRunSettingsSha256))
                 throw new InvalidOperationException("The native content catalog is malformed.");
             RequireIdentity(Catalog.Identity);
+            Catalog.Materials ??= Array.Empty<NativeContentMaterial>();
+            var MaterialNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var Material in Catalog.Materials)
+            {
+                if (Material == null || string.IsNullOrWhiteSpace(Material.Name) || !MaterialNames.Add(Material.Name)
+                    || string.IsNullOrWhiteSpace(Material.Shader) || Material.Properties == null
+                    || Material.RenderQueue < -1 || Material.RenderQueue > 5000)
+                    throw new InvalidOperationException("The native material catalog has an invalid material.");
+                var Properties = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var Property in Material.Properties)
+                {
+                    if (Property == null || string.IsNullOrEmpty(Property.Name) || !Properties.Add(Property.Name)
+                        || !System.Text.RegularExpressions.Regex.IsMatch(Property.Name, @"\A[A-Za-z_][A-Za-z0-9_]*\z")
+                        || Property.Label == null || Property.Texture == null || Property.Values == null
+                        || !Enum.IsDefined(typeof(UnityEngine.Rendering.ShaderPropertyType), Property.Type))
+                        throw new InvalidOperationException("The native material catalog has an invalid shader property.");
+                    var Width = Property.Type == UnityEngine.Rendering.ShaderPropertyType.Int ? 0
+                        : Property.Type is UnityEngine.Rendering.ShaderPropertyType.Float or UnityEngine.Rendering.ShaderPropertyType.Range ? 1 : 4;
+                    if (Property.Values.Length != Width || Array.Exists(Property.Values, Value => float.IsNaN(Value) || float.IsInfinity(Value))
+                        || float.IsNaN(Property.Minimum) || float.IsInfinity(Property.Minimum)
+                        || float.IsNaN(Property.Maximum) || float.IsInfinity(Property.Maximum)
+                        || Property.Type == UnityEngine.Rendering.ShaderPropertyType.Range && Property.Minimum > Property.Maximum
+                        || Property.Type == UnityEngine.Rendering.ShaderPropertyType.Texture
+                            && !Enum.IsDefined(typeof(UnityEngine.Rendering.TextureDimension), Property.Dimension))
+                        throw new InvalidOperationException($"Shader property '{Property.Name}' has invalid values.");
+                    if (Property.Image is { } Image && (Image.ImageFile == null || Image.ImageSha256 == null || Image.ImageAbsence == null
+                        || Image.ImageFile.Length != 0 && (!Hash(Image.ImageSha256) || Image.ImageFile != Image.ImageSha256 + ".png")))
+                        throw new InvalidOperationException("A native texture preview has an invalid image reference.");
+                }
+            }
             var Slots = new HashSet<int>();
             foreach (var Occurrence in Catalog.Occurrences)
                 if (Occurrence == null || Occurrence.SlotIndex < 0 || Occurrence.OccurrenceRequestIndex < 0

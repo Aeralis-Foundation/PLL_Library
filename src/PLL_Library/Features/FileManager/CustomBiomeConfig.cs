@@ -160,10 +160,10 @@ internal sealed class BiomeLayoutConfigValues
     internal BiomeId[] After { get; }
     internal int SpawnChance { get; }
     internal IReadOnlyList<VariationGroupValues> Variations { get; }
-    internal float EffectiveVariationWeight(string GroupId, string EntryId)
+    internal float EffectiveVariationWeight(string GroupId, string EntryId, int OccurrenceIndex)
     {
         foreach (var Group in Variations)
-            if (Group.Id == GroupId) return Group.EffectiveWeight(EntryId);
+            if (Group.Id == GroupId) return Group.EffectiveWeight(EntryId, OccurrenceIndex);
         throw new InvalidOperationException($"Biome '{Id}' has no captured variation group '{GroupId}'.");
     }
     internal bool Favors(BiomeId id) => Contains(Favorites, id);
@@ -190,13 +190,13 @@ internal sealed class BiomeLayoutConfigSnapshot
     readonly Dictionary<string, BiomeSpatialSettings> NativeSpatial;
     readonly Dictionary<BiomeId, BiomeSpatialSettings> CustomSpatial;
 
-    internal BiomeLayoutConfigSnapshot(BiomeLayoutConfigValues[] values, IReadOnlyDictionary<string, string>? NativeVariations = null,
+    internal BiomeLayoutConfigSnapshot(BiomeLayoutConfigValues[] values, IReadOnlyDictionary<string, VariationSequence>? NativeVariations = null,
         IReadOnlyList<BiomeSpatialSettings>? Spatial = null)
     {
         Values = values;
         byId = new Dictionary<BiomeId, BiomeLayoutConfigValues>(values.Length);
         foreach (var value in values) byId.Add(value.Id, value);
-        this.NativeVariations = NativeVariations ?? new Dictionary<string, string>(StringComparer.Ordinal);
+        this.NativeVariations = NativeVariations ?? new Dictionary<string, VariationSequence>(StringComparer.Ordinal);
         var SpatialValues = new BiomeSpatialSettings[NativeSpatialIds.Count + values.Length];
         if (Spatial is null)
         {
@@ -225,7 +225,7 @@ internal sealed class BiomeLayoutConfigSnapshot
 
     internal IReadOnlyList<BiomeLayoutConfigValues> Values { get; }
     internal string Serialized { get; }
-    internal IReadOnlyDictionary<string, string> NativeVariations { get; }
+    internal IReadOnlyDictionary<string, VariationSequence> NativeVariations { get; }
     internal IReadOnlyList<BiomeSpatialSettings> SpatialValues { get; }
     internal BiomeSpatialSettings SpatialFor(LayoutSegmentSource Source) => Source is CustomLayoutSegmentSource Custom
         ? CustomSpatial[Custom.MetadataBiome] : NativeSpatial[Source.Id];
@@ -250,14 +250,14 @@ internal sealed class BiomeLayoutConfigSnapshot
     {
         get
         {
-            foreach (var Selected in NativeVariations.Values) if (Selected != "Random") return true;
+            foreach (var Selected in NativeVariations.Values) if (!Selected.IsRandom) return true;
             return false;
         }
     }
     internal bool TryGet(BiomeId id, out BiomeLayoutConfigValues values) => byId.TryGetValue(id, out values!);
     internal BiomeLayoutConfigValues this[BiomeId Id] => byId[Id];
 
-    static void WriteBase(StringBuilder Result, IReadOnlyList<BiomeLayoutConfigValues> Values, IReadOnlyDictionary<string, string> NativeVariations)
+    static void WriteBase(StringBuilder Result, IReadOnlyList<BiomeLayoutConfigValues> Values, IReadOnlyDictionary<string, VariationSequence> NativeVariations)
     {
         LengthPrefixedText.Append(Result, Values.Count.ToString(CultureInfo.InvariantCulture));
         foreach (var Value in Values)
@@ -275,7 +275,7 @@ internal sealed class BiomeLayoutConfigSnapshot
             if (NativeVariations.TryGetValue(Biome, out var Selected))
             {
                 LengthPrefixedText.Append(Result, Biome);
-                LengthPrefixedText.Append(Result, Selected);
+                LengthPrefixedText.Append(Result, Selected.IsRandom ? VariationSequence.RandomChoice : Selected.Serialized);
             }
     }
 
@@ -312,13 +312,13 @@ internal sealed class BiomeLayoutConfigSnapshot
         if (!LengthPrefixedText.TryRead(data, ref offset, out var NativeCountValue)
             || !int.TryParse(NativeCountValue, NumberStyles.None, CultureInfo.InvariantCulture, out var NativeCount)
             || NativeCount != NativeSegmentCatalog.ConfigBiomeNames.Count) return false;
-        var NativeVariations = new Dictionary<string, string>(NativeCount, StringComparer.Ordinal);
+        var NativeVariations = new Dictionary<string, VariationSequence>(NativeCount, StringComparer.Ordinal);
         foreach (var ExpectedBiome in NativeSegmentCatalog.ConfigBiomeNames)
         {
             if (!LengthPrefixedText.TryRead(data, ref offset, out var Biome) || Biome != ExpectedBiome
                 || !LengthPrefixedText.TryRead(data, ref offset, out var Selected)
-                || Selected.Length == 0 || Selected.IndexOf('\n') >= 0 || Selected.IndexOf('\r') >= 0) return false;
-            NativeVariations.Add(Biome, Selected);
+                || Selected.Length == 0 || !VariationSequence.TryParse(Selected, out var Sequence)) return false;
+            NativeVariations.Add(Biome, Sequence);
         }
         if (LegacySpatial)
         {
@@ -640,7 +640,7 @@ internal static class CustomBiomeConfigRegistry
             ? Configuration.File
             : null;
 
-    internal static BiomeLayoutConfigSnapshot Capture(IReadOnlyDictionary<string, string> NativeVariations)
+    internal static BiomeLayoutConfigSnapshot Capture(IReadOnlyDictionary<string, VariationSequence> NativeVariations)
     {
         var OrderedConfigurations = StartupConfigurations!;
         var Values = new BiomeLayoutConfigValues[OrderedConfigurations.Length];
@@ -890,15 +890,17 @@ internal sealed class VariationGroupConfig
             Entries[i] = new Entry(Contract.EntryId(i), Contract.EntryTitle(i), Contract.DefaultWeight(i));
         Section = "Variations." + Uri.EscapeDataString(Id);
         EntryOrder = new int[Entries.Length];
-        var Labels = new string[EntryOrder.Length + 1];
-        Labels[0] = "Random";
+        var Labels = new string[EntryOrder.Length + 2];
+        Labels[0] = VariationSequence.RandomChoice;
+        Labels[Labels.Length - 1] = VariationSequence.PatternChoice;
         var Titles = new string[EntryOrder.Length];
-        var Counts = new Dictionary<string, int>(StringComparer.Ordinal) { ["Random"] = 1 };
+        var Counts = new Dictionary<string, int>(StringComparer.Ordinal)
+            { [VariationSequence.RandomChoice] = 1, [VariationSequence.PatternChoice] = 1 };
         for (var i = 0; i < Titles.Length; i++)
         {
             var Title = new StringBuilder();
             foreach (var Character in Entries[i].Title)
-                Title.Append(char.IsControl(Character) || "=\\\"'[],".IndexOf(Character) >= 0 ? ' ' : Character);
+                Title.Append(char.IsControl(Character) || "=\\\"'[],>".IndexOf(Character) >= 0 ? ' ' : Character);
             Titles[i] = Title.ToString().Trim();
             if (Titles[i].Length == 0) Titles[i] = "Variation";
             Counts.TryGetValue(Titles[i], out var Count); Counts[Titles[i]] = Count + 1;
@@ -936,15 +938,37 @@ internal sealed class VariationGroupConfig
                 || PersistedId != Entries[i].Id;
         }
         Array.Sort(EntryOrder, (Left, Right) => string.CompareOrdinal(Entries[Left].Id, Entries[Right].Id));
-        var Selected = ReadSelection(Raw);
-        var Selection = File.Bind(Section, "Selected", "Random", new ConfigDescription(
-            "Selects one entry for every occurrence, even with zero weight. Random chooses using the relative weights.",
+        var Selected = ReadSelection(Raw, out var PatternSelected);
+        var Selection = File.Bind(Section, "Selected", VariationSequence.RandomChoice, new ConfigDescription(
+            "Selects one entry for every occurrence, even with zero weight. Random uses relative weights; Pattern follows this group's pattern.",
             new AcceptableValueList<string>(Labels)));
-        if (Selected.Length != 0)
-            for (var i = 0; i < Entries.Length; i++)
-                if (Entries[i].Id == Selected) Selection.Value = Labels[i + 1];
+        if (!Selected.IsRandom && !PatternSelected)
+            Selection.Value = FindLabel(Selected.At(0));
+        var Pattern = File.Bind(Section, VariationSequence.PatternChoice, "", VariationSequence.PatternDescription);
+        if (PatternSelected && !Selected.IsRandom)
+        {
+            var Canonical = new StringBuilder();
+            for (var i = 0; i < Selected.Count; i++)
+            {
+                var Label = FindLabel(Selected.At(i));
+                if (Canonical.Length + Label.Length + (i == 0 ? 0 : 3) > RunConfigurationCodec.MaximumPayloadBytes)
+                    throw new InvalidDataException($"Variation pattern '{Id}' exceeds {RunConfigurationCodec.MaximumPayloadBytes} characters. Use fewer entries.");
+                if (i != 0) Canonical.Append(" > ");
+                Canonical.Append(Label);
+            }
+            Pattern.Value = Canonical.ToString();
+        }
+        RequiresSave |= !Raw.TryGetValue(Section + "\n" + VariationSequence.PatternChoice, out var PersistedPattern)
+            || PersistedPattern != Pattern.Value;
         RequiresSave |= !Raw.TryGetValue(Section + "\nSelected", out var PersistedSelection)
             || PersistedSelection != Selection.Value;
+
+        string FindLabel(string EntryId)
+        {
+            for (var i = 0; i < Entries.Length; i++)
+                if (Entries[i].Id == EntryId) return Labels[i + 1];
+            throw new InvalidOperationException($"Variation group '{Id}' has no entry '{EntryId}'.");
+        }
     }
 
     internal string Id { get; }
@@ -964,8 +988,8 @@ internal sealed class VariationGroupConfig
             Weights[i] = ReadWeight(WeightSettings, EntryOrder[i]);
             Enabled |= Weights[i] > 0f;
         }
-        var Selected = ReadSelection(Raw);
-        if (!Enabled && Selected.Length == 0)
+        var Selected = ReadSelection(Raw, out _);
+        if (!Enabled && Selected.IsRandom)
             throw new InvalidDataException($"Biome '{Biome}' variation group '{Id}' has no positive weight. Set at least one variation weight above zero.");
         return new VariationGroupValues(Id, Selected, EntryIds, Weights);
     }
@@ -1008,15 +1032,26 @@ internal sealed class VariationGroupConfig
         return Weight == 0f ? 0f : Weight;
     }
 
-    string ReadSelection(Dictionary<string, string> Raw)
+    VariationSequence ReadSelection(Dictionary<string, string> Raw, out bool PatternSelected)
     {
-        if (!Raw.TryGetValue(Section + "\nSelected", out var Value) || Value == "Random") return string.Empty;
+        var Selected = Raw.TryGetValue(Section + "\nSelected", out var Value) ? Value : VariationSequence.RandomChoice;
+        var HasPattern = Raw.TryGetValue(Section + "\n" + VariationSequence.PatternChoice, out var Pattern);
+        PatternSelected = Selected == VariationSequence.PatternChoice
+            && (HasPattern || !Raw.ContainsKey(Section + "\n" + IdentityPrefix + Selected));
+        if (!PatternSelected)
+            return Selected == VariationSequence.RandomChoice ? VariationSequence.Random
+                : VariationSequence.Capture(Id, ReadEntry(Selected, Raw), "");
+        return VariationSequence.Capture(Id, Selected, Pattern ?? "", Entry => ReadEntry(Entry, Raw));
+    }
+
+    string ReadEntry(string Value, Dictionary<string, string> Raw)
+    {
         if (Raw.TryGetValue(Section + "\n" + IdentityPrefix + Value, out var Identity))
             for (var i = 0; i < Entries.Length; i++)
                 if (Identity == Entries[i].Id) return Identity;
         for (var i = 0; i < Entries.Length; i++)
             if (Value.EndsWith(" [" + Entries[i].Id + "]", StringComparison.Ordinal)) return Entries[i].Id;
-        throw new InvalidDataException($"Variation group '{Id}' has an unknown selected entry. Select Random or a listed entry.");
+        throw new InvalidDataException($"Variation group '{Id}' has an unknown entry '{Value}'. Use a listed entry name.");
     }
 
     internal static VariationGroupValues[] Capture(CustomBiomeConfig Configuration)
@@ -1034,21 +1069,22 @@ internal sealed class VariationGroupValues
     readonly string[] EntryIds;
     readonly float[] Weights;
 
-    internal VariationGroupValues(string Id, string SelectedEntryId, string[] EntryIds, float[] Weights)
+    internal VariationGroupValues(string Id, VariationSequence Selection, string[] EntryIds, float[] Weights)
     {
         this.Id = Id;
-        this.SelectedEntryId = SelectedEntryId;
+        this.Selection = Selection;
         this.EntryIds = EntryIds;
         this.Weights = Weights;
     }
 
     internal string Id { get; }
-    internal string SelectedEntryId { get; }
-    internal float EffectiveWeight(string EntryId)
+    internal VariationSequence Selection { get; }
+    internal float EffectiveWeight(string EntryId, int OccurrenceIndex)
     {
+        var Selected = Selection.At(OccurrenceIndex);
         for (var i = 0; i < EntryIds.Length; i++)
             if (EntryIds[i] == EntryId)
-                return SelectedEntryId.Length == 0 ? Weights[i] : SelectedEntryId == EntryId ? 1f : 0f;
+                return Selected.Length == 0 ? Weights[i] : Selected == EntryId ? 1f : 0f;
         throw new InvalidOperationException($"Variation group '{Id}' has no captured entry '{EntryId}'.");
     }
 
@@ -1058,7 +1094,7 @@ internal sealed class VariationGroupValues
         foreach (var Group in Groups)
         {
             LengthPrefixedText.Append(Writer, Group.Id);
-            LengthPrefixedText.Append(Writer, Group.SelectedEntryId);
+            LengthPrefixedText.Append(Writer, Group.Selection.Serialized);
             LengthPrefixedText.Append(Writer, Group.EntryIds.Length.ToString(CultureInfo.InvariantCulture));
             for (var i = 0; i < Group.EntryIds.Length; i++)
             {
@@ -1080,13 +1116,13 @@ internal sealed class VariationGroupValues
             var Group = Expected[i];
             if (!LengthPrefixedText.TryRead(Data, ref Offset, out var Id) || Id != Group.Id
                 || !LengthPrefixedText.TryRead(Data, ref Offset, out var Selected)
+                || !VariationSequence.TryParse(Selected, out var Selection)
                 || !LengthPrefixedText.TryRead(Data, ref Offset, out var EntryCount)
                 || !int.TryParse(EntryCount, NumberStyles.None, CultureInfo.InvariantCulture, out var Entries)
                 || Entries != Group.EntryCount) return false;
             var EntryIds = new string[Entries];
             var Weights = new float[Entries];
             var Enabled = false;
-            var SelectedKnown = Selected.Length == 0;
             for (var j = 0; j < Entries; j++)
             {
                 if (!LengthPrefixedText.TryRead(Data, ref Offset, out var EntryId) || EntryId != Group.EntryId(j)
@@ -1096,10 +1132,11 @@ internal sealed class VariationGroupValues
                 EntryIds[j] = EntryId;
                 Weights[j] = Weight == 0f ? 0f : Weight;
                 Enabled |= Weight > 0f;
-                SelectedKnown |= Selected == EntryId;
             }
-            if (!SelectedKnown || !Enabled && Selected.Length == 0) return false;
-            Result[i] = new VariationGroupValues(Id, Selected, EntryIds, Weights);
+            if (!Enabled && Selection.IsRandom) return false;
+            for (var j = 0; j < Selection.Count; j++)
+                if (Array.IndexOf(EntryIds, Selection.At(j)) < 0) return false;
+            Result[i] = new VariationGroupValues(Id, Selection, EntryIds, Weights);
         }
         Groups = Result;
         return true;

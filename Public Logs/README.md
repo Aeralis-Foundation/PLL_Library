@@ -21,7 +21,7 @@ PLL Library is a PEAK map layout mod and automatic custom biome library. It sele
 ## Update
 <small>Current package information.</small>
 <details open>
-<summary><strong>Version 5.9.0</strong> <small><em>&rarr; click to collapse</em></small></summary>
+<summary><strong>Version 5.9.9</strong> <small><em>&rarr; click to collapse</em></small></summary>
 
 ---
 &nbsp;
@@ -105,6 +105,12 @@ Configuration file:
 |---|---:|---|
 | `` | `` |  |
 |
+
+### Variation patterns
+
+Each native biome has a selection and a `<Biome> Pattern` string under `[Variations]`. Each custom biome variation group has `Selected` and `Pattern` under its `[Variations.<group>]` section.
+
+Select `Pattern` and enter listed variation names separated by `>`, for example `First variation > Second variation > First variation`. The sequence repeats across successive occurrences of that biome, independently of other biomes and generation order. An empty pattern uses `Random`; inactive patterns are ignored.
 
 ### Per-biome spatial controls
 

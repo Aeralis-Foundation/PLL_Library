@@ -4,7 +4,7 @@ using UnityEngine;
 namespace PLL.Library;
 
 [DisallowMultipleComponent]
-[AddComponentMenu("PLL/NativeModifiers")]
+[AddComponentMenu("PLL/Effects/NativeModifiers")]
 public sealed class NativeModifiers : MonoBehaviour
 {
     public bool NightCold;

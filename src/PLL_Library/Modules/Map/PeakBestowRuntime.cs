@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Reflection;
 using HarmonyLib;
 using Photon.Pun;
 using UnityEngine;
@@ -217,13 +216,6 @@ internal sealed class PeakBestowRuntime
     readonly MapRun Owner;
     readonly PeakCheckpointRuntime Checkpoints;
     PeakBestowLedger[] Ledgers = Array.Empty<PeakBestowLedger>();
-
-    static readonly MethodInfo NativeEquipSlotMethod =
-        AccessTools.DeclaredMethod(typeof(CharacterItems), "EquipSlot", new[] { typeof(Optionable<byte>) })
-        ?? throw new MissingMethodException(typeof(CharacterItems).FullName, "EquipSlot");
-    static readonly MethodInfo NativeDropAllItemsMethod =
-        AccessTools.DeclaredMethod(typeof(CharacterItems), "DropAllItems", new[] { typeof(bool) })
-        ?? throw new MissingMethodException(typeof(CharacterItems).FullName, "DropAllItems");
 
     internal PeakBestowRuntime(MapRun Owner, PeakCheckpointRuntime Checkpoints)
     {
@@ -640,11 +632,9 @@ internal sealed class PeakBestowRuntime
         static bool Prefix(Character __0) => AllowPendingPeakBestowStash(__0);
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(CharacterItems), nameof(CharacterItems.EquipSlot), new[] { typeof(Optionable<byte>) })]
     static class PendingPeakBestowEquipSlotPatch
     {
-        static MethodBase TargetMethod() => NativeEquipSlotMethod;
-
         [HarmonyPrefix]
         static bool Prefix(CharacterItems __instance, Optionable<byte> __0)
         {
@@ -656,7 +646,7 @@ internal sealed class PeakBestowRuntime
         }
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(CharacterItems), nameof(CharacterItems.DropAllItems), new[] { typeof(bool) })]
     static class PendingPeakBestowDropAllPatch
     {
         sealed class DropMask
@@ -685,8 +675,6 @@ internal sealed class PeakBestowRuntime
                 Slot.prefab = Prefab;
             }
         }
-
-        static MethodBase TargetMethod() => NativeDropAllItemsMethod;
 
         [HarmonyPrefix]
         static void Prefix(CharacterItems __instance, out DropMask? __state)

@@ -98,6 +98,7 @@ internal static class NativeFixtures
             this.PrimarySpawn = PrimarySpawn;
             SourceAnchor = new Pose(PrimarySpawn.position, PrimarySpawn.rotation);
             var Components = Spawns.Value.GetComponentsInChildren<SpawnPoint>(true);
+            Array.Sort(Components, (Left, Right) => Left.index.CompareTo(Right.index));
             SpawnPoints = new Transform[Components.Length];
             SpawnPositions = new Vector3[Components.Length];
             SpawnRotations = new Quaternion[Components.Length];
@@ -112,6 +113,7 @@ internal static class NativeFixtures
         internal DetachedFixture Plane { get; }
         internal DetachedFixture Spawns { get; }
         internal bool LightingGeometryDirty => Plane.LightingGeometryDirty;
+        internal Vector3 StartOffset => PrimarySpawn.position - SourceAnchor.position;
 
         internal bool OwnedBy(Transform Root) =>
             TransformOwnership.Contains(Root, Plane.Value)
@@ -139,28 +141,33 @@ internal static class NativeFixtures
             }
         }
 
-        internal void Place(MapSlot First, NativePlacement.ResolvedLayoutStart Start)
+        internal void Place(MapSlot First)
         {
             if (!string.Equals(First.Source.StartConnector ?? PLLLibrary.StartConnector,
                     PLLLibrary.StartConnector, StringComparison.Ordinal))
                 throw new InvalidOperationException($"Segment '{First.Source.Id}' has no compatible Start port.");
-            var StartPose = Start.Pose;
-            var Target = First.Frame.Pose(new Pose(
-                First.Source.AuthoredPosition(StartPose),
-                First.Source.AuthoredRotation(StartPose)));
+            var NativeStart = First.Source.Start is null
+                ? NativePlacement.ResolveStart(First, SpawnPoints, Plane.Value,
+                    Configuration.RelocatePlane && !Configuration.NoPlane)
+                : null;
+            var Target = NativeStart is not null ? NativeStart.Start
+                : First.Frame.Pose(new Pose(
+                    First.Source.AuthoredPosition(First.Source.Start!.Value),
+                    First.Source.AuthoredRotation(First.Source.Start.Value)));
             var Anchors = First.CustomResolved?.AuthoringAnchors;
             if (Anchors)
                 Target = new Pose(Anchors.PlayerFormationRoot.transform.position, Anchors.PlayerFormationRoot.transform.rotation);
             if (!Configuration.RelocateStart && !TransformOwnership.SamePose(SourceAnchor, Target))
                 throw new InvalidOperationException("Relocate Start is required when the first segment does not use PEAK's Beach start.");
             if (Configuration.RelocateStart) Spawns.Place(SourceAnchor, Target);
-            if (Configuration.RelocateStart && Start.NativeFormation is { } NativeStart)
-                NativeStart.Place(Spawns.Value, Target);
+            if (Configuration.RelocateStart && NativeStart is not null)
+                NativeStart.Place(SpawnPoints, Target);
             if (!TransformOwnership.SamePose(new Pose(PrimarySpawn.position, PrimarySpawn.rotation), Target))
                 throw new InvalidOperationException("PEAK's primary SpawnPoint could not be aligned to the authored player formation root.");
 
             if (!Configuration.RelocatePlane || Configuration.NoPlane) return;
             if (Anchors) Plane.Place(new Pose(Anchors.PlaneAnchor.position, Anchors.PlaneAnchor.rotation));
+            else if (NativeStart?.PlanePose is { } NativePlane) Plane.Place(NativePlane);
             else Plane.Place(SourceAnchor, Target);
         }
 

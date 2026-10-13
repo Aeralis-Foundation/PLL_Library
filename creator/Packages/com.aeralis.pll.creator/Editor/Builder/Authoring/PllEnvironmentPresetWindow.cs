@@ -101,13 +101,13 @@ namespace PLL.Creator.Editor
                 if (TransformOwnership.Contains(Envelope.transform, Anchors.FloorRoot.transform)
                     || TransformOwnership.Contains(Envelope.transform, Campfire.transform))
                     throw new InvalidOperationException("An environment envelope cannot own terrain or the canonical campsite root.");
-                if (!InsideRemoved(Envelope.transform, RemovedRoots))
+                if (!TransformOwnership.Contains(RemovedRoots, Envelope.transform))
                     RemovedRoots.Add(Envelope.gameObject);
             }
             foreach (var Visual in Root.GetComponentsInChildren<PllCustomVisualAuthoring>(true))
-                if (!InsideRemoved(Visual.transform, RemovedRoots)) RemovedRoots.Add(Visual.gameObject);
+                if (!TransformOwnership.Contains(RemovedRoots, Visual.transform)) RemovedRoots.Add(Visual.gameObject);
             foreach (var Resolver in Root.GetComponentsInChildren<PLLNativeResolver>(true))
-                if (IsWeather(Resolver) && !InsideRemoved(Resolver.transform, RemovedRoots))
+                if (IsWeather(Resolver) && !TransformOwnership.Contains(RemovedRoots, Resolver.transform))
                     RemovedRoots.Add(Resolver.gameObject);
             var RemovedMetadata = new List<Component>();
             var Atmosphere = Root.GetComponent<PllAtmosphereAuthoring>();
@@ -300,7 +300,7 @@ namespace PLL.Creator.Editor
             foreach (var Component in Root.GetComponentsInChildren<Component>(true))
             {
                 if (!Component || Component is Transform) continue;
-                if (InsideRemoved(Component.transform, RemovedRoots)) continue;
+                if (TransformOwnership.Contains(RemovedRoots, Component.transform)) continue;
                 using (var Serialized = new SerializedObject(Component))
                 {
                     var Property = Serialized.GetIterator();
@@ -379,13 +379,6 @@ namespace PLL.Creator.Editor
             var Clone = Instantiate(Source, Parent, false);
             Clone.name = Source.name;
             return Envelope;
-        }
-
-        static bool InsideRemoved(Transform Value, IReadOnlyList<GameObject> Roots)
-        {
-            foreach (var Root in Roots)
-                if (TransformOwnership.Contains(Root.transform, Value)) return true;
-            return false;
         }
     }
 }

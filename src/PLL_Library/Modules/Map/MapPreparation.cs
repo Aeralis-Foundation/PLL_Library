@@ -169,8 +169,6 @@ internal sealed class MapPreparation
         }
         var AuthoredBeach = NativeCatalog.RequireOrdinary("Beach");
         NativeFixtures.FindStartKitRoots(AuthoredBeach, out var StartPlane, out var StartSpawns, out var StartAnchor);
-        var ResolvedStart = NativePlacement.ResolveLayoutStart(Plan[0], StartSpawns, StartAnchor);
-        var FirstStartPose = ResolvedStart.Pose;
         foreach (var Source in Sources)
         {
             if (Source is not CustomLayoutSegmentSource and not NadirLayoutSegmentSource
@@ -201,7 +199,6 @@ internal sealed class MapPreparation
         var Revision = MapPublication.LayoutRevision(Plan, Placements, Links);
         MapQuicksave.ValidateQuicksaveLayoutRevision(Revision);
         var CloneParent = Handler.globalParent ? Handler.globalParent : Handler.transform;
-        var FirstStart = PlacementPlan.PlacedPosition(Placements[0], Plan[0], FirstStartPose);
 
         var Candidates = new List<int>(Placements.Count);
         for (var i = 0; i < Placements.Count; i++) Candidates.Add(i);
@@ -357,7 +354,7 @@ internal sealed class MapPreparation
             TerminalRespawn = Slot.PeakRespawn;
         }
 
-        StartKit.Place(Ordered[0], ResolvedStart);
+        if (Plan[0].Start is not null) StartKit.Place(Ordered[0]);
         if (!Configuration.Environment.RelocatePlane && !Configuration.Environment.NoPlane)
         {
             MapSlot? Beach = null;
@@ -385,9 +382,7 @@ internal sealed class MapPreparation
         {
             var Delta = Configuration.Environment.WaterFollowsBeach
                 ? Plan[0].Id == "Beach" ? Ordered[0].Offset : Vector3.zero
-                : FirstStart - AuthoredBeach.AuthoredPosition(
-                    AuthoredBeach.Start
-                    ?? throw new InvalidOperationException("PEAK's Beach Start port was not found."));
+                : StartKit.StartOffset;
             MapEnvironmentProjection.MoveWater(WaterObjects, WaterPositions, Delta);
             MapEnvironmentProjection.SetActive(
                 WaterObjects,

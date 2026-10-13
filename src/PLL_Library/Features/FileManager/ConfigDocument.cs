@@ -20,7 +20,8 @@ internal sealed class ConfigDocument
     const string PreviousPublicSchemaRevision = "25";
     const string PublicSchemaRevision26 = "26";
     const string NativeSpatialSchemaRevision = "27";
-    const string CurrentSchemaRevision = "28";
+    const string PublicSchemaRevision28 = "28";
+    const string CurrentSchemaRevision = "29";
     static readonly ConfigDefinition LegacyPeakCampfire = new("Behaviors", "Treat Peak As Normal Campfire");
     static readonly ConfigDefinition LegacyDynamicLightMap = new("Optimizations", "Dynamic Light Map");
     static readonly ConfigDefinition LegacyLightMapMinimum = new("PLL", "Light Map Minimum");
@@ -49,7 +50,7 @@ internal sealed class ConfigDocument
                 or PublicSchemaRevision20 or PublicSchemaRevision21
                 or LightMapCategorySchemaRevision
                 or PublicSchemaRevision23 or PublicSchemaRevision24 or PreviousPublicSchemaRevision
-                or PublicSchemaRevision26 or NativeSpatialSchemaRevision or CurrentSchemaRevision))
+                or PublicSchemaRevision26 or NativeSpatialSchemaRevision or PublicSchemaRevision28 or CurrentSchemaRevision))
             throw new InvalidDataException(
                 $"Configuration schema '{Document.SchemaRevision}' is unsupported; expected '{CurrentSchemaRevision}'.");
         var Bindings = ConfigBindings.Bind(Path, OwnerMetadata, CurrentSchemaRevision);
@@ -93,7 +94,7 @@ internal sealed class ConfigDocument
         {
             if (Section.Key != "Variations" && !Section.Key.StartsWith("Variations.", StringComparison.Ordinal)) continue;
             foreach (var Setting in Section.Value)
-                if (Section.Key == "Variations" || Setting.Key == "Selected"
+                if (Section.Key == "Variations" || Setting.Key is "Selected" or VariationSequence.PatternChoice
                     || Setting.Key.StartsWith("Weight.", StringComparison.Ordinal)
                     || Setting.Key.StartsWith(VariationGroupConfig.WeightPrefix, StringComparison.Ordinal))
                 {
@@ -417,7 +418,7 @@ internal sealed class ConfigBindings
         GemlessNadir = Bind("Behaviors", "Gemless Nadir", false, "Allows every Nadir occurrence to load without Scout's Honor.");
         WaterFollowsBeach = Bind("Behaviors", "Water follows Beach", true, "Activates the water floor when Beach is reached; otherwise enables it beneath the first segment from the start.");
         VoidWaterFollowsNadir = Bind("Behaviors", "Void Water follows Nadir", true, "Activates PEAK's Void Water when its Nadir occurrence is reached; otherwise enables it from the start.");
-        RelocatePlane = Bind("Prerequisites", "Relocate Plane", true, "Moves the crashed plane to the first segment's Start port.");
+        RelocatePlane = Bind("Prerequisites", "Relocate Plane", true, "Moves the crashed plane to the first biome's plane anchor or ground surface.");
         RelocateStart = Bind("Prerequisites", "Relocate Start", true, "Moves PEAK's four player spawn points to the first segment's Start port.");
         ValidNadir = Bind("Prerequisites", "Valid Nadir", true, "Nadir requires Scout's Honor only if earlier segments can provide all four amulet types. Otherwise Nadir does not require the gem.");
         LazyGeneration = Bind("Optimizations", "Lazy Generation", true, "Defers procedural prop generation until its prerequisite zone is reached.");
@@ -430,8 +431,12 @@ internal sealed class ConfigBindings
         NoSkyProps = Bind("Optimizations", "No Sky Props", true, "Limits native raycast-placed props to their segment. Citadel treasure can land on the temple floor, but not on the Peak bridge or another segment.");
         RemoveOld = Bind("Optimizations", "Remove Old", true, "Destroys map zones older than the immediately previous zone after progression.");
         foreach (var Biome in NativeSegmentCatalog.ConfigBiomeNames)
-            NativeVariations.Add(Biome, Bind("Variations", Biome, "Random",
-                "Selects a native biome variation. Available choices appear after the island loads. Random uses PEAK's selection."));
+        {
+            NativeVariations.Add(Biome, Bind("Variations", Biome, VariationSequence.RandomChoice,
+                "Selects a native biome variation. Available choices appear after the island loads. Random uses PEAK's selection; Pattern follows the biome's pattern."));
+            NativeVariationPatterns.Add(Biome, Bind("Variations", Biome + " " + VariationSequence.PatternChoice, "",
+                VariationSequence.PatternDescription));
+        }
         var Spatial = new BiomeSpatialConfig[BiomeLayoutConfigSnapshot.SpatialBiomeNames.Count];
         for (var Index = 0; Index < Spatial.Length; Index++)
         {
@@ -446,6 +451,7 @@ internal sealed class ConfigBindings
 
     internal ConfigFile Config { get; }
     internal Dictionary<string, ConfigEntry<string>> NativeVariations { get; } = new(StringComparer.Ordinal);
+    internal Dictionary<string, ConfigEntry<string>> NativeVariationPatterns { get; } = new(StringComparer.Ordinal);
     internal IReadOnlyList<BiomeSpatialConfig> NativeSpatial { get; }
     internal IReadOnlyList<BoundConfigSetting> Settings => BoundSettings;
     internal ConfigEntry<string> LayoutOrder { get; }

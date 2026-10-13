@@ -1749,34 +1749,25 @@ internal sealed class ViewBatchSynchronization
     }
 }
 
-[HarmonyPatch]
+[HarmonyPatch(typeof(PhotonNetwork), nameof(PhotonNetwork.AllocateViewID), new[] { typeof(int) })]
 internal static class RetiredViewIdAllocationPatch
 {
-    static readonly MethodInfo Allocator;
     static readonly FieldInfo PhotonViews;
     static readonly MethodInfo ContainsView;
     static readonly MethodInfo IsUnavailable;
 
     static RetiredViewIdAllocationPatch()
     {
-        Allocator = AccessTools.DeclaredMethod(
-            typeof(PhotonNetwork), nameof(PhotonNetwork.AllocateViewID), new[] { typeof(int) })
-            ?? throw new MissingMethodException(typeof(PhotonNetwork).FullName, "AllocateViewID(Int32)");
-        PhotonViews = AccessTools.DeclaredField(typeof(PhotonNetwork), "photonViewList")
-            ?? throw new MissingFieldException(typeof(PhotonNetwork).FullName, "photonViewList");
-        if (!Allocator.IsPublic || !Allocator.IsStatic || Allocator.ReturnType != typeof(int)
-            || !PhotonViews.IsStatic || PhotonViews.FieldType != typeof(NonAllocDictionary<int, PhotonView>))
-            throw new InvalidOperationException("Photon ViewID allocator binding changed.");
+        PhotonViews = AccessTools.DeclaredField(typeof(PhotonNetwork), nameof(PhotonNetwork.photonViewList))
+            ?? throw new MissingFieldException(typeof(PhotonNetwork).FullName, nameof(PhotonNetwork.photonViewList));
         ContainsView = AccessTools.DeclaredMethod(
-            PhotonViews.FieldType, nameof(NonAllocDictionary<int, PhotonView>.ContainsKey), new[] { typeof(int) })
+            typeof(NonAllocDictionary<int, PhotonView>), nameof(NonAllocDictionary<int, PhotonView>.ContainsKey), new[] { typeof(int) })
             ?? throw new MissingMethodException(PhotonViews.FieldType.FullName, "ContainsKey(Int32)");
         IsUnavailable = AccessTools.DeclaredMethod(
             typeof(RetiredViewIdAllocationPatch), nameof(ViewIdUnavailable),
-            new[] { PhotonViews.FieldType, typeof(int) })
+            new[] { typeof(NonAllocDictionary<int, PhotonView>), typeof(int) })
             ?? throw new MissingMethodException(typeof(RetiredViewIdAllocationPatch).FullName, nameof(ViewIdUnavailable));
     }
-
-    static MethodBase TargetMethod() => Allocator;
 
     [HarmonyTranspiler]
     static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> Instructions)

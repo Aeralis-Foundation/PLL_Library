@@ -469,9 +469,8 @@ namespace PLL.Creator.Editor
                     EditorGUILayout.LabelField("Installation directory", Published.Profile.BundleDirectory);
                     if (GUILayout.Button("Install Current Bundle and Report")
                         && EditorUtility.DisplayDialog("Install PLL bundle",
-                            "Close PEAK before installing. Replace only this bundle and report at:\n"
-                            + Path.Combine(Published.Profile.BundleDirectory,
-                                Path.GetFileName(Published.Publication.BundlePath)), "Install", "Cancel"))
+                            "Close PEAK before installing. This replaces the bundle and its build report in:\n"
+                            + Published.Profile.BundleDirectory, "Install", "Cancel"))
                     {
                         Published.InstalledBundlePath = Published.Publication.Install(Published.Profile);
                         Published.RecordedResult = PllProfilePublication.RuntimeResult.Unverified;
@@ -491,9 +490,8 @@ namespace PLL.Creator.Editor
             }
             if (!string.IsNullOrEmpty(Published.InstalledBundlePath))
                 EditorGUILayout.LabelField("Installed bundle (recorded)", Published.InstalledBundlePath);
-            EditorGUILayout.HelpBox("Checks the selected runtime DLL and BepInEx version, not game compatibility, dependencies or other mods. "
-                + "Installation keeps the build report unchanged. Recorded results identify the bundle hash and runtime module ID, not the full DLL hash. "
-                + "Sealed records a completed compatibility check; it does not confirm gameplay. Close PEAK before reading its log.", MessageType.Info);
+            EditorGUILayout.HelpBox("Checks the selected PLL DLL and BepInEx version. Sealed means PEAK accepted this bundle. "
+                + "It does not confirm gameplay or other mods. Close PEAK before reading its log.", MessageType.Info);
         }
 
         internal static void SaveOpenPrefab(PllAuthoringFailure Failure)

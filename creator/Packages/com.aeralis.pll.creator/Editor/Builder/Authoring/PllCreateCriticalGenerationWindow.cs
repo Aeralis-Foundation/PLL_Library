@@ -36,7 +36,7 @@ namespace PLL.Creator.Editor
             Order = EditorGUILayout.IntField("Order", Order);
             EditorGUILayout.HelpBox(
                 "Choose a configured PropSpawner or Immediate Child Props block under FloorRoot or CampfireRoot. "
-                + "This marks its immediate generation as critical without changing placement, candidates or deferred work.",
+                + "Its immediate generation runs before ordinary props. Placement settings stay unchanged.",
                 MessageType.Info);
             using (new EditorGUI.DisabledScope(!Root || !Generator))
                 if (GUILayout.Button("Add Critical Generation"))

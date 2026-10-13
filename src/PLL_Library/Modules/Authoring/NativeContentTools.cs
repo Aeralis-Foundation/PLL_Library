@@ -105,6 +105,7 @@ internal static class NativeContentTools
         internal readonly List<NativeContentRig> Rigs = new();
         internal readonly Queue<IconCapture> Icons = new();
         internal readonly Dictionary<Texture2D, IconCapture> IconSources = new();
+        internal NativeContentMaterial[] Materials = Array.Empty<NativeContentMaterial>();
     }
 
     sealed class IconCapture
@@ -269,12 +270,17 @@ internal static class NativeContentTools
         if (Current is Export Export) NativeSpawnCatalog.ProjectContent(Export.Entries);
     }
 
+    internal static void CaptureMaterials(NativeVisualCatalog.Inventory Inventory)
+    {
+        if (Current is Export Export) Export.Materials = Inventory.Materials.Export(CaptureItemIcon);
+    }
+
     internal static void CaptureItemIcon(NativeContentEntry Entry, Texture2D? Icon)
     {
         var Export = (Export)Current!;
         if (Export.Claim.ReadCancellationReason() is { } CancellationReason)
             throw new OperationCanceledException(CancellationReason);
-        if (!Icon) { Entry.ImageAbsence = "PEAK provides no primary UI icon for this item."; return; }
+        if (!Icon) { Entry.ImageAbsence = "This asset has no 2D texture preview."; return; }
         if (Export.IconSources.TryGetValue(Icon, out var Existing)) Existing.Entries.Add(Entry);
         else
         {
@@ -287,25 +293,23 @@ internal static class NativeContentTools
     {
         if (Batch.Export.Icons.Count == 0) { CompleteExport(Batch.Export, Batch.Run); return; }
         var Icon = Batch.Export.Icons.Dequeue(); var Texture = Icon.Texture;
-        if (!Texture) throw new InvalidOperationException("The borrowed native item UI texture was destroyed before export.");
-        if (Texture.width > 512 || Texture.height > 512)
-        {
-            Icon.SetImageAbsence("The native UI icon exceeds the supported 512 by 512 pixel image bound.");
-            return;
-        }
+        if (!Texture) throw new InvalidOperationException("The native texture was destroyed before export.");
+        var Scale = Math.Min(1f, 512f / Math.Max(Texture.width, Texture.height));
+        var Width = Math.Max(1, (int)(Texture.width * Scale));
+        var Height = Math.Max(1, (int)(Texture.height * Scale));
         var SourceFormat = Texture.graphicsFormat;
         var Format = GraphicsFormatUtility.IsSRGBFormat(SourceFormat)
             ? GraphicsFormat.R8G8B8A8_SRGB : GraphicsFormat.R8G8B8A8_UNorm;
         if (!SystemInfo.supportsAsyncGPUReadback
             || !SystemInfo.IsFormatSupported(Format, GraphicsFormatUsage.ReadPixels))
         {
-            Icon.SetImageAbsence("This graphics device cannot read the native UI icon texture.");
+            Icon.SetImageAbsence("This graphics device cannot read the native texture.");
             return;
         }
-        var RequiresConversion = !SystemInfo.IsFormatSupported(SourceFormat, GraphicsFormatUsage.ReadPixels);
+        var RequiresConversion = Scale < 1f || !SystemInfo.IsFormatSupported(SourceFormat, GraphicsFormatUsage.ReadPixels);
         if (RequiresConversion && !SystemInfo.IsFormatSupported(Format, GraphicsFormatUsage.Render))
         {
-            Icon.SetImageAbsence("This graphics device cannot convert the native UI icon texture.");
+            Icon.SetImageAbsence("This graphics device cannot convert the native texture.");
             return;
         }
         var Copy = new IconReadback(Batch, Icon);
@@ -314,9 +318,9 @@ internal static class NativeContentTools
         {
             if (RequiresConversion)
             {
-                Copy.Target = new RenderTexture(Texture.width, Texture.height, 0, Format);
+                Copy.Target = new RenderTexture(Width, Height, 0, Format);
                 if (!Copy.Target.Create())
-                    throw new InvalidOperationException("Native UI icon render target allocation failed.");
+                    throw new InvalidOperationException("The texture preview render target could not be created.");
                 using var Commands = new CommandBuffer();
                 Commands.Blit(Texture, Copy.Target);
                 var PreviousSrgbWrite = GL.sRGBWrite;
@@ -354,7 +358,7 @@ internal static class NativeContentTools
             {
                 Current = Copy.Batch; Cancel(CancellationReason); return;
             }
-            if (Readback.hasError) { Copy.Icon.SetImageAbsence("Native UI icon GPU readback failed."); return; }
+            if (Readback.hasError) { Copy.Icon.SetImageAbsence("The native texture could not be read from the graphics device."); return; }
             using var Png = ImageConversion.EncodeNativeArrayToPNG(Readback.GetData<byte>(), Format,
                 (uint)Readback.width, (uint)Readback.height);
             if (Png.Length == 0) throw new InvalidOperationException("The native icon encoder returned an empty PNG.");
@@ -433,7 +437,7 @@ internal static class NativeContentTools
             Configuration = RunConfigurationCodec.Serialize(Export.Configuration),
             ResolvedSeed = Export.Configuration.Layout.Seed,
             NativeRunSettingsSha256 = Export.Claim.SettingsSha256, Ascent = Export.Claim.Ascent,
-            Entries = Entries, Rigs = Rigs,
+            Entries = Entries, Rigs = Rigs, Materials = Export.Materials,
             Occurrences = Array.ConvertAll(Run.Slots, Slot => new NativeContentOccurrence
             {
                 SlotIndex = Slot.Index, OccurrenceRequestIndex = Slot.Occurrence.RequestIndex,

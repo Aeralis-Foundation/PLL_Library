@@ -41,7 +41,7 @@ namespace PLL.Creator.Editor
                 EditorGUILayout.ObjectField("Biome", Root, typeof(GameObject), true);
             Category = (PllAmuletOpportunityCategory)EditorGUILayout.EnumPopup("Opportunity Category", Category);
             EditorGUILayout.HelpBox(
-                "Categories select distinct slots in the shared run rotation, not a named amulet. An Authored biome needs an explicit category.",
+                "The category selects a slot in the run's amulet rotation, not a specific amulet. Select a category for an Authored biome.",
                 MessageType.Info);
             Timing = (Placement)EditorGUILayout.EnumPopup("Placement", Timing);
             Custom = EditorGUILayout.Toggle("Custom Pedestal", Custom);

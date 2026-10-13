@@ -196,7 +196,7 @@ internal sealed class LightVolumeVisualMap
                 catch (Exception Exception) { (Failures ??= new List<Exception>(2)).Add(Exception); }
                 try { if (Tile) UnityEngine.Object.DestroyImmediate(Tile); }
                 catch (Exception Exception) { (Failures ??= new List<Exception>(2)).Add(Exception); }
-                ThrowCleanupFailures(Failures, "Light-volume page construction cleanup failed.");
+                CleanupOperations.Throw(Failures, "Light-volume page construction cleanup failed.");
             }
         }
 
@@ -269,7 +269,7 @@ internal sealed class LightVolumeVisualMap
             catch (Exception Exception) { (Failures ??= new List<Exception>(3)).Add(Exception); }
             try { Completed?.Release(); }
             catch (Exception Exception) { (Failures ??= new List<Exception>(3)).Add(Exception); }
-            ThrowCleanupFailures(Failures, "Light-volume page build cleanup failed.");
+            CleanupOperations.Throw(Failures, "Light-volume page build cleanup failed.");
         }
     }
 
@@ -715,12 +715,6 @@ internal sealed class LightVolumeVisualMap
             Offset + Spacing * Vector3.one + Translation);
     }
 
-    static void ThrowCleanupFailures(List<Exception>? Failures, string Message)
-    {
-        if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
-        if (Failures is not null) throw new AggregateException(Message, Failures);
-    }
-
     static void ReleasePageTexture(RenderTexture? Texture)
     {
         if (!Texture) return;
@@ -729,7 +723,7 @@ internal sealed class LightVolumeVisualMap
         catch (Exception Exception) { (Failures ??= new List<Exception>(2)).Add(Exception); }
         try { UnityEngine.Object.DestroyImmediate(Texture); }
         catch (Exception Exception) { (Failures ??= new List<Exception>(2)).Add(Exception); }
-        ThrowCleanupFailures(Failures, "Light-volume page texture cleanup failed.");
+        CleanupOperations.Throw(Failures, "Light-volume page texture cleanup failed.");
     }
 
     static half4 Pixel(Color Rgb, Color Alpha) => new(

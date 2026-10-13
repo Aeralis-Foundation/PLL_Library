@@ -91,6 +91,7 @@ internal static class MapPublication
             ExecuteCleanup(Failures, () => Run.Peak.Bestow.ReleasePendingPeakBestow(Pending, true, false));
         ExecuteCleanup(Failures, Run.Network.ReleaseBridge);
         ExecuteCleanup(Failures, Run.Network.ViewBatches.CancelPendingBatches);
+        ExecuteCleanup(Failures, Run.HookedGeneration.Release);
         ExecuteCleanup(Failures, Run.Network.ViewBatches.ReleasePublishedViewIds);
         ExecuteCleanup(Failures, () => ReleasedSlotRetirement.ClearReleasedZones(Run.SceneGone));
         ExecuteCleanup(Failures, () => FeatureGeneration.ResetGeneratedFeatures(Prepared.GeneratedGroupers, Prepared.AddedGroupers));
@@ -132,6 +133,7 @@ internal static class MapPublication
 
         ExecuteCleanup(Failures, Run.Network.ReleaseBridge);
         ExecuteCleanup(Failures, Run.Network.ViewBatches.CancelPendingBatches);
+        ExecuteCleanup(Failures, Run.HookedGeneration.Release);
         ExecuteCleanup(Failures, Run.Network.ViewBatches.ReleasePublishedViewIds);
         ExecuteCleanup(Failures, () => ReleasedSlotRetirement.ClearReleasedZones(Run.SceneGone));
         ExecuteCleanup(Failures, () => Run.ReleasePreparation(Operation => ExecuteCleanup(Failures, Operation)));
@@ -158,6 +160,7 @@ internal static class MapPublication
         var Failures = new List<Exception>();
 
         ExecuteCleanup(Failures, Run.Network.ReleaseBridge);
+        ExecuteCleanup(Failures, Run.HookedGeneration.Release);
         ExecuteCleanup(Failures, Run.Network.ViewBatches.ReleasePublishedViewIds);
         if (Prepared.Committed)
         {
@@ -819,6 +822,12 @@ internal static class MapPublication
             if (Failure is null) try
             {
                 Writer.RequireCurrent();
+                if (Prepared.Slots[0].Source.Start is null)
+                {
+                    Prepared.StartKit.Place(Prepared.Slots[0]);
+                    if (!Run.Configuration.Environment.NoWater && !Run.Configuration.Environment.WaterFollowsBeach)
+                        MapEnvironmentProjection.MoveWater(Prepared.WaterObjects, Prepared.WaterPositions, Prepared.StartKit.StartOffset);
+                }
                 for (var i = 0; i < TrackerSlots; i++)
                 {
                     SpawnTrackerTransaction.AttachLazySpawnTrackers(i);

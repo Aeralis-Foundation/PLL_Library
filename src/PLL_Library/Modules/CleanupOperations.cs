@@ -10,4 +10,10 @@ internal static class CleanupOperations
         try { Operation(); }
         catch (Exception Failure) { (Failures ??= new List<Exception>()).Add(Failure); }
     }
+
+    internal static void Throw(List<Exception>? Failures, string Message)
+    {
+        if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
+        if (Failures is not null) throw new AggregateException(Message, Failures);
+    }
 }

@@ -336,11 +336,13 @@ internal sealed class FeatureGeneration
             NativeFeatureGeneration.GenerationOperation.Configuration? Configuration = null;
             if (!Occurrence.ConfigurationReady)
             {
+                var VariationIndex = Authoring is null ? 0 : Occurrence.Slots[0].CountPreviousBiomeOccurrences();
                 var Resolution = Authoring is null
                     ? null
                     : new NativeFeatureGeneration.GenerationOperation.VariationResolution(
                         Root => Authoring.PrepareVariations(Root,
-                            ResolvedConfiguration.Biomes[Authoring.Id].EffectiveVariationWeight));
+                            (Group, Entry) => ResolvedConfiguration.Biomes[Authoring.Id]
+                                .EffectiveVariationWeight(Group, Entry, VariationIndex)));
                 Configuration = new NativeFeatureGeneration.GenerationOperation.Configuration(
                     Occurrence.RequiresNativeVariantSelection, Occurrence.ConfigurationSeed,
                     Occurrence.RecordVariations, Resolution,
@@ -579,8 +581,9 @@ internal sealed class FeatureGeneration
         foreach (var Slot in Occurrence.Slots)
         {
             if (Slot.Source is CustomLayoutSegmentSource) continue;
-            var Selected = Configuration.NativeVariations[Slot.Source.Id];
-            if (Selected == "Random") continue;
+            var Selection = Configuration.NativeVariations[Slot.Source.Id];
+            if (Selection.IsRandom) continue;
+            var Selected = Selection.At(Slot.CountPreviousBiomeOccurrences());
             var Root = Slot.Segment.segmentParent.transform;
             if (Selected.StartsWith("Terrain: ", StringComparison.Ordinal))
             {

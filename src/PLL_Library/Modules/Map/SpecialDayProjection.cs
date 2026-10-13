@@ -661,12 +661,6 @@ internal static class SpecialDayProjection
     static void AddFailure(ref List<Exception>? Failures, Exception Failure) =>
         (Failures ??= new()).Add(Failure);
 
-    static void ThrowFailures(List<Exception>? Failures, string Message)
-    {
-        if (Failures is { Count: 1 }) ExceptionPropagation.Throw(Failures[0]);
-        if (Failures is not null) throw new AggregateException(Message, Failures);
-    }
-
     static void ReleaseAdapter(GameObject? Root, SpecialDayZone? Zone)
     {
         List<Exception>? Failures = null;
@@ -703,7 +697,7 @@ internal static class SpecialDayProjection
         {
             AddFailure(ref Failures, Exception);
         }
-        ThrowFailures(Failures, "Special-day adapter release failed.");
+        CleanupOperations.Throw(Failures, "Special-day adapter release failed.");
     }
 
     static SpecialDayZone[] Remove(SpecialDayZone[] Values, SpecialDayZone Target)
@@ -775,7 +769,7 @@ internal static class SpecialDayProjection
         }
         foreach (var Contribution in ReleasedContributions)
             CleanupOperations.Capture(ref Failures, () => ReleaseAdapter(Contribution.Root, Contribution.Zone));
-        ThrowFailures(Failures, "Special-day projection release failed.");
+        CleanupOperations.Throw(Failures, "Special-day projection release failed.");
     }
 
     static void ZoneChanged()

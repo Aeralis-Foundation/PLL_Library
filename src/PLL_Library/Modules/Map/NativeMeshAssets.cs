@@ -12,15 +12,20 @@ internal sealed class NativeMeshAssets
     internal static GraphicsBuffer? OpenIndexBuffer(Mesh Mesh) =>
         Mesh.GetNativeIndexBufferPtr() == IntPtr.Zero ? null : Mesh.GetIndexBuffer();
 
-    internal NativeMeshGeometry Resolve(MeshCollider Collider)
+    internal NativeMeshGeometry Resolve(MeshCollider Collider) =>
+        Resolve(Collider.sharedMesh, Collider.transform.localToWorldMatrix);
+
+    internal NativeMeshGeometry Resolve(MeshFilter Filter) =>
+        Resolve(Filter.sharedMesh, Filter.transform.localToWorldMatrix);
+
+    NativeMeshGeometry Resolve(Mesh Mesh, Matrix4x4 LocalToWorld)
     {
-        var Mesh = Collider.sharedMesh;
         if (!Cache.TryGetValue(Mesh, out var Data))
         {
             Data = Read(Mesh);
             Cache.Add(Mesh, Data);
         }
-        return new NativeMeshGeometry(Data.Vertices, Data.Triangles, Collider.transform.localToWorldMatrix);
+        return new NativeMeshGeometry(Data.Vertices, Data.Triangles, LocalToWorld);
     }
 
     static (Vector3[] Vertices, int[] Triangles) Read(Mesh Mesh)

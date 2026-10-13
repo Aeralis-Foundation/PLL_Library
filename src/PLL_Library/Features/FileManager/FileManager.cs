@@ -13,6 +13,7 @@ public static class FileManager
     static ConfigFile Config = null!;
     static IReadOnlyDictionary<string, string[]>? NativeVariationChoices;
     internal static readonly Dictionary<string, ConfigEntry<string>> NativeVariations = new(StringComparer.Ordinal);
+    internal static readonly Dictionary<string, ConfigEntry<string>> NativeVariationPatterns = new(StringComparer.Ordinal);
     internal static IReadOnlyList<BiomeSpatialConfig> NativeSpatial { get; private set; } = Array.Empty<BiomeSpatialConfig>();
     internal const string DefaultLayoutOrder = "Beach > Tropics > Roots > Alpine > Mesa > Volcano > Citadel > Nadir";
     internal const string DefaultRepeatable = "";
@@ -61,7 +62,10 @@ public static class FileManager
         Config = Bindings.Config;
         NativeSpatial = Bindings.NativeSpatial;
         foreach (var Biome in NativeSegmentCatalog.ConfigBiomeNames)
+        {
             NativeVariations.Add(Biome, Bindings.NativeVariations[Biome]);
+            NativeVariationPatterns.Add(Biome, Bindings.NativeVariationPatterns[Biome]);
+        }
         LayoutOrder = Bindings.LayoutOrder;
         Seed = Bindings.Seed;
         ReplaceGenerated = Bindings.ReplaceGenerated;
@@ -114,8 +118,16 @@ public static class FileManager
         }
         var Host = RunConfigurationResolution.RequireCurrent().Biomes.NativeVariations;
         foreach (var Biome in NativeSegmentCatalog.ConfigBiomeNames)
-            if (Array.IndexOf(ChoicesByBiome[Biome], Host[Biome]) < 0)
-                throw new InvalidDataException($"Native biome '{Biome}' has an unknown variation '{Host[Biome]}'. Select Random or a listed variation.");
+        {
+            var Sequence = Host[Biome];
+            var Choices = ChoicesByBiome[Biome];
+            for (var i = 0; i < Sequence.Count; i++)
+            {
+                var Selected = Sequence.At(i);
+                if (Array.IndexOf(Choices, Selected) < 0)
+                    throw new InvalidDataException($"Native biome '{Biome}' has an unknown variation '{Selected}'. Use a listed variation name.");
+            }
+        }
     }
 
     static void BindNativeVariationDescriptions(IReadOnlyDictionary<string, string[]> ChoicesByBiome)
@@ -132,28 +144,27 @@ public static class FileManager
                 Choices = DisplayChoices;
             }
             Config.Remove(NativeVariations[Biome].Definition);
-            NativeVariations[Biome] = Config.Bind("Variations", Biome, "Random", new ConfigDescription(
-                "Selects a native variation for every occurrence; Random keeps PEAK's selection.",
+            NativeVariations[Biome] = Config.Bind("Variations", Biome, VariationSequence.RandomChoice, new ConfigDescription(
+                "Selects a native variation for every occurrence; Random keeps PEAK's selection, and Pattern follows the biome's pattern.",
                 new AcceptableValueList<string>(Choices)));
             NativeVariations[Biome].Value = Local;
         }
     }
 
-    internal static IReadOnlyDictionary<string, string> ReloadRunConfiguration(
-        IReadOnlyDictionary<string, string>? RestoredNativeVariations)
+    internal static IReadOnlyDictionary<string, VariationSequence> ReloadRunConfiguration(
+        IReadOnlyDictionary<string, VariationSequence>? RestoredNativeVariations)
     {
         var Document = ConfigDocument.Read(Config.ConfigFilePath, RestoredNativeVariations is not null);
         var Native = RestoredNativeVariations;
         if (Native is null)
         {
             var Raw = Document.VariationSettings();
-            var Captured = new Dictionary<string, string>(StringComparer.Ordinal);
+            var Captured = new Dictionary<string, VariationSequence>(StringComparer.Ordinal);
             foreach (var Biome in NativeSegmentCatalog.ConfigBiomeNames)
             {
-                var Selected = Raw.TryGetValue("Variations\n" + Biome, out var Value) ? Value : "Random";
-                if (Selected.Length == 0 || Selected.IndexOf('\n') >= 0 || Selected.IndexOf('\r') >= 0)
-                    throw new InvalidDataException($"Native biome '{Biome}' has an invalid variation name.");
-                Captured.Add(Biome, Selected);
+                var Selected = Raw.TryGetValue("Variations\n" + Biome, out var Value) ? Value : VariationSequence.RandomChoice;
+                var Pattern = Raw.TryGetValue("Variations\n" + Biome + " " + VariationSequence.PatternChoice, out var PatternValue) ? PatternValue : "";
+                Captured.Add(Biome, VariationSequence.Capture(Biome, Selected, Pattern));
             }
             Native = Captured;
         }
@@ -163,8 +174,8 @@ public static class FileManager
             foreach (var Biome in NativeSegmentCatalog.ConfigBiomeNames)
             {
                 Config.Remove(NativeVariations[Biome].Definition);
-                NativeVariations[Biome] = Config.Bind("Variations", Biome, "Random",
-                    "Selects a native variation; available choices are fetched when WilIsland loads.");
+                NativeVariations[Biome] = Config.Bind("Variations", Biome, VariationSequence.RandomChoice,
+                    "Selects a native variation or Pattern; available choices are fetched when WilIsland loads.");
             }
             Document.Apply(Config);
             if (NativeVariationChoices is { } Choices)

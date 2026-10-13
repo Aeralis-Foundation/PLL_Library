@@ -362,11 +362,9 @@ internal sealed class GloomVoiceRuntime
             GloomVoiceCloneMayRunNativeLifecycle(__instance);
     }
 
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(Peak.Island.GloomVoiceConfuser), nameof(Peak.Island.GloomVoiceConfuser.Update))]
     static class GloomVoiceConfuserUpdatePatch
     {
-        static MethodBase TargetMethod() => UpdateMethod;
-
         [HarmonyPrefix]
         [HarmonyPriority(Priority.First)]
         static bool Prefix(Peak.Island.GloomVoiceConfuser __instance) =>

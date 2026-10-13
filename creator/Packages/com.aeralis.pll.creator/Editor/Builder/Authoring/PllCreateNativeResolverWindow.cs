@@ -70,10 +70,10 @@ namespace PLL.Creator.Editor
                     SurfaceMaterial = (Material)EditorGUILayout.ObjectField("Generated Surface Material", SurfaceMaterial, typeof(Material), false);
                 else SurfaceMaterial = null;
                 EditorGUILayout.HelpBox(Form == PllNativeResolverForm.Source
-                    ? "Choose a surface renderer inside this source. PLL creates its ray anchors and builds the native flow in PEAK."
+                    ? "Select a surface renderer under this source. PLL creates the flow in PEAK."
                     : Kind == PLLNativeResolverKind.Water
-                        ? "Choose one surface renderer or material. Water Zone requires a world-upright box."
-                        : "Choose a lava surface renderer inside this source. PLL uses its placed geometry to set the heat bounds.", MessageType.Info);
+                        ? "Select a surface renderer or material. Keep the Water Zone box upright."
+                        : "Select a lava surface renderer under this source. Its placed geometry sets the heated area.", MessageType.Info);
             }
             else
             {
