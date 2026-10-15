@@ -4,7 +4,7 @@
     <AssemblyName>PLL_Library</AssemblyName>
     <AssemblyTitle>AF.PLL.Library</AssemblyTitle>
     <RootNamespace>PLL.Library</RootNamespace>
-    <Version>5.9.9</Version>
+    <Version>5.9.10</Version>
     <Description>Map layout and custom biome runtime library.</Description>
     <PackageId>PLL_Library</PackageId>
     <Title>AF.PLL.Library</Title>

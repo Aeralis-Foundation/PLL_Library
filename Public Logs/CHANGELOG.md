@@ -2,9 +2,30 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [5.9.9]
+## [5.9.10]
 <details open>
 <summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Fixed
+
+- Final Volcano and Citadel sections retain their playable Peak before Nadir even when Scout's Honor is not required.
+- Final Peak flare rescue remains available before Nadir, except when Ascent 8 requires Nadir to be completed.
+- Summit checks follow the placed Peak's progression plane instead of the last progress point's world Z coordinate.
+- Creator assembly inspection reads the selected files instead of reusing Unity's cached assembly metadata.
+
+### Changed
+
+- PEAK assembly compatibility checks validate the required API and serialized fields without requiring a matching SHA-256 hash.
+- Shared fingerprint writers stream their input without retaining the full serialized payload.
+- Removed duplicate cleanup and progress reset operations and simplified configuration and Creator text.
+
+</details>
+
+---
+
+## [5.9.9]
+<details>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to open</em></small></summary>
 
 ### Fixed
 

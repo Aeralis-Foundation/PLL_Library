@@ -476,7 +476,7 @@ internal static class NativeSpawnCatalog
             {
                 Entry.SelectionFailure = Failure.Message; continue;
             }
-            Entry.Fingerprint = NativeContentTools.Fingerprint(Resolution.WriteFingerprint);
+            Entry.Fingerprint = ManifestEncoding.CreateRevision(Resolution.WriteFingerprint);
         }
     }
 

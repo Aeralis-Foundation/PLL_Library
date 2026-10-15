@@ -23,9 +23,8 @@ internal static class LayoutPlan
         if (Owner is NadirLayoutSegmentSource)
         {
             var Predecessor = Segments.Count >= 2 ? Segments[Segments.Count - 2] : null;
-            var Peak = Predecessor is NativeOrdinarySegmentSource { ContextualPeak: { } Contextual }
-                ? Contextual
-                : PeakPrototype;
+            var ContextualPeak = (Predecessor as NativeOrdinarySegmentSource)?.ContextualPeak;
+            var Peak = ContextualPeak ?? PeakPrototype;
             if (Predecessor is null || !CanAttachPeak(Predecessor, Peak))
             {
                 if (ForceAttachment)
@@ -34,7 +33,8 @@ internal static class LayoutPlan
                 Validate(Segments, Description);
                 return;
             }
-            if (!RequiresScoutsHonor(Segments, Segments.Count - 1, GemlessNadir, ValidNadir)
+            if (ContextualPeak is null
+                && !RequiresScoutsHonor(Segments, Segments.Count - 1, GemlessNadir, ValidNadir)
                 && !ForceAttachment)
             {
                 Validate(Segments, Description);

@@ -940,7 +940,7 @@ internal sealed class VariationGroupConfig
         Array.Sort(EntryOrder, (Left, Right) => string.CompareOrdinal(Entries[Left].Id, Entries[Right].Id));
         var Selected = ReadSelection(Raw, out var PatternSelected);
         var Selection = File.Bind(Section, "Selected", VariationSequence.RandomChoice, new ConfigDescription(
-            "Selects one entry for every occurrence, even with zero weight. Random uses relative weights; Pattern follows this group's pattern.",
+            "Uses the selected entry for each copy of this biome, even if its weight is zero. Random uses relative weights; Pattern uses the group's sequence.",
             new AcceptableValueList<string>(Labels)));
         if (!Selected.IsRandom && !PatternSelected)
             Selection.Value = FindLabel(Selected.At(0));

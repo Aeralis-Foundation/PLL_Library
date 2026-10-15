@@ -92,7 +92,7 @@ namespace PLL.Creator.Editor
                                 GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
                         EditorGUILayout.SelectableLabel("Source: " + Assembly.sourcePath,
                             EditorStyles.wordWrappedLabel, GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
-                        EditorGUILayout.SelectableLabel("SHA-256: " + Assembly.sourceSha256,
+                        EditorGUILayout.SelectableLabel("Recorded SHA-256: " + Assembly.sourceSha256,
                             EditorStyles.wordWrappedLabel, GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
                         if (!string.IsNullOrEmpty(Assembly.providerAssetPath))
                             EditorGUILayout.SelectableLabel("Project provider: " + Assembly.providerAssetPath,

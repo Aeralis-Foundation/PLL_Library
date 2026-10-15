@@ -37,15 +37,15 @@ internal static class ManifestEncoding
     internal static bool CanEncodeExactly(float Value) =>
         PllAuthoringValueContract.CanEncodeExactly(Value);
 
-    internal static string CreateRevision(Action<BinaryWriter> WriteManifest)
+    internal static string CreateRevision(Action<BinaryWriter> WriteManifest) =>
+        NativeContentArtifact.Hex(Hash(WriteManifest));
+
+    internal static byte[] Hash(Action<BinaryWriter> WriteManifest)
     {
-        using var Stream = new MemoryStream();
-        using (var Writer = new BinaryWriter(Stream, StrictUtf8, true)) WriteManifest(Writer);
         using var Sha = SHA256.Create();
-        var Hash = Sha.ComputeHash(Stream.GetBuffer(), 0, checked((int)Stream.Length));
-        var Result = new StringBuilder(Hash.Length * 2);
-        foreach (var Value in Hash) Result.Append(Value.ToString("X2"));
-        return Result.ToString();
+        using (var Stream = new CryptoStream(System.IO.Stream.Null, Sha, CryptoStreamMode.Write))
+        using (var Writer = new BinaryWriter(Stream, StrictUtf8)) WriteManifest(Writer);
+        return Sha.Hash!;
     }
 
     static void WriteQuantized(BinaryWriter Writer, float Value) =>

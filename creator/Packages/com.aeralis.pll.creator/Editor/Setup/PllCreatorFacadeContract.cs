@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Mono.Cecil;
 using UnityEngine;
 using ReflectionAssembly = System.Reflection.Assembly;
 
@@ -161,65 +162,44 @@ namespace PLL.Creator.Editor
             }
             Dictionary<string, string> Assemblies;
             if (!TryIndexAssemblies(ManagedPath, out Assemblies, out Failure)) return false;
-            var Loaded = new Dictionary<string, ReflectionAssembly>(StringComparer.OrdinalIgnoreCase);
-            ReflectionAssembly Load(string AssemblyPath)
-            {
-                ReflectionAssembly Assembly;
-                if (Loaded.TryGetValue(AssemblyPath, out Assembly)) return Assembly;
-                Assembly = ReflectionAssembly.ReflectionOnlyLoad(File.ReadAllBytes(AssemblyPath));
-                Loaded.Add(AssemblyPath, Assembly);
-                return Assembly;
-            }
-            ResolveEventHandler Resolver = (Sender, Arguments) =>
-            {
-                string AssemblyPath;
-                return Assemblies.TryGetValue(new AssemblyName(Arguments.Name).Name, out AssemblyPath)
-                    ? Load(AssemblyPath) : null;
-            };
-            AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += Resolver;
             try
             {
-                var Source = Load(SourcePath);
-                if (!string.Equals(Source.GetName().Name, sourceAssembly, StringComparison.Ordinal))
+                using (var Metadata = new AssemblyMetadata(Reference =>
+                    Assemblies.TryGetValue(Reference.Name, out var Path)
+                        ? Path : throw new AssemblyResolutionException(Reference)))
                 {
-                    Failure = "PEAK's Assembly-CSharp.dll has assembly identity '" + Source.GetName().Name + "'.";
-                    return false;
-                }
-                if (!TryValidateAssembly(Source, "PEAK", out _, out Failure)) return false;
-                var Result = new HashSet<string>(StringComparer.Ordinal);
-                var Queue = new Queue<string>(dependencyRoots);
-                while (Queue.Count != 0)
-                {
-                    var Name = Queue.Dequeue();
-                    if (PllCreatorProviderInventory.FrameworkAssembly(Name) || !Result.Add(Name)) continue;
-                    string AssemblyPath;
-                    if (!Assemblies.TryGetValue(Name, out AssemblyPath))
+                    var Source = Metadata.Read(SourcePath, sourceAssembly);
+                    if (!TryValidateAssembly(Source, "PEAK", out Failure)) return false;
+                    var Result = new HashSet<string>(StringComparer.Ordinal);
+                    var Queue = new Queue<string>(dependencyRoots);
+                    while (Queue.Count != 0)
                     {
-                        Failure = "PEAK managed dependency '" + Name + "' is unavailable.";
-                        return false;
+                        var Name = Queue.Dequeue();
+                        if (PllCreatorProviderInventory.FrameworkAssembly(Name) || !Result.Add(Name)) continue;
+                        string AssemblyPath;
+                        if (!Assemblies.TryGetValue(Name, out AssemblyPath))
+                        {
+                            Failure = "PEAK managed dependency '" + Name + "' is unavailable.";
+                            return false;
+                        }
+                        foreach (var Reference in Metadata.Read(AssemblyPath, Name).MainModule.AssemblyReferences)
+                            if (!PllCreatorProviderInventory.FrameworkAssembly(Reference.Name)
+                                && !string.Equals(Reference.Name, sourceAssembly, StringComparison.Ordinal))
+                                Queue.Enqueue(Reference.Name);
                     }
-                    foreach (var Reference in Load(AssemblyPath).GetReferencedAssemblies())
-                        if (!PllCreatorProviderInventory.FrameworkAssembly(Reference.Name)
-                            && !string.Equals(Reference.Name, sourceAssembly, StringComparison.Ordinal))
-                            Queue.Enqueue(Reference.Name);
+                    Dependencies = Result.OrderBy(Name => Name, StringComparer.Ordinal)
+                        .Select(Name => Assemblies[Name]).ToArray();
+                    Failure = string.Empty;
+                    return true;
                 }
-                Dependencies = Result.OrderBy(Name => Name, StringComparer.Ordinal)
-                    .Select(Name => Assemblies[Name]).ToArray();
-                Failure = string.Empty;
-                return true;
             }
-            catch (Exception InspectionException) when (InspectionException is IOException
-                || InspectionException is UnauthorizedAccessException || InspectionException is ArgumentException
-                || InspectionException is BadImageFormatException || InspectionException is ReflectionTypeLoadException
-                || InspectionException is TypeLoadException || InspectionException is CustomAttributeFormatException
-                || InspectionException is System.Security.SecurityException)
+            catch (Exception Exception) when (Exception is IOException || Exception is UnauthorizedAccessException
+                || Exception is ArgumentException || Exception is BadImageFormatException || Exception is TypeLoadException
+                || Exception is AssemblyResolutionException || Exception is ResolutionException
+                || Exception is System.Security.SecurityException)
             {
-                Failure = "PEAK metadata cannot be inspected: " + InspectionException.Message;
+                Failure = "PEAK metadata cannot be inspected: " + Exception.Message;
                 return false;
-            }
-            finally
-            {
-                AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve -= Resolver;
             }
         }
 
@@ -234,36 +214,110 @@ namespace PLL.Creator.Editor
             }
             try
             {
-                Dictionary<string, Type> ActualTypes;
-                if (!TryValidateAssembly(Source, "Generated", out ActualTypes, out Failure)) return false;
-                Types = new System.Collections.ObjectModel.ReadOnlyDictionary<string, Type>(ActualTypes);
-                return true;
+                var Assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                using (var Metadata = new AssemblyMetadata(Reference =>
+                {
+                    var Name = Reference.FullName;
+                    string Path = null;
+                    foreach (var Assembly in Assemblies)
+                    {
+                        if (Assembly.IsDynamic || Assembly.ReflectionOnly || Assembly.FullName != Name) continue;
+                        var Location = Assembly.Location;
+                        if (string.IsNullOrEmpty(Location)) continue;
+                        if (Path != null && !string.Equals(Path, Location, StringComparison.Ordinal))
+                            throw new AmbiguousMatchException("Loaded assembly '" + Name + "' has multiple file locations.");
+                        Path = Location;
+                    }
+                    return Path ?? throw new AssemblyResolutionException(Reference);
+                }))
+                {
+                    var Compiled = Metadata.Read(Source.Location, sourceAssembly);
+                    if (Compiled.MainModule.Mvid != Source.ManifestModule.ModuleVersionId)
+                    {
+                        Failure = "Unity's loaded facade differs from its compiled file.";
+                        return false;
+                    }
+                    if (!TryValidateAssembly(Compiled, "Generated", out Failure)) return false;
+                    var ActualTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
+                    foreach (var Declaration in types)
+                    {
+                        var Type = Source.GetType(Declaration.metadataName.Replace('/', '+'), true);
+                        ActualTypes.Add(Declaration.name, Type);
+                    }
+                    Types = new System.Collections.ObjectModel.ReadOnlyDictionary<string, Type>(ActualTypes);
+                    return true;
+                }
             }
-            catch (Exception Exception) when (Exception is ArgumentException || Exception is FileNotFoundException
-                                              || Exception is FileLoadException || Exception is TypeLoadException
-                                              || Exception is ReflectionTypeLoadException
-                                              || Exception is CustomAttributeFormatException)
+            catch (Exception Exception) when (Exception is ArgumentException || Exception is IOException
+                || Exception is UnauthorizedAccessException || Exception is TypeLoadException
+                || Exception is ReflectionTypeLoadException || Exception is BadImageFormatException || Exception is AmbiguousMatchException
+                || Exception is AssemblyResolutionException || Exception is ResolutionException
+                || Exception is System.Security.SecurityException)
             {
-                Failure = "Generated facade metadata could not be inspected: " + Exception.Message;
+                Failure = "Generated facade metadata cannot be inspected: " + Exception.Message;
                 return false;
             }
         }
 
-        bool TryValidateAssembly(
-            ReflectionAssembly Source, string Owner, out Dictionary<string, Type> Types, out string Failure)
+        sealed class AssemblyMetadata : IAssemblyResolver
         {
-            Types = null;
-            var ActualTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
+            readonly Func<AssemblyNameReference, string> ResolvePath;
+            readonly Dictionary<string, AssemblyDefinition> Loaded =
+                new Dictionary<string, AssemblyDefinition>(StringComparer.OrdinalIgnoreCase);
+            readonly Dictionary<string, AssemblyDefinition> Resolved =
+                new Dictionary<string, AssemblyDefinition>(StringComparer.Ordinal);
+
+            internal AssemblyMetadata(Func<AssemblyNameReference, string> ResolvePath) => this.ResolvePath = ResolvePath;
+
+            internal AssemblyDefinition Read(string Path, string ExpectedName)
+            {
+                AssemblyDefinition Assembly;
+                if (Loaded.TryGetValue(Path, out Assembly)) return Assembly;
+                Assembly = AssemblyDefinition.ReadAssembly(Path,
+                    new ReaderParameters { AssemblyResolver = this, InMemory = true });
+                if (!string.Equals(Assembly.Name.Name, ExpectedName, StringComparison.Ordinal))
+                {
+                    var ActualName = Assembly.Name.Name;
+                    Assembly.Dispose();
+                    throw new BadImageFormatException("Managed assembly '" + ActualName
+                        + "' does not match the required name '" + ExpectedName + "'.");
+                }
+                Loaded.Add(Path, Assembly);
+                return Assembly;
+            }
+
+            public AssemblyDefinition Resolve(AssemblyNameReference Reference)
+            {
+                var Name = Reference.FullName;
+                AssemblyDefinition Assembly;
+                if (Resolved.TryGetValue(Name, out Assembly)) return Assembly;
+                Assembly = Read(ResolvePath(Reference), Reference.Name);
+                Resolved.Add(Name, Assembly);
+                return Assembly;
+            }
+
+            public AssemblyDefinition Resolve(AssemblyNameReference Reference, ReaderParameters Parameters) => Resolve(Reference);
+
+            public void Dispose()
+            {
+                foreach (var Assembly in Loaded.Values) Assembly.Dispose();
+            }
+        }
+
+        bool TryValidateAssembly(
+            AssemblyDefinition Source, string Owner, out string Failure)
+        {
+            var ActualTypes = new Dictionary<string, TypeDefinition>(StringComparer.Ordinal);
             foreach (var Declaration in types)
             {
-                var TypeValue = Source.GetType(Declaration.metadataName.Replace('/', '+'), false);
-                if (TypeValue == null)
+                var Type = Source.MainModule.GetType(Declaration.metadataName);
+                if (Type == null)
                 {
                     Failure = Owner + " type '" + Declaration.name + "' is unavailable.";
                     return false;
                 }
-                if (!ValidDeclaration(TypeValue, Declaration, Owner, out Failure)) return false;
-                ActualTypes.Add(Declaration.name, TypeValue);
+                if (!ValidDeclaration(Type, Declaration, Owner, out Failure)) return false;
+                ActualTypes.Add(Declaration.name, Type);
             }
             foreach (var Declaration in types)
                 if (!ValidFields(ActualTypes[Declaration.name], Declaration, Owner, out Failure)) return false;
@@ -271,281 +325,248 @@ namespace PLL.Creator.Editor
                 if (!ValidMethod(ActualTypes, Method, Owner, out Failure)) return false;
             foreach (var Script in scripts)
             {
-                var TypeValue = ActualTypes[Script.typeName];
+                var Type = ActualTypes[Script.typeName];
                 var ExpectedRoot = string.Equals(Script.typeName, "DayNightProfile", StringComparison.Ordinal)
                     ? "UnityEngine.ScriptableObject" : "UnityEngine.MonoBehaviour";
-                if (!DerivesFrom(TypeValue, ExpectedRoot) || TypeValue.IsAbstract)
+                if (!DerivesFrom(Type, ExpectedRoot) || Type.IsAbstract)
                 {
                     Failure = Owner + " type '" + Script.typeName + "' is not a concrete " + ExpectedRoot + ".";
                     return false;
                 }
             }
-            Types = ActualTypes;
             Failure = string.Empty;
             return true;
         }
 
         static bool TryIndexAssemblies(
-            string managedPath, out Dictionary<string, string> assemblies, out string failure)
+            string ManagedPath, out Dictionary<string, string> Assemblies, out string Failure)
         {
-            assemblies = new Dictionary<string, string>(StringComparer.Ordinal);
+            Assemblies = new Dictionary<string, string>(StringComparer.Ordinal);
             try
             {
-                foreach (var path in Directory.GetFiles(managedPath, "*.dll", SearchOption.TopDirectoryOnly))
+                foreach (var Path in Directory.EnumerateFiles(ManagedPath, "*.dll", SearchOption.TopDirectoryOnly))
                 {
-                    AssemblyName identity;
-                    try
+                    AssemblyName Identity;
+                    try { Identity = AssemblyName.GetAssemblyName(Path); }
+                    catch (BadImageFormatException) { continue; }
+                    if (!Assemblies.TryAdd(Identity.Name, Path))
                     {
-                        identity = AssemblyName.GetAssemblyName(path);
-                    }
-                    catch (BadImageFormatException)
-                    {
-                        continue;
-                    }
-                    if (assemblies.ContainsKey(identity.Name))
-                    {
-                        failure = "PEAK Managed contains duplicate assembly identity '" + identity.Name + "'.";
+                        Failure = "PEAK Managed contains duplicate assembly identity '" + Identity.Name + "'.";
                         return false;
                     }
-                    assemblies.Add(identity.Name, path);
                 }
             }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException
-                                              || exception is ArgumentException || exception is System.Security.SecurityException
-                                              || exception is FileLoadException)
+            catch (Exception Exception) when (Exception is IOException || Exception is UnauthorizedAccessException
+                || Exception is ArgumentException || Exception is System.Security.SecurityException || Exception is FileLoadException)
             {
-                assemblies = null;
-                failure = "PEAK managed metadata cannot be inspected: " + exception.Message;
+                Assemblies = null;
+                Failure = "PEAK managed metadata cannot be inspected: " + Exception.Message;
                 return false;
             }
-            failure = string.Empty;
+            Failure = string.Empty;
             return true;
         }
 
         static bool ValidDeclaration(
-            Type type, PllCreatorContractType declaration, string owner, out string failure)
+            TypeDefinition Type, PllCreatorContractType Declaration, string Owner, out string Failure)
         {
-            var kind = type.IsEnum ? "enum" : type.IsInterface ? "interface" : "class";
-            var baseType = type.BaseType == null ? string.Empty : ContractTypeName(type.BaseType);
-            if (!string.Equals(kind, declaration.kind, StringComparison.Ordinal)
-                || !string.Equals(baseType, declaration.baseType, StringComparison.Ordinal)
-                || type.IsAbstract != declaration.isAbstract
-                || !type.IsEnum && type.IsSerializable != declaration.isSerializable)
+            var Kind = Type.IsEnum ? "enum" : Type.IsInterface ? "interface" : "class";
+            var BaseType = Type.BaseType == null ? string.Empty : ContractTypeName(Type.BaseType);
+            if (!string.Equals(Kind, Declaration.kind, StringComparison.Ordinal)
+                || !string.Equals(BaseType, Declaration.baseType, StringComparison.Ordinal)
+                || Type.IsAbstract != Declaration.isAbstract || !Type.IsEnum && Type.IsSerializable != Declaration.isSerializable)
             {
-                failure = owner + " type '" + declaration.name + "' does not match the required declaration.";
+                Failure = Owner + " type '" + Declaration.name + "' does not match the required declaration.";
                 return false;
             }
-            if (!type.IsEnum)
+            if (!Type.IsEnum) { Failure = string.Empty; return true; }
+            var Underlying = Type.Fields.FirstOrDefault(Field => Field.Name == "value__");
+            if (Underlying == null || !string.Equals(ContractTypeName(Underlying.FieldType),
+                    Declaration.enumUnderlyingType, StringComparison.Ordinal))
             {
-                failure = string.Empty;
-                return true;
-            }
-            if (!string.Equals(ContractTypeName(Enum.GetUnderlyingType(type)), declaration.enumUnderlyingType,
-                    StringComparison.Ordinal))
-            {
-                failure = owner + " enum '" + declaration.name + "' has an incompatible underlying type.";
+                Failure = Owner + " enum '" + Declaration.name + "' has an incompatible underlying type.";
                 return false;
             }
-            var fields = type.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-                .Where(value => value.IsLiteral).OrderBy(value => value.MetadataToken).ToArray();
-            if (fields.Length != declaration.enumValues.Length)
+            var Index = 0;
+            foreach (var Field in Type.Fields)
             {
-                failure = owner + " enum '" + declaration.name + "' has an incompatible value set.";
-                return false;
-            }
-            for (var i = 0; i < fields.Length; i++)
-            {
-                var expected = declaration.enumValues[i];
-                var actual = Convert.ToString(fields[i].GetRawConstantValue(), CultureInfo.InvariantCulture);
-                if (!string.Equals(fields[i].Name, expected.name, StringComparison.Ordinal)
-                    || !string.Equals(actual, expected.value, StringComparison.Ordinal))
+                if (!Field.IsPublic || !Field.IsStatic || !Field.IsLiteral) continue;
+                if (Index >= Declaration.enumValues.Length)
                 {
-                    failure = owner + " enum '" + declaration.name + "' changed value '" + expected.name + "'.";
+                    Failure = Owner + " enum '" + Declaration.name + "' has an incompatible value set.";
+                    return false;
+                }
+                var Expected = Declaration.enumValues[Index++];
+                if (!string.Equals(Field.Name, Expected.name, StringComparison.Ordinal)
+                    || !string.Equals(Convert.ToString(Field.Constant, CultureInfo.InvariantCulture),
+                        Expected.value, StringComparison.Ordinal))
+                {
+                    Failure = Owner + " enum '" + Declaration.name + "' changed value '" + Expected.name + "'.";
                     return false;
                 }
             }
-            failure = string.Empty;
+            if (Index != Declaration.enumValues.Length)
+            {
+                Failure = Owner + " enum '" + Declaration.name + "' has an incompatible value set.";
+                return false;
+            }
+            Failure = string.Empty;
             return true;
         }
 
-        static bool ValidFields(Type type, PllCreatorContractType declaration, string owner, out string failure)
+        static bool ValidFields(TypeDefinition Type, PllCreatorContractType Declaration, string Owner, out string Failure)
         {
-            foreach (var field in declaration.fields)
+            var Fields = new Dictionary<string, FieldDefinition>(StringComparer.Ordinal);
+            foreach (var Field in Type.Fields)
             {
-                var actual = type.GetField(field.name, BindingFlags.Public | BindingFlags.NonPublic
-                    | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
-                if (actual == null || !string.Equals(ContractTypeName(actual.FieldType), field.typeName,
-                        StringComparison.Ordinal) || actual.IsPublic != field.isPublic
-                    || HasAttribute(actual, "UnityEngine.SerializeReference") != field.serializeReference
-                    || !FormerNames(actual).SequenceEqual(field.formerNames, StringComparer.Ordinal))
+                if (!Fields.TryAdd(Field.Name, Field))
                 {
-                    failure = owner + " field '" + declaration.name + "." + field.name
-                        + "' does not match the required contract.";
+                    Failure = Owner + " type '" + Declaration.name + "' has duplicate field names.";
                     return false;
                 }
             }
-            if (!declaration.serializedSurface)
+            foreach (var Field in Declaration.fields)
             {
-                failure = string.Empty;
-                return true;
+                FieldDefinition Actual;
+                if (!Fields.TryGetValue(Field.name, out Actual)
+                    || !string.Equals(ContractTypeName(Actual.FieldType), Field.typeName, StringComparison.Ordinal)
+                    || Actual.IsPublic != Field.isPublic
+                    || HasAttribute(Actual, "UnityEngine.SerializeReference") != Field.serializeReference
+                    || !FormerNames(Actual).SequenceEqual(Field.formerNames, StringComparer.Ordinal))
+                {
+                    Failure = Owner + " field '" + Declaration.name + "." + Field.name + "' does not match the required contract.";
+                    return false;
+                }
             }
-            var ExpectedSerialized = new HashSet<string>(declaration.fields.Where(Value => Value.serialized)
-                .Select(SerializedFieldIdentity), StringComparer.Ordinal);
-            var actualSerialized = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic
-                         | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            if (!Declaration.serializedSurface) { Failure = string.Empty; return true; }
+            var ExpectedSerialized = new HashSet<string>(Declaration.fields.Where(Field => Field.serialized)
+                .Select(Field => Field.name + "|" + Field.typeName + "|"
+                    + (Field.serializeReference ? "reference" : "value")), StringComparer.Ordinal);
+            var ActualSerialized = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var Field in Type.Fields)
             {
-                bool serializeReference;
-                if (IsSerializedField(field, out serializeReference)
-                    && SupportedSerializedShape(field.FieldType, false, serializeReference))
-                    actualSerialized.Add(field.Name + "|" + ContractTypeName(field.FieldType) + "|"
-                        + (serializeReference ? "reference" : "value"));
+                var SerializeReference = HasAttribute(Field, "UnityEngine.SerializeReference");
+                if (!Field.IsStatic && !Field.IsLiteral && !Field.IsInitOnly && !Field.IsNotSerialized
+                    && (Field.IsPublic || SerializeReference || HasAttribute(Field, "UnityEngine.SerializeField"))
+                    && SupportedSerializedShape(Field.FieldType, false, SerializeReference))
+                    ActualSerialized.Add(Field.Name + "|" + ContractTypeName(Field.FieldType) + "|"
+                        + (SerializeReference ? "reference" : "value"));
             }
-            if (!actualSerialized.SetEquals(ExpectedSerialized))
+            if (!ActualSerialized.SetEquals(ExpectedSerialized))
             {
-                failure = owner + " type '" + declaration.name + "' changed its serialized field surface.";
+                Failure = Owner + " type '" + Declaration.name + "' changed its serialized field surface.";
                 return false;
             }
-            failure = string.Empty;
+            Failure = string.Empty;
             return true;
         }
 
-        static string SerializedFieldIdentity(PllCreatorContractField field)
+        static bool SupportedSerializedShape(TypeReference Type, bool Container, bool SerializeReference)
         {
-            return field.name + "|" + field.typeName + "|" + (field.serializeReference ? "reference" : "value");
-        }
-
-        static bool IsSerializedField(FieldInfo field, out bool serializeReference)
-        {
-            serializeReference = HasAttribute(field, "UnityEngine.SerializeReference");
-            return !field.IsStatic && !field.IsLiteral && !field.IsInitOnly
-                && (field.Attributes & FieldAttributes.NotSerialized) == 0
-                && (field.IsPublic || serializeReference || HasAttribute(field, "UnityEngine.SerializeField"));
-        }
-
-        static bool SupportedSerializedShape(Type type, bool container, bool serializeReference)
-        {
-            if (type.IsArray)
-                return !container && type.GetArrayRank() == 1
-                    && SupportedSerializedShape(type.GetElementType(), true, serializeReference);
-            if (type.IsGenericType)
-                return !container && string.Equals(type.GetGenericTypeDefinition().FullName,
-                           "System.Collections.Generic.List`1", StringComparison.Ordinal)
-                    && SupportedSerializedShape(type.GetGenericArguments()[0], true, serializeReference);
-            if (type.IsEnum || type.IsPrimitive || string.Equals(type.FullName, "System.String", StringComparison.Ordinal)
-                || IsUnityEngineType(type) || DerivesFrom(type, "UnityEngine.Object")) return true;
-            if (serializeReference) return type.IsClass || type.IsInterface;
-            return type.IsSerializable && !type.IsAbstract && !type.IsInterface;
+            if (Type is ArrayType Array)
+                return !Container && Array.Rank == 1 && SupportedSerializedShape(Array.ElementType, true, SerializeReference);
+            if (Type is GenericInstanceType Generic)
+                return !Container && string.Equals(Generic.ElementType.FullName,
+                    "System.Collections.Generic.List`1", StringComparison.Ordinal)
+                    && SupportedSerializedShape(Generic.GenericArguments[0], true, SerializeReference);
+            if (Type.IsPrimitive || Type.FullName == "System.String") return true;
+            if (Type is GenericParameter) return false;
+            var Definition = Type.Resolve();
+            if (Definition == null) throw new TypeLoadException("Type '" + Type.FullName + "' is unavailable.");
+            var Assembly = Definition.Module.Assembly.Name.Name;
+            if (Definition.IsEnum || Assembly == "UnityEngine" || Assembly.StartsWith("UnityEngine.", StringComparison.Ordinal)
+                || DerivesFrom(Definition, "UnityEngine.Object")) return true;
+            if (SerializeReference) return Definition.IsInterface || !Definition.IsValueType && Definition.IsClass;
+            return Definition.IsSerializable && !Definition.IsAbstract && !Definition.IsInterface;
         }
 
         static bool ValidMethod(
-            IReadOnlyDictionary<string, Type> typesByName, PllCreatorContractMethod method,
-            string owner, out string failure)
+            IReadOnlyDictionary<string, TypeDefinition> Types, PllCreatorContractMethod Method, string Owner, out string Failure)
         {
-            Type declaring;
-            if (!typesByName.TryGetValue(method.declaringType, out declaring))
+            TypeDefinition Declaring;
+            if (!Types.TryGetValue(Method.declaringType, out Declaring))
             {
-                failure = "The facade contract method owner '" + method.declaringType + "' is invalid.";
+                Failure = "The facade contract method owner '" + Method.declaringType + "' is invalid.";
                 return false;
             }
-            var candidates = string.Equals(method.name, ".ctor", StringComparison.Ordinal)
-                ? declaring.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                    .Cast<MethodBase>()
-                : declaring.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
-                    | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(value => value.Name == method.name)
-                    .Cast<MethodBase>();
-            foreach (var candidate in candidates)
+            foreach (var Candidate in Declaring.Methods)
             {
-                var parameters = candidate.GetParameters();
-                if (parameters.Length != method.parameterTypes.Length) continue;
-                var match = true;
-                for (var i = 0; i < parameters.Length; i++)
-                    if (!string.Equals(ContractTypeName(parameters[i].ParameterType), method.parameterTypes[i],
-                            StringComparison.Ordinal))
+                if (Candidate.Name != Method.name || Candidate.Parameters.Count != Method.parameterTypes.Length) continue;
+                var Match = true;
+                for (var i = 0; i < Candidate.Parameters.Count; i++)
+                    if (!string.Equals(ContractTypeName(Candidate.Parameters[i].ParameterType),
+                            Method.parameterTypes[i], StringComparison.Ordinal))
                     {
-                        match = false;
+                        Match = false;
                         break;
                     }
-                if (!match) continue;
-                var info = candidate as MethodInfo;
-                if ((info == null && string.Equals(method.returnType, "System.Void", StringComparison.Ordinal)
-                    || info != null && string.Equals(ContractTypeName(info.ReturnType), method.returnType,
-                        StringComparison.Ordinal))
-                    && string.Equals(MethodVisibility(candidate), method.visibility, StringComparison.Ordinal)
-                    && candidate.IsStatic == method.isStatic && candidate.IsAbstract == method.isAbstract
-                    && candidate.IsVirtual == method.isVirtual)
+                if (Match && string.Equals(ContractTypeName(Candidate.ReturnType), Method.returnType, StringComparison.Ordinal)
+                    && string.Equals(MethodVisibility(Candidate), Method.visibility, StringComparison.Ordinal)
+                    && Candidate.IsStatic == Method.isStatic && Candidate.IsAbstract == Method.isAbstract
+                    && Candidate.IsVirtual == Method.isVirtual)
                 {
-                    failure = string.Empty;
+                    Failure = string.Empty;
                     return true;
                 }
             }
-            failure = owner + " member '" + method.declaringType + "." + method.name
-                + "' does not match the required contract.";
+            Failure = Owner + " member '" + Method.declaringType + "." + Method.name + "' does not match the required contract.";
             return false;
         }
 
-        static bool ValidVisibility(string value)
+        static bool ValidVisibility(string Value) => Value == "public" || Value == "family"
+            || Value == "familyOrAssembly" || Value == "familyAndAssembly" || Value == "assembly" || Value == "private";
+
+        static string MethodVisibility(MethodDefinition Method)
         {
-            return string.Equals(value, "public", StringComparison.Ordinal)
-                || string.Equals(value, "family", StringComparison.Ordinal)
-                || string.Equals(value, "familyOrAssembly", StringComparison.Ordinal)
-                || string.Equals(value, "familyAndAssembly", StringComparison.Ordinal)
-                || string.Equals(value, "assembly", StringComparison.Ordinal)
-                || string.Equals(value, "private", StringComparison.Ordinal);
+            if (Method.IsPublic) return "public";
+            if (Method.IsFamily) return "family";
+            if (Method.IsFamilyOrAssembly) return "familyOrAssembly";
+            if (Method.IsFamilyAndAssembly) return "familyAndAssembly";
+            return Method.IsAssembly ? "assembly" : "private";
         }
 
-        static string MethodVisibility(MethodBase method)
-        {
-            if (method.IsPublic) return "public";
-            if (method.IsFamily) return "family";
-            if (method.IsFamilyOrAssembly) return "familyOrAssembly";
-            if (method.IsFamilyAndAssembly) return "familyAndAssembly";
-            if (method.IsAssembly) return "assembly";
-            return "private";
-        }
+        static IEnumerable<string> FormerNames(FieldDefinition Field) => Field.CustomAttributes
+            .Where(Attribute => Attribute.AttributeType.FullName == "UnityEngine.Serialization.FormerlySerializedAsAttribute")
+            .Select(Attribute => Attribute.ConstructorArguments.Count == 1
+                ? Attribute.ConstructorArguments[0].Value as string ?? string.Empty : string.Empty);
 
-        static IEnumerable<string> FormerNames(FieldInfo field)
-        {
-            return CustomAttributeData.GetCustomAttributes(field)
-                .Where(value => string.Equals(value.Constructor.DeclaringType.FullName,
-                    "UnityEngine.Serialization.FormerlySerializedAsAttribute", StringComparison.Ordinal))
-                .Select(value => value.ConstructorArguments.Count == 1
-                    ? value.ConstructorArguments[0].Value as string ?? string.Empty : string.Empty);
-        }
+        static bool HasAttribute(Mono.Cecil.ICustomAttributeProvider Member, string Name) =>
+            Member.CustomAttributes.Any(Attribute => Attribute.AttributeType.FullName == Name);
 
-        static bool HasAttribute(MemberInfo member, string fullName)
+        static bool DerivesFrom(TypeReference Type, string Name)
         {
-            return CustomAttributeData.GetCustomAttributes(member).Any(value =>
-                string.Equals(value.Constructor.DeclaringType.FullName, fullName, StringComparison.Ordinal));
-        }
-
-        static bool IsUnityEngineType(Type type)
-        {
-            var name = type.Assembly.GetName().Name;
-            return string.Equals(name, "UnityEngine", StringComparison.Ordinal)
-                || name.StartsWith("UnityEngine.", StringComparison.Ordinal);
-        }
-
-        static bool DerivesFrom(Type type, string fullName)
-        {
-            for (var current = type; current != null; current = current.BaseType)
-                if (string.Equals(current.FullName, fullName, StringComparison.Ordinal)) return true;
-            return false;
-        }
-
-        internal static string ContractTypeName(Type type)
-        {
-            if (type.IsArray) return ContractTypeName(type.GetElementType()) + "[]";
-            if (type.IsGenericParameter) return "!" + type.GenericParameterPosition.ToString(CultureInfo.InvariantCulture);
-            if (type.IsGenericType)
+            var Visited = new HashSet<TypeDefinition>();
+            for (var Current = Type; Current != null;)
             {
-                var definition = type.GetGenericTypeDefinition();
-                var name = (definition.FullName ?? definition.Name).Replace('+', '.');
-                var tick = name.LastIndexOf('`');
-                if (tick >= 0) name = name.Substring(0, tick);
-                return name + "<" + string.Join(",", type.GetGenericArguments().Select(ContractTypeName)) + ">";
+                if (Current.FullName == Name) return true;
+                var Definition = Current.Resolve();
+                if (Definition == null) throw new TypeLoadException("Type '" + Current.FullName + "' is unavailable.");
+                if (!Visited.Add(Definition))
+                    throw new BadImageFormatException("Type '" + Type.FullName + "' has a cyclic base-type hierarchy.");
+                Current = Definition.BaseType;
             }
-            return (type.FullName ?? type.Name).Replace('+', '.');
+            return false;
+        }
+
+        internal static string ContractTypeName(TypeReference Type)
+        {
+            if (Type is ArrayType Array) return ContractTypeName(Array.ElementType) + "[]";
+            if (Type is GenericParameter Parameter) return "!" + Parameter.Position.ToString(CultureInfo.InvariantCulture);
+            if (Type is GenericInstanceType Generic)
+            {
+                var Name = Generic.ElementType.FullName.Replace('/', '.');
+                var Tick = Name.LastIndexOf('`');
+                if (Tick >= 0) Name = Name.Substring(0, Tick);
+                return Name + "<" + string.Join(",", Generic.GenericArguments.Select(ContractTypeName)) + ">";
+            }
+            if (Type.HasGenericParameters)
+            {
+                var Name = Type.FullName.Replace('/', '.');
+                var Tick = Name.LastIndexOf('`');
+                if (Tick >= 0) Name = Name.Substring(0, Tick);
+                return Name + "<" + string.Join(",", Type.GenericParameters.Select(Parameter => ContractTypeName(Parameter))) + ">";
+            }
+            return Type.FullName.Replace('/', '.');
         }
     }
 

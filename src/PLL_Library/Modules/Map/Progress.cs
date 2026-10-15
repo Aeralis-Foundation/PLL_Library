@@ -32,8 +32,7 @@ internal sealed class ProgressProjection
         internal GameObject? Root;
         internal readonly Dictionary<MountainProgressHandler.ProgressPoint, int> Slots = new();
         internal readonly Dictionary<MountainProgressHandler.ProgressPoint, string> Titles = new();
-        internal MountainProgressHandler.ProgressPoint? PeakPoint;
-        internal int PeakSlot = -1;
+        internal PeakProgress? Peak;
         internal int[] PointIndices = Array.Empty<int>();
 
         internal void Clear()
@@ -46,10 +45,21 @@ internal sealed class ProgressProjection
             Root = null;
             Slots.Clear();
             Titles.Clear();
-            PeakPoint = null;
-            PeakSlot = -1;
+            Peak = null;
             PointIndices = Array.Empty<int>();
         }
+    }
+
+    internal sealed class PeakProgress
+    {
+        internal PeakProgress(MountainProgressHandler.ProgressPoint Point, int SlotIndex, Vector3 Forward)
+        {
+            this.Point = Point; this.SlotIndex = SlotIndex; this.Forward = Forward;
+        }
+
+        internal MountainProgressHandler.ProgressPoint Point { get; }
+        internal int SlotIndex { get; }
+        internal Vector3 Forward { get; }
     }
 
     static ProgressState Progress => Map.CurrentRun!.Progress.State;
@@ -84,8 +94,7 @@ internal sealed class ProgressProjection
             if (!CaptureProgressTemplates(Handler))
             {
                 Progress.Slots.Clear();
-                Progress.PeakPoint = null;
-                Progress.PeakSlot = -1;
+                Progress.Peak = null;
                 Progress.Titles.Clear();
                 Progress.PointIndices = Array.Empty<int>();
                 return true;
@@ -93,8 +102,7 @@ internal sealed class ProgressProjection
         }
         if (Progress.Root) UnityEngine.Object.DestroyImmediate(Progress.Root);
         Progress.Slots.Clear();
-        Progress.PeakPoint = null;
-        Progress.PeakSlot = -1;
+        Progress.Peak = null;
         Progress.Titles.Clear();
         Progress.PointIndices = PointIndices;
 
@@ -164,7 +172,7 @@ internal sealed class ProgressProjection
                     point.clip = authoring.EnterSounds[i % authoring.EnterSounds.Count];
             }
             if (!Map.Slots[i].PeakAttachment) continue;
-            if (Progress.PeakPoint is not null)
+            if (Progress.Peak is not null)
                 throw new InvalidOperationException("The published layout contains more than one Peak progress point.");
             var PeakSource = Map.Slots[i].PeakSource
                 ?? throw new InvalidOperationException(
@@ -172,17 +180,16 @@ internal sealed class ProgressProjection
             var PeakTemplate = (PeakSource as PeakAttachmentSource)?.NativeProgressPoint
                 ?? throw new InvalidOperationException("PEAK's native summit progress template is unavailable.");
             var PeakExit = PlacementPlan.PlacedPeakExitPose(Map.Slots[i]);
-            var peakPoint = CreateProgressPoint(
+            var PeakPoint = CreateProgressPoint(
                 PeakTemplate,
                 PeakTemplate.title,
                 PeakTemplate.biome,
                 PeakTemplate.achievement,
                 PeakExit.position,
                 pointIndex);
-            Points[pointIndex++] = peakPoint;
-            Progress.Slots.Add(peakPoint, i);
-            Progress.PeakPoint = peakPoint;
-            Progress.PeakSlot = i;
+            Points[pointIndex++] = PeakPoint;
+            Progress.Slots.Add(PeakPoint, i);
+            Progress.Peak = new PeakProgress(PeakPoint, i, PeakExit.rotation * Vector3.forward);
         }
 
         Handler.progressPoints = Points;
@@ -212,7 +219,7 @@ internal sealed class ProgressProjection
         throw new InvalidOperationException($"Map segment role {Role} has no expanded progress point.");
     }
     internal static bool PeakProgressReached(int SlotIndex) =>
-        SlotIndex == Progress.PeakSlot && Progress.PeakPoint?.Reached == true;
+        Progress.Peak is { } Peak && SlotIndex == Peak.SlotIndex && Peak.Point.Reached;
 
     static global::Campfire RequiredSlotCampfire(int Index)
     {
@@ -378,13 +385,15 @@ internal sealed class ProgressProjection
             return false;
         }
     }
-    static bool BlocksPeakHelicopter(bool nativeNadirRequirement)
+    static bool BlocksPeakHelicopter(bool NativeNadirRequirement)
     {
-        if (!Map.Active) return nativeNadirRequirement;
+        if (!Map.Active) return NativeNadirRequirement;
         var Index = Map.Index;
-        return !Map.CurrentRun!.Configuration.Terminal.Winnable || Index < 0 || Index >= Map.Slots.Length
-            || !ReleasedSlotRetirement.IsRunTerminal(Index) || !Map.Slots[Index].PeakAttachment
-            || nativeNadirRequirement && Map.Slots[Index].Source is not NadirLayoutSegmentSource;
+        var Terminal = MapTransitionCoordinator.RunTerminalIndex();
+        return NativeNadirRequirement || !Map.CurrentRun!.Configuration.Terminal.Winnable
+            || Index < 0 || Index > Terminal || !Map.Slots[Index].PeakAttachment
+            || Index != Terminal && (Index != Terminal - 1
+                || Map.Slots[Terminal].Source is not NadirLayoutSegmentSource);
     }
 
     static bool CaptureProgressTemplates(MountainProgressHandler handler)
@@ -442,7 +451,7 @@ internal sealed class ProgressProjection
     static Biome.BiomeType? NativeProgressBiome(
         MountainProgressHandler.ProgressPoint Point)
     {
-        if (!Map.Active || ReferenceEquals(Point, Progress.PeakPoint)
+        if (!Map.Active || ReferenceEquals(Point, Progress.Peak?.Point)
             || !Progress.Slots.TryGetValue(Point, out var Index)) return Point.biome;
         return LayoutSegmentBehavior.Resolve(Map.Slots[Index].Source)?.Biome;
     }
@@ -459,7 +468,7 @@ internal sealed class ProgressProjection
     static void MarkProgressBiomeSkipped(
         MountainProgressHandler.ProgressPoint Point)
     {
-        if (!Map.Active || ReferenceEquals(Point, Progress.PeakPoint)
+        if (!Map.Active || ReferenceEquals(Point, Progress.Peak?.Point)
             || !Progress.Slots.TryGetValue(Point, out var Index))
         {
             MountainProgressHandler.MarkBiomeSkipped(Point.biome);
@@ -487,7 +496,7 @@ internal sealed class ProgressProjection
     static void SetProgressRichPresence(
         MountainProgressHandler.ProgressPoint Point)
     {
-        if (!Map.Active || ReferenceEquals(Point, Progress.PeakPoint)
+        if (!Map.Active || ReferenceEquals(Point, Progress.Peak?.Point)
             || !Progress.Slots.TryGetValue(Point, out var Index)
             || Map.Slots[Index].Source is not CustomLayoutSegmentSource Custom)
         {
@@ -520,15 +529,7 @@ internal sealed class ProgressProjection
             Progress.Owner._isInitialized = Progress.WasInitialized;
         }
         if (Progress.Root) UnityEngine.Object.DestroyImmediate(Progress.Root);
-        Progress.Owner = null;
-        Progress.Templates = Array.Empty<MountainProgressHandler.ProgressPoint>();
-        Progress.Skipped = null;
-        Progress.Root = null;
-        Progress.Slots.Clear();
-        Progress.PeakPoint = null;
-        Progress.PeakSlot = -1;
-        Progress.Titles.Clear();
-        Progress.PointIndices = Array.Empty<int>();
+        Progress.Clear();
     }
 
     [HarmonyPatch(typeof(MountainProgressHandler.ProgressPoint), nameof(MountainProgressHandler.ProgressPoint.localizedTitle), MethodType.Getter)]
@@ -673,12 +674,12 @@ internal sealed class ProgressProjection
         {
             if (!Map.Active || !Progress.Slots.TryGetValue(__0, out var index)) return true;
             var Slot = Map.Slots[index];
-            var axis = ReferenceEquals(__0, Progress.PeakPoint)
-                ? PlacementPlan.PlacedPeakExitPose(Slot).rotation * Vector3.forward
+            var Axis = Progress.Peak is { } Peak && ReferenceEquals(__0, Peak.Point)
+                ? Peak.Forward
                 : Slot.PlacedProgressionAxis;
             var character = Character.localCharacter;
             __result = index <= Map.Index && character && !character.data.dead && __0.transform
-                && Vector3.Dot(character.Center - __0.transform.position, axis) > 0f;
+                && Vector3.Dot(character.Center - __0.transform.position, Axis) > 0f;
             return false;
         }
     }
@@ -758,7 +759,20 @@ internal sealed class ProgressProjection
     static class HelicopterPatch
     {
         [HarmonyPrefix]
-        static bool Prefix() => !BlocksPeakHelicopter(false);
+        static bool Prefix() => !Map.Active || !BlocksPeakHelicopter(Ascents.shouldRequireNadir);
+    }
+
+    [HarmonyPatch(typeof(MountainProgressHandler), nameof(MountainProgressHandler.IsAtPeak), typeof(Vector3))]
+    static class PeakPositionPatch
+    {
+        [HarmonyPrefix]
+        static bool Prefix(Vector3 __0, ref bool __result)
+        {
+            if (!Map.Active) return true;
+            __result = Progress.Peak is { } Peak && Map.Index == Peak.SlotIndex
+                && Vector3.Dot(__0 - Peak.Point.transform.position, Peak.Forward) > 0f;
+            return false;
+        }
     }
 
     [HarmonyPatch(typeof(Flare), "Update")]

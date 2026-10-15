@@ -129,9 +129,9 @@ static class LayoutContract
         if (IsPeakToken(value))
             throw new ArgumentException("Peak is a structural ending, not a layout segment token.", parameter);
         if (IsCalderaToken(value))
-            throw new ArgumentException("Caldera is an internal half of the atomic Volcano layout segment; use Volcano.", parameter);
+            throw new ArgumentException("Caldera cannot be selected on its own. Use Volcano.", parameter);
         if (IsGloomToken(value))
-            throw new ArgumentException("Gloom is an internal half of the atomic Citadel layout segment; use Citadel.", parameter);
+            throw new ArgumentException("Gloom cannot be selected on its own. Use Citadel.", parameter);
         return value;
     }
 

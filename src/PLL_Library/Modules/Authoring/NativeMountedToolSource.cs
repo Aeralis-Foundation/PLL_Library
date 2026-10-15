@@ -27,7 +27,7 @@ internal sealed class NativeMountedToolSource
                 && !TransformOwnership.Overlaps(Child, Template.vfx.transform)
                 && Child.GetComponentInChildren<Renderer>(true)) Models.Add(Child.gameObject);
         if (Models.Count == 0) throw new InvalidOperationException("The native mounted tool has no separate tool model.");
-        Fingerprint = NativeEntityAppearance.Hash(Writer =>
+        Fingerprint = ManifestEncoding.Hash(Writer =>
         {
             Writer.Write("PLL/NativeMountedTool/v2");
             Writer.Write(DeterministicObjectIdentity.HashObjectHierarchy(Template.transform, "PLL/MountedToolGraph/v1"));

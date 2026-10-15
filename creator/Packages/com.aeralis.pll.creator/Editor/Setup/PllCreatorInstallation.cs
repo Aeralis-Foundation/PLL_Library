@@ -101,7 +101,7 @@ namespace PLL.Creator.Editor
             PllCreatorInstallation Installation;
             string Failure;
             if (TryInspectReadyInstallation(out Installation, out Failure)) return Installation;
-            throw new InvalidOperationException("PLL Creator setup is incomplete: " + Failure + " Run PLL > Setup > Configure.");
+            throw new InvalidOperationException(Failure);
         }
 
         public bool IsProviderAssetPath(string AssetPath)
@@ -172,7 +172,7 @@ namespace PLL.Creator.Editor
             if (CheckPending && PllCreatorSetupStore.PendingExists())
             {
                 if (Inspection != null) Inspection.State = "Pending setup";
-                Failure = "A PLL Creator setup transaction is pending.";
+                Failure = "PLL Creator setup has not finished.";
                 return false;
             }
             PllCreatorFacadeContract Contract;
@@ -215,7 +215,7 @@ namespace PLL.Creator.Editor
             if (!File.Exists(ContractPath) || !string.Equals(
                     PllCreatorFileSystem.Sha256(ContractPath), Manifest.contractSha256, StringComparison.Ordinal))
             {
-                Failure = "The generated Assets contract no longer matches the installed package.";
+                Failure = "The setup requirements no longer match this Creator package.";
                 return false;
             }
             var FileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -275,14 +275,21 @@ namespace PLL.Creator.Editor
             {
                 AssemblyName Identity;
                 if (Assembly == null || string.IsNullOrEmpty(Assembly.name) || !AssemblyNames.Add(Assembly.name)
-                    || !ValidGeneratedAssemblyRecord(Root, Assembly)
-                    || !ValidAssembly(Assembly.sourcePath, Assembly.sourceSha256, Assembly.name, true, out Identity))
+                    || !ValidGeneratedAssemblyRecord(Root, Assembly))
                 {
-                    Failure = "PEAK managed source '" + (Assembly?.name ?? "<unknown>") + "' changed.";
+                    Failure = "The managed assembly record for '" + (Assembly?.name ?? "<unknown>") + "' is invalid.";
                     return false;
                 }
+                var IsPeakSource = string.Equals(Assembly.name, Contract.sourceAssembly, StringComparison.Ordinal);
+                if (!ValidAssembly(Assembly.sourcePath, Assembly.sourceSha256, Assembly.name, !IsPeakSource, out Identity))
+                {
+                    Failure = "Managed assembly '" + Assembly.name + "' is missing or no longer matches setup.";
+                    return false;
+                }
+                if (IsPeakSource && !Contract.TryValidatePeak(
+                        Path.GetDirectoryName(Assembly.sourcePath), out _, out _, out Failure)) return false;
                 if (Inspection != null) Inspection.Identities.Add(Assembly.name, Identity.FullName);
-                if (!string.Equals(Assembly.name, Contract.sourceAssembly, StringComparison.Ordinal)
+                if (!IsPeakSource
                     && !string.Equals(Assembly.name, "PLL_Library", StringComparison.Ordinal))
                 {
                     Dependencies.Add(new PllCreatorManagedAssembly(Identity, Assembly.sourcePath, Assembly.sourceSha256));

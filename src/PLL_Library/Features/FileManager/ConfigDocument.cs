@@ -397,7 +397,7 @@ internal sealed class ConfigBindings
         Config = new ConfigFile(Path, false, OwnerMetadata) { SaveOnConfigSet = false };
         Bind("Version", "SchemaRevision", SchemaRevision, "Tracks the configuration schema.", Migratable: false);
         Seed = Bind("Map", "Seed", DefaultSeed, "Leave empty for a random world seed. Enter text to reuse the same seed.");
-        ReplaceGenerated = Bind("Map", "Replace Generated", true, "Regenerates PEAK's already generated native segment props with the selected seed.");
+        ReplaceGenerated = Bind("Map", "Replace Generated", true, "Rebuilds native props that PEAK has already generated using the selected seed.");
         GetNote = Bind("PLL", "Get Note", true, "Fetches the Aeralis Foundation developer note when PEAK's main menu loads.");
         AdvertiseLayout = Bind("PLL", "Advertise Layout", false, "Shows one configured PLL layout label beneath PEAK's ascent name.");
         DisplayProgress = Bind("PLL", "Display Progress", false, "Shows map loading progress and estimated time remaining above PEAK's loading text.");
@@ -413,11 +413,11 @@ internal sealed class ConfigBindings
         InfiniteMapScale = Bind("Fields", "InfiniteMap: Scale", DefaultScale, new ConfigDescription("Requested total segment count, from 1 to 255. PEAK supports at most 254 ordinary zones, including the lower zones of Volcano, Citadel, and biome groups. Multiplayer also limits generated network objects.", new AcceptableValueRange<int>(1, byte.MaxValue)));
         InfiniteMapBeginIndex = Bind("Fields", "InfiniteMap: Begin Index", -1, "Insertion position, counting from zero. -1 adds repeated segments at the end, before a final Nadir. Other values are limited to the layout's range.");
         InfiniteMapRemoveOld = Bind("Fields", "InfiniteMap: Remove Old", false, "Removes the default layout so only InfiniteMap: Repeatable segments are used.");
-        Winnable = Bind("Behaviors", "Winnable", true, "Enables the configured final-zone win behavior.");
-        PeakAtEnd = Bind("Behaviors", "Peak at end", false, "Adds Peak after the final segment. Volcano and Citadel use their own Peak attachment.");
-        GemlessNadir = Bind("Behaviors", "Gemless Nadir", false, "Allows every Nadir occurrence to load without Scout's Honor.");
+        Winnable = Bind("Behaviors", "Winnable", true, "Allows the run to end with a win. A final Peak can use a flare even when Nadir follows. On Ascent 8, Nadir must still be completed.");
+        PeakAtEnd = Bind("Behaviors", "Peak at end", false, "Adds Peak after the last zone. Volcano and Citadel already include Peak.");
+        GemlessNadir = Bind("Behaviors", "Gemless Nadir", false, "Allows each Nadir section to load without Scout's Honor.");
         WaterFollowsBeach = Bind("Behaviors", "Water follows Beach", true, "Activates the water floor when Beach is reached; otherwise enables it beneath the first segment from the start.");
-        VoidWaterFollowsNadir = Bind("Behaviors", "Void Water follows Nadir", true, "Activates PEAK's Void Water when its Nadir occurrence is reached; otherwise enables it from the start.");
+        VoidWaterFollowsNadir = Bind("Behaviors", "Void Water follows Nadir", true, "Activates PEAK's Void Water when its Nadir section is reached. Otherwise the water is active from the start.");
         RelocatePlane = Bind("Prerequisites", "Relocate Plane", true, "Moves the crashed plane to the first biome's plane anchor or ground surface.");
         RelocateStart = Bind("Prerequisites", "Relocate Start", true, "Moves PEAK's four player spawn points to the first segment's Start port.");
         ValidNadir = Bind("Prerequisites", "Valid Nadir", true, "Nadir requires Scout's Honor only if earlier segments can provide all four amulet types. Otherwise Nadir does not require the gem.");

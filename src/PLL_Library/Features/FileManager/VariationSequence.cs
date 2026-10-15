@@ -7,8 +7,8 @@ internal sealed class VariationSequence
 {
     internal const string RandomChoice = "Random", PatternChoice = "Pattern";
     internal static readonly string PatternDescription =
-        "When Pattern is selected, cycles through listed variation names separated by > "
-        + $"for successive biome occurrences. Empty uses Random. Accepts up to {byte.MaxValue} entries.";
+        "When Pattern is selected, cycles through variation names separated by > "
+        + $"for successive copies of this biome. Leave empty to use Random. Accepts up to {byte.MaxValue} entries.";
     readonly string[] Entries;
     internal static VariationSequence Random { get; } = new(Array.Empty<string>());
 

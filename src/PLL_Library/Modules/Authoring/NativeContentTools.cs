@@ -13,8 +13,7 @@ namespace PLL.Library;
 
 internal static class NativeContentTools
 {
-    internal const string ThumbnailAbsence = "Unsupported: the installed renderer features and render callbacks have no proven isolated thumbnail contract.";
-    const string SupportedPeakSha256 = "B9A363213352EA58496F2F8598FA267C565BAF876F8C524EB56266764F8C199B";
+    internal const string ThumbnailAbsence = "Thumbnails are unavailable for this content.";
     static readonly UTF8Encoding StrictUtf8 = new(false, true);
     static Work? Current;
     static string ToolDirectory => Path.Combine(Paths.PluginPath, NativeContentArtifact.DirectoryName);
@@ -367,9 +366,9 @@ internal static class NativeContentTools
             foreach (var Entry in Copy.Icon.Entries)
             {
                 Entry.ImageSha256 = ImageSha256; Entry.ImageFile = ImageFile;
-                Entry.PoseProvenance = "Native primary Item.UIData.icon; authored UI pixels, not a live mesh or rig pose.";
-                Entry.LightingProvenance = $"Authored UI icon colors; source {SourceFormat}, readback {Format}, not scene lighting.";
-                Entry.Fingerprint = Fingerprint(Writer =>
+                Entry.PoseProvenance = "Uses the item's inventory icon, not its 3D model.";
+                Entry.LightingProvenance = $"Uses the icon's original colors. Source format: {SourceFormat}; readback format: {Format}.";
+                Entry.Fingerprint = ManifestEncoding.CreateRevision(Writer =>
                 {
                     Writer.Write("PLL/NativeItemIcon/v1"); Writer.Write(Entry.ItemId); Writer.Write(Entry.Name);
                     Writer.Write(Entry.ComponentType); Writer.Write(Entry.ComponentAssembly); Writer.Write(ImageSha256);
@@ -415,7 +414,7 @@ internal static class NativeContentTools
         {
             Kind = Kind, Id = Id, Name = Name, Fingerprint = Fingerprint,
             ImageAbsence = Kind == NativeContentPickKind.Visual
-                ? "Unsupported: atmosphere requires a rendered generated occurrence, not an asset portrait."
+                ? "Atmosphere previews require the generated biome to be rendered in PEAK."
                 : ThumbnailAbsence
         });
     }
@@ -696,7 +695,7 @@ internal static class NativeContentTools
             Claim.ArchiveRequest();
             System.IO.Directory.Move(Claim.Directory, Path.Combine(ToolDirectory, Claim.Request.Id));
             Published = true;
-            Claim.DeleteQueuedInput(); Claim.Dispose();
+            Claim.DeleteQueuedInput();
             var CancelPath = Path.Combine(ToolDirectory, Claim.Request.Id + ".cancel");
             if (File.Exists(CancelPath)) File.Delete(CancelPath);
         }
@@ -728,10 +727,8 @@ internal static class NativeContentTools
         var Runtime = typeof(Plugin).Assembly;
         if (Runtime.ManifestModule.ModuleVersionId.ToString("D") != Identity.RuntimeMvid
             || Application.unityVersion != Identity.UnityVersion
-            || Identity.PeakSha256 != SupportedPeakSha256
-            || HashFile(Runtime.Location) != Identity.RuntimeSha256
-            || HashFile(typeof(Item).Assembly.Location) != Identity.PeakSha256)
-            throw new InvalidOperationException("The installed game, runtime or bundle differs from the native content request.");
+            || HashFile(Runtime.Location) != Identity.RuntimeSha256)
+            throw new InvalidOperationException("The installed PLL runtime or Unity version differs from the native content request.");
         BiomeRegistration.RequireToolBundle(Identity.BundleFile, Identity.BundleSha256);
     }
 
@@ -749,14 +746,6 @@ internal static class NativeContentTools
         if (!Sha.TryComputeHash(Bytes, Digest, out var Written) || Written != Digest.Length)
             throw new InvalidOperationException("SHA-256 did not produce its required 32-byte digest.");
         return NativeContentArtifact.Hex(Digest);
-    }
-
-    internal static string Fingerprint(Action<BinaryWriter> Write)
-    {
-        using var Sha = SHA256.Create();
-        using (var Stream = new CryptoStream(System.IO.Stream.Null, Sha, CryptoStreamMode.Write))
-        using (var Writer = new BinaryWriter(Stream, StrictUtf8)) Write(Writer);
-        return NativeContentArtifact.Hex(Sha.Hash!);
     }
 
     static float[] Matrix(Matrix4x4 Value)

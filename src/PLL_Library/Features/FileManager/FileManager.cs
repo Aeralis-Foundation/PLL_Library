@@ -145,7 +145,7 @@ public static class FileManager
             }
             Config.Remove(NativeVariations[Biome].Definition);
             NativeVariations[Biome] = Config.Bind("Variations", Biome, VariationSequence.RandomChoice, new ConfigDescription(
-                "Selects a native variation for every occurrence; Random keeps PEAK's selection, and Pattern follows the biome's pattern.",
+                "Selects a native variation for each copy of this biome. Random uses PEAK's choice; Pattern uses the configured sequence.",
                 new AcceptableValueList<string>(Choices)));
             NativeVariations[Biome].Value = Local;
         }

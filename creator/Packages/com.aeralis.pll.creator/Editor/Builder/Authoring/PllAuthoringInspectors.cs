@@ -1596,20 +1596,20 @@ namespace PLL.Creator.Editor
                     EditorGUILayout.LabelField("Live Binding", "No PEAK source lookup");
                     break;
                 case PLLNativeResolverKind.Lava:
-                    EditorGUILayout.LabelField("Native Shape", "Owned local Lava Zone from placed surface bounds");
-                    EditorGUILayout.LabelField("Live Binding", "Caldera local Lava provider; no global rising-lava controller");
+                    EditorGUILayout.LabelField("Native Shape", "Lava Zone covering the placed surface");
+                    EditorGUILayout.LabelField("Live Binding", "Uses Caldera's lava without its rising-lava controller");
                     break;
                 case PLLNativeResolverKind.Rain:
                 case PLLNativeResolverKind.Wind:
                 case PLLNativeResolverKind.Snow:
-                    EditorGUILayout.LabelField("Native Shape", "__PLL_NativeWeather [PhotonView, WindChillZone], staged inactive");
+                    EditorGUILayout.LabelField("Native Shape", "Weather object with PhotonView and WindChillZone; starts inactive");
                     DrawResolverPresentation(Resolver);
-                    EditorGUILayout.LabelField("Live Binding", Resolver.Kind + " fingerprint deferred until compatibility sealing");
+                    EditorGUILayout.LabelField("Live Binding", Resolver.Kind + " is checked against PEAK when the map loads");
                     break;
                 case PLLNativeResolverKind.SporeCloud:
-                    EditorGUILayout.LabelField("Native Shape", "__PLL_NativeSporeCloud [WindAffectedStatusEmitter, DisableBasedOnRunSettings], staged inactive");
+                    EditorGUILayout.LabelField("Native Shape", "Spore cloud with native status and run-settings components; starts inactive");
                     DrawResolverPresentation(Resolver);
-                    EditorGUILayout.LabelField("Live Binding", "Roots SporeCloud fingerprint deferred until compatibility sealing");
+                    EditorGUILayout.LabelField("Live Binding", "SporeCloud is checked against PEAK when the map loads");
                     break;
                 default:
                     EditorGUILayout.LabelField("Native Shape", "Choose one supported Kind");
@@ -1647,11 +1647,11 @@ namespace PLL.Creator.Editor
                     EditorGUILayout.LabelField("Environment", "Authored fog preserved");
                     break;
                 case PllFogMode.RisingFogless:
-                    EditorGUILayout.LabelField("Rising Fog", "Suppressed for this occurrence");
+                    EditorGUILayout.LabelField("Rising Fog", "Disabled in this copy of the biome");
                     EditorGUILayout.LabelField("Environment", "Authored fog preserved");
                     break;
                 case PllFogMode.Fogless:
-                    EditorGUILayout.LabelField("Rising Fog", "Suppressed for this occurrence");
+                    EditorGUILayout.LabelField("Rising Fog", "Disabled in this copy of the biome");
                     EditorGUILayout.LabelField("Environment", "Uses Caldera's environmental fog");
                     break;
                 default:
@@ -1676,17 +1676,15 @@ namespace PLL.Creator.Editor
                 EditorGUILayout.ObjectField("Direct Clip", Source ? Source.clip : null, typeof(AudioClip), false);
             }
             EditorGUILayout.LabelField("Automatic Start", Stinger.Mode == PllBiomeStingerMode.OnEnter
-                || Stinger.Mode == PllBiomeStingerMode.OnEnterAndEmitHook ? "On occurrence entry" : "None");
-            EditorGUILayout.LabelField("Staged State",
-                "Validated 2D and non-looping; playOnAwake=false; stopped at sample zero");
-            EditorGUILayout.LabelField("Staged Route",
-                "Cleared, then bound to the current local PEAK music output before playback");
+                || Stinger.Mode == PllBiomeStingerMode.OnEnterAndEmitHook ? "When entering this biome" : "None");
+            EditorGUILayout.LabelField("Playback", "2D, non-looping, stopped at the beginning; automatic playback disabled");
+            EditorGUILayout.LabelField("Audio Output", "Uses PEAK's music output when playback starts");
         }
 
         static void DrawCustomVisualPreview(
             PllCustomVisualAuthoring Visual, CustomVisualParticleGraph Graph)
         {
-            EditorGUILayout.LabelField("Constant Particle Ownership", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Constant Particles", EditorStyles.boldLabel);
             if (Graph == null)
             {
                 EditorGUILayout.LabelField("Particle Graph", "Invalid; see Authoring Validation");
@@ -1694,13 +1692,13 @@ namespace PLL.Creator.Editor
             }
             EditorGUILayout.LabelField("Space", Visual.Space.ToString());
             EditorGUILayout.LabelField("Root State", Visual.gameObject.activeSelf
-                ? "Source active -> staged inactive" : "Source inactive -> staged inactive");
+                ? "Active source; built copy starts inactive" : "Source and built copy are inactive");
             foreach (var Particle in Graph.Particles)
             {
                 var Role = Array.IndexOf(Graph.RootParticles, Particle) >= 0 ? "Root" : "Sub-emitter";
                 EditorGUILayout.LabelField(PllHierarchy.NamePath(Visual.transform, Particle.transform), Role
-                    + "; Loop " + Particle.main.loop + "; playOnAwake "
-                    + Particle.main.playOnAwake + " -> false; staged stopped/cleared");
+                    + "; Loop: " + Particle.main.loop + "; Source playOnAwake: "
+                    + Particle.main.playOnAwake + ". Built copy is cleared and starts stopped.");
                 var SubEmitters = Particle.subEmitters;
                 for (var i = 0; i < SubEmitters.subEmittersCount; i++)
                 {
@@ -1924,18 +1922,19 @@ namespace PLL.Creator.Editor
                 : "Assign a prefab containing exactly one PEAK Item");
             EditorGUILayout.LabelField("Staged Shape", "SingleItem Spawner + SpawnedItemTracker; "
                 + Authoring.SpawnPoints.Count + " ordered point(s)");
-            EditorGUILayout.LabelField("Live Binding", "Exact ItemDatabase prefab deferred until compatibility sealing");
+            EditorGUILayout.LabelField("Live Binding", "The item prefab is checked against PEAK when the map loads");
         }
 
         static void DrawEffectPreview(PllEffectAuthoring Effect)
         {
-            EditorGUILayout.LabelField("Staged Presentation Preview", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Built Effect Preview", EditorStyles.boldLabel);
             if (Effect.PresentationRoot)
                 EditorGUILayout.LabelField("Presentation", Effect.PresentationRoot.activeSelf
-                    ? "Source active -> staged inactive" : "Source inactive -> staged inactive");
+                    ? "Active source; built copy starts inactive" : "Source and built copy are inactive");
             foreach (var Particle in Effect.Particles.Where(Value => Value))
                 EditorGUILayout.LabelField(PllHierarchy.NamePath(Effect.transform, Particle.transform),
-                    "playOnAwake " + Particle.main.playOnAwake + " -> false; staged stopped/cleared");
+                    "Source playOnAwake: " + Particle.main.playOnAwake
+                    + ". Built copy is cleared and starts stopped.");
         }
 
         static void DrawVariationPreview(PllVariationAuthoring Variation)
@@ -1972,7 +1971,7 @@ namespace PLL.Creator.Editor
             using (new EditorGUI.DisabledScope(true))
                 foreach (var Step in Steps) EditorGUILayout.ObjectField(Step, Step.GetType(), true);
             EditorGUILayout.LabelField("State", Final.gameObject.activeSelf
-                ? "Source active -> staged inactive" : "Invalid source inactive");
+                ? "Active source; built copy starts inactive" : "Source is inactive. Enable it before building.");
         }
 
         static void DrawNoPropPreview(PLLNoPropSpawn NoProp)

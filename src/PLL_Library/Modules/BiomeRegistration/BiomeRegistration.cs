@@ -408,22 +408,22 @@ internal static class BiomeRegistration
                     System.Threading.LazyThreadSafetyMode.None)).Value;
                 NativeContentTools.CaptureRig("RopeDynamic", RopeSource.SkinDescriptor);
                 NativeContentTools.CaptureRecipe(NativeContentPickKind.Actor, typeof(PllBeetleZoneSource).FullName!,
-                    "Beetle", NativeContentTools.Fingerprint(BeetleSource.WriteManifest));
+                    "Beetle", ManifestEncoding.CreateRevision(BeetleSource.WriteManifest));
                 NativeContentTools.CaptureRecipe(NativeContentPickKind.Actor, typeof(PllMushroomZombieZoneSource).FullName!,
-                    "Mushroom Zombie", NativeContentTools.Fingerprint(ZombieSource.WriteManifest));
+                    "Mushroom Zombie", ManifestEncoding.CreateRevision(ZombieSource.WriteManifest));
                 NativeContentTools.CaptureRecipe(NativeContentPickKind.Actor, typeof(PllCondorZoneSource).FullName!,
-                    "Condor", NativeContentTools.Fingerprint(CondorSource.WriteManifest));
+                    "Condor", ManifestEncoding.CreateRevision(CondorSource.WriteManifest));
                 NativeContentTools.CaptureRecipe(NativeContentPickKind.Actor, typeof(PllTornadoZoneSource).FullName!,
-                    "Tornado", NativeContentTools.Fingerprint(TornadoSource.WriteManifest));
+                    "Tornado", ManifestEncoding.CreateRevision(TornadoSource.WriteManifest));
                 NativeContentTools.CaptureRecipe(NativeContentPickKind.Actor, typeof(PllTumbleweedZoneSource).FullName!,
-                    "Tumbleweed", NativeContentTools.Fingerprint(TumbleweedSource.WriteManifest));
+                    "Tumbleweed", ManifestEncoding.CreateRevision(TumbleweedSource.WriteManifest));
                 var ResolverSources = Resolvers.Prepare(NativeResolverSourceCatalog.Seal.SupportedMask);
                 for (var Value = (int)PLLNativeResolverKind.Rain; Value <= (int)PLLNativeResolverKind.SporeCloud; Value++)
                 {
                     var Kind = (PLLNativeResolverKind)Value;
                     var Name = Kind.ToString();
                     NativeContentTools.CaptureRecipe(NativeContentPickKind.Resolver, Name, Name,
-                        NativeContentTools.Fingerprint(Kind == PLLNativeResolverKind.SporeCloud
+                        ManifestEncoding.CreateRevision(Kind == PLLNativeResolverKind.SporeCloud
                             ? ResolverSources.SporeCloud().WriteManifest : ResolverSources.Weather(Kind).WriteManifest));
                 }
                 var VisualSources = Visuals.Prepare(NativeVisualCatalog.SupportedMask, 0, false);
@@ -432,7 +432,7 @@ internal static class BiomeRegistration
                     var Preset = (PllNativeVisualPreset)Value;
                     var Name = Preset.ToString();
                     NativeContentTools.CaptureRecipe(NativeContentPickKind.Visual, Name, Name,
-                        NativeContentTools.Fingerprint(Writer => VisualSources.Require(Preset).WriteManifest(Writer, false)));
+                        ManifestEncoding.CreateRevision(Writer => VisualSources.Require(Preset).WriteManifest(Writer, false)));
                 }
                 NativeContentTools.CaptureForceContent();
             }

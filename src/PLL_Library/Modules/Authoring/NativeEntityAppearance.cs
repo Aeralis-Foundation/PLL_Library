@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 using UnityEngine;
 
 namespace PLL.Library;
@@ -15,7 +13,7 @@ internal sealed class NativeEntitySkinDescriptor
     NativeEntitySkinDescriptor(GameObject Prefab, Skin[] Skins)
     {
         this.Prefab = Prefab; this.Skins = Skins;
-        Fingerprint = NativeEntityAppearance.Hash(Writer =>
+        Fingerprint = ManifestEncoding.Hash(Writer =>
         {
             Writer.Write("PLL/NativeEntitySkin/v2"); Writer.Write(Skins.Length);
             foreach (var Skin in Skins)
@@ -142,7 +140,7 @@ internal sealed class NativeEntityAppearance
     {
         this.Replacements = Replacements;
         this.NativeDescriptorFingerprint = NativeDescriptorFingerprint;
-        Fingerprint = Hash(Writer =>
+        Fingerprint = ManifestEncoding.Hash(Writer =>
         {
             Writer.Write("PLL/NativeEntityAppearance/v2"); Writer.Write(NativeDescriptorFingerprint);
             Writer.Write(Replacements.Length);
@@ -241,14 +239,6 @@ internal sealed class NativeEntityAppearance
     }
 
     internal void WriteManifest(BinaryWriter Writer) { Writer.Write(Fingerprint.Length); Writer.Write(Fingerprint); }
-
-    internal static byte[] Hash(Action<BinaryWriter> Write)
-    {
-        using var Sha = SHA256.Create();
-        using (var Stream = new CryptoStream(System.IO.Stream.Null, Sha, CryptoStreamMode.Write))
-        using (var Writer = new BinaryWriter(Stream, new UTF8Encoding(false, true))) Write(Writer);
-        return Sha.Hash!;
-    }
 
     internal static void WriteMatrix(BinaryWriter Writer, Matrix4x4 Matrix)
     {

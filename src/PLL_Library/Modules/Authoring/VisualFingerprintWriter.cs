@@ -30,10 +30,8 @@ internal sealed partial class VisualFingerprintWriter
         Transform Root,
         Transform IdentityRoot,
         IReadOnlyList<ParticleSystem> Particles,
-        IReadOnlyList<ParticleSystem> Roots)
-    {
-        using var Stream = new MemoryStream();
-        using (var Writer = new BinaryWriter(Stream, new UTF8Encoding(false, true), true))
+        IReadOnlyList<ParticleSystem> Roots) =>
+        ManifestEncoding.Hash(Writer =>
         {
             Writer.Write(ParticleProtocol);
             var Value = new VisualFingerprintWriter(Writer, Root, IdentityRoot);
@@ -42,30 +40,21 @@ internal sealed partial class VisualFingerprintWriter
             foreach (var Particle in Particles) Value.WriteHierarchyReference(Particle);
             Writer.Write(Roots.Count);
             foreach (var Particle in Roots) Value.WriteHierarchyReference(Particle);
-        }
-        using var Sha = SHA256.Create();
-        return Sha.ComputeHash(Stream.GetBuffer(), 0, checked((int)Stream.Length));
-    }
+        });
 
     internal static byte[] HashSerializedObject(UnityEngine.Object Value, string Domain)
     {
         if (!Value) throw new ArgumentNullException(nameof(Value));
-        using var Stream = new MemoryStream();
-        using (var Writer = new BinaryWriter(Stream, new UTF8Encoding(false, true), true))
+        return ManifestEncoding.Hash(Writer =>
         {
             Writer.Write(Domain);
             var Fingerprint = new VisualFingerprintWriter(Writer, Value is Component Component ? Component.transform : null!, null!);
             Fingerprint.WriteResource(Value);
-        }
-        using var Sha = SHA256.Create();
-        return Sha.ComputeHash(Stream.GetBuffer(), 0, checked((int)Stream.Length));
+        });
     }
 
-    internal static byte[] HashEntityAppearanceMesh(Mesh Mesh)
-    {
-        using var Sha = SHA256.Create();
-        using (var Stream = new CryptoStream(System.IO.Stream.Null, Sha, CryptoStreamMode.Write))
-        using (var Writer = new BinaryWriter(Stream, new UTF8Encoding(false, true)))
+    internal static byte[] HashEntityAppearanceMesh(Mesh Mesh) =>
+        ManifestEncoding.Hash(Writer =>
         {
             Writer.Write("PLL/EntityAppearanceMesh/v1");
             var Fingerprint = new VisualFingerprintWriter(Writer, null!, null!);
@@ -80,9 +69,7 @@ internal sealed partial class VisualFingerprintWriter
             {
                 Writer.Write(Weight.boneIndex); Fingerprint.WriteFloat(Weight.weight);
             }
-        }
-        return Sha.Hash!;
-    }
+        });
 
     internal static byte[] HashGeneratedPropMesh(Mesh Mesh, long ByteBudget, out long ByteCount)
     {

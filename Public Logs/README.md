@@ -21,12 +21,14 @@ PLL Library is a PEAK map layout mod and automatic custom biome library. It sele
 ## Update
 <small>Current package information.</small>
 <details open>
-<summary><strong>Version 5.9.9</strong> <small><em>&rarr; click to collapse</em></small></summary>
+<summary><strong>Version 5.9.10</strong> <small><em>&rarr; click to collapse</em></small></summary>
 
 ---
 &nbsp;
 
-- I am just lazy...
+- Final Volcano and Citadel sections keep their playable Peak before Nadir, including when Scout's Honor is not required.
+- Flare rescue works at that final Peak unless Ascent 8 requires Nadir to be completed.
+- PEAK assembly compatibility uses API and serialized-field checks instead of a fixed SHA-256 match.
 
 &nbsp;
 

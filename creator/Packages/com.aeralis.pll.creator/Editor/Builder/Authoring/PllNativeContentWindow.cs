@@ -53,7 +53,7 @@ namespace PLL.Creator.Editor
                 if (Catalog != null)
                 {
                     EditorGUILayout.LabelField("Captured runtime", Catalog.Identity.RuntimeMvid);
-                    EditorGUILayout.LabelField("PEAK SHA-256", Catalog.Identity.PeakSha256);
+                    EditorGUILayout.LabelField("PEAK SHA-256 (reference only)", Catalog.Identity.PeakSha256);
                     EditorGUILayout.LabelField("Bundle", Catalog.Identity.BundleFile);
                     EditorGUI.BeginChangeCheck();
                     Search = EditorGUILayout.TextField("Search", Search);
@@ -406,7 +406,7 @@ namespace PLL.Creator.Editor
         static bool SameIdentity(NativeContentIdentity Left, NativeContentIdentity Right) =>
             Left != null && Right != null
             && Left.RuntimeSha256 == Right.RuntimeSha256 && Left.RuntimeMvid == Right.RuntimeMvid
-            && Left.PeakSha256 == Right.PeakSha256 && Left.UnityVersion == Right.UnityVersion
+            && Left.UnityVersion == Right.UnityVersion
             && Left.BundleFile == Right.BundleFile && Left.BundleSha256 == Right.BundleSha256;
 
         internal static Texture2D ReadThumbnail(string CatalogPath, NativeContentEntry Entry)

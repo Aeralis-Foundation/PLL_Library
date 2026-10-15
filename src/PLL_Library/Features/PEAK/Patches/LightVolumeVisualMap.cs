@@ -19,7 +19,7 @@ internal sealed class LightVolumeVisualMap
     const string GridResolutionGlobal = "_GridRes";
     const string LightMapGlobal = "_LightMap";
     const string RaySpacingGlobal = "_RaySpacing";
-    const string CanonicalFallback = " The compact canonical light map remains active.";
+    const string CanonicalFallback = " The smaller light map remains active.";
 
     LightVolumeVisualMap(
         CompressableLightMap CompressedMap,
