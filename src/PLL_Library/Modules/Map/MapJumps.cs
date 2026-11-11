@@ -398,7 +398,10 @@ internal static class MapJumpTransaction
             SpawnTrackerTransaction.ActivateBaseCheckpoint(Index);
             ReleasedSlotRetirement.ReleaseOldZones();
             if (__state.Run is { } Run && ReferenceEquals(Map.CurrentRun, Run))
+            {
                 NativeContentTools.ObserveReadyCurrent(Run);
+                LazySlotGenerator.PrefetchNext(Run);
+            }
         }
 
         [HarmonyFinalizer]

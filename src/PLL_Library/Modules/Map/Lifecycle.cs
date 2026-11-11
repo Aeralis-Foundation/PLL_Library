@@ -58,6 +58,7 @@ internal static class MapPublication
         prepared.Originals.Retire(
             run, prepared.Reused, prepared.OriginalPeakHandler, Zorro.Core.Singleton<PeakHandler>._instance);
         NativeContentTools.ObserveReadyCurrent(run);
+        LazySlotGenerator.PrefetchNext(run);
     }
 
     static void ExecuteCleanup(List<Exception> Failures, Action Operation)

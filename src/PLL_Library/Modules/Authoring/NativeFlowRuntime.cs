@@ -1293,6 +1293,7 @@ internal abstract class NativeFlowRuntime : IDisposable
 
     void BindFlowRenderer(Renderer Renderer)
     {
+        if (!NativeFogRenderRuntime.RenderingSupported) return;   // 6.0.0: no fog shaders off Direct3D 11
         var Materials = Renderer.sharedMaterials;
         for (var i = 0; i < Materials.Length; i++)
         {
@@ -1333,7 +1334,9 @@ internal abstract class NativeFlowRuntime : IDisposable
         var Overrides = Settings.Material;
         if (Contract.MaterialMode == PllFluidMaterialMode.Custom)
         {
-            if (!Overrides || !NativeFogRenderRuntime.SupportsMaterial(Overrides.shader))
+            if (!Overrides) throw new ArgumentException("Custom fluid material is missing.");
+            if (!NativeFogRenderRuntime.RenderingSupported) return Overrides;   // 6.0.0: drawn as-is off Direct3D 11
+            if (!NativeFogRenderRuntime.SupportsMaterial(Overrides.shader))
                 throw new ArgumentException($"Fluid material '{Overrides?.name}' has no admitted fog shader adapter. Choose a supported material or supply its adapter.");
             if (CoverDelaySeconds > 0f && !NativeFogRenderRuntime.SupportsFlowMaterial(Overrides))
                 throw new ArgumentException($"Fluid material '{Overrides.name}' has no admitted coverage channel. Set Cover Delay to zero.");

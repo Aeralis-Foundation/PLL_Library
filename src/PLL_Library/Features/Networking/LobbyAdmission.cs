@@ -17,11 +17,14 @@ namespace PLL.Library;
 internal static class LobbyAdmission
 {
     const string MarkerKey = PLLLibrary.PluginGuid + "/admission";
+    // the Steam lobby tag uses a short plain key - the old "af.pll.library/admission" key could be set on the
+    // host and never reach players searching for / joining the lobby ("The host has no compatible PLL Library version").
+    internal const string SteamKey = "PllAdmission";
     const string ProofKey = MarkerKey + "/proof";
     const byte RequestMessageType = 3;
     const byte ResponseMessageType = 4;
     const byte Protocol = 2;
-    static readonly string MarkerValue = Protocol.ToString(CultureInfo.InvariantCulture);
+    internal static readonly string MarkerValue = Protocol.ToString(CultureInfo.InvariantCulture);
     const int RequestLength = 18;
     const int ResponseHeaderLength = 30;
     const int ProofLength = 9;
@@ -122,14 +125,14 @@ internal static class LobbyAdmission
         }
 
         if (PublishGlobalMarker
-            && !SteamMatchmaking.SetLobbyData(Lobby, MarkerKey, MarkerValue))
+            && !SteamMatchmaking.SetLobbyData(Lobby, SteamKey, MarkerValue))
         {
             Plugin.PLLLog.LogError(
                 "The lobby could not enable PLL Library. Create a new lobby before starting the island.");
             return;
         }
 
-        SteamMatchmaking.SetLobbyMemberData(Lobby, MarkerKey, MarkerValue);
+        SteamMatchmaking.SetLobbyMemberData(Lobby, SteamKey, MarkerValue);
         TryPublishProof();
     }
 
@@ -156,13 +159,13 @@ internal static class LobbyAdmission
     static bool IsAdmissionLobby(CSteamID Lobby) =>
         SteamManager.Initialized
         && string.Equals(
-            SteamMatchmaking.GetLobbyData(Lobby, MarkerKey),
+            SteamMatchmaking.GetLobbyData(Lobby, SteamKey),
             MarkerValue,
             StringComparison.Ordinal);
 
     static bool HasMarker(CSteamID Lobby, CSteamID Member) =>
         string.Equals(
-            SteamMatchmaking.GetLobbyMemberData(Lobby, Member, MarkerKey),
+            SteamMatchmaking.GetLobbyMemberData(Lobby, Member, SteamKey),
             MarkerValue,
             StringComparison.Ordinal);
 

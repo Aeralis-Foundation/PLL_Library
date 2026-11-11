@@ -121,9 +121,17 @@ internal static class NativeSegmentPorts
         if (Clips.Length != 1 || !Clips[0])
             throw new InvalidOperationException("PEAK's Caldera tide is unsupported. Update PLL_Library.");
         var Clip = Clips[0];
-        var TideCeiling = CalderaTideCeiling((Application.buildGUID,
-            typeof(Lava).Assembly.ManifestModule.ModuleVersionId,
-            Controller.name, Clip.name, Clip.length, Clip.frameRate));
+        float TideCeiling;
+        try
+        {
+            TideCeiling = CalderaTideCeiling((Application.buildGUID,
+                typeof(Lava).Assembly.ManifestModule.ModuleVersionId,
+                Controller.name, Clip.name, Clip.length, Clip.frameRate));
+        }
+        catch (InvalidOperationException)
+        {
+            TideCeiling = SampleTideCeiling(River!, Clip);
+        }
         var RiverPosition = River!.localPosition;
         RiverPosition.y = TideCeiling;
         var Position = Shoreline!.position;
@@ -140,6 +148,32 @@ internal static class NativeSegmentPorts
             || Target.Duration != 71.75f || Target.FrameRate != 60f)
             throw new InvalidOperationException("PEAK's Caldera tide is unsupported. Update PLL_Library.");
         return 785.26691f;
+    }
+
+    internal static float SampleTideCeiling(Transform River, AnimationClip Clip)
+    {
+        var Position = River.localPosition;
+        var Rotation = River.localRotation;
+        var Scale = River.localScale;
+        var Ceiling = float.NegativeInfinity;
+        try
+        {
+            var Steps = Math.Max(2, (int)Math.Ceiling(Clip.length * Math.Max(1f, Clip.frameRate)));
+            for (var i = 0; i <= Steps; i++)
+            {
+                Clip.SampleAnimation(River.gameObject, Clip.length * i / Steps);
+                Ceiling = Math.Max(Ceiling, River.localPosition.y);
+            }
+        }
+        finally
+        {
+            River.localPosition = Position;
+            River.localRotation = Rotation;
+            River.localScale = Scale;
+        }
+        if (!float.IsFinite(Ceiling))
+            throw new InvalidOperationException("PEAK's Caldera tide is unsupported. Update PLL_Library.");
+        return Ceiling;
     }
 
     internal static IReadOnlyList<LayoutPort> CreatePeakExit(
