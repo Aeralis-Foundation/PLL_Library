@@ -25,11 +25,22 @@ internal static class NativeFogRenderRuntime
     internal static void WriteRenderManifest(BinaryWriter Writer) =>
         Writer.Write((Owner ??= new Session()).RenderFingerprint);
 
+    static bool WarnedUnsupported;
+
+    /// <summary>6.0.0: PLL's fog shaders are built for Direct3D 11 only. On anything else (Vulkan, D3D12) fog zones are
+    /// simply not drawn instead of the whole map failing to load.</summary>
+    internal static bool RenderingSupported => SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11;
+
     internal static void Prepare(Scene Scene, IEnumerable<PllFogShaderAdapter> ContentShaders)
     {
         if (Owner is { View: not null }) return;
-        if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Direct3D11)
-            throw new InvalidOperationException("Fog rendering requires Direct3D11.");
+        if (!RenderingSupported)
+        {
+            if (!WarnedUnsupported)
+                Plugin.PLLLog.LogWarning($"Fog zones are not drawn on {SystemInfo.graphicsDeviceType}: PLL's fog shaders are built for Direct3D 11 only. The map still loads.");
+            WarnedUnsupported = true;
+            return;
+        }
         if (!Scene.IsValid() || !Scene.isLoaded)
             throw new ArgumentException("Fog rendering requires a loaded scene.", nameof(Scene));
         var Current = Owner ?? new Session();
@@ -40,7 +51,7 @@ internal static class NativeFogRenderRuntime
 
     internal static void BindSources(Func<double?> ReadClock, FogZoneState[] Sources)
     {
-        if (Owner is not { } Current) return;
+        if (Owner is not { View: not null } Current) return;
         var Compositor = new FogZoneCompositor(ReadClock, Sources);
         Current.AllocateContributions(Sources.Length);
         Current.Compositor = Compositor;
@@ -48,7 +59,7 @@ internal static class NativeFogRenderRuntime
 
     internal static void ReplaceSources(FogZoneState[] Sources)
     {
-        if (Owner is not { Compositor: { } Compositor } Current) return;
+        if (Owner is not { View: not null, Compositor: { } Compositor } Current) return;
         Current.AllocateContributions(Sources.Length);
         Compositor.ReplaceSources(Sources);
     }
@@ -62,7 +73,7 @@ internal static class NativeFogRenderRuntime
 
     internal static bool SupportsFlowMaterial(Material Material)
     {
-        if (Owner is not { } Current) return false;
+        if (Owner is not { View: not null } Current) return false;
         var Shader = CanonicalShader(Material.shader);
         return Current.FlowShaders.TryGetValue(Shader, out var Adapted)
             && (Shader != Adapted || Material.GetFloat("_SurfaceMode") == (float)PllSurfaceRenderMode.FluidTransparent);
@@ -70,7 +81,7 @@ internal static class NativeFogRenderRuntime
 
     internal static bool SupportsMaterial(Shader Shader)
     {
-        if (Owner is not { } Current) return false;
+        if (Owner is not { View: not null } Current) return false;
         if (Current.NativeShaders.TryGetValue(Shader, out var Native)) Shader = Native;
         return Current.FogShaders.ContainsKey(Shader);
     }
@@ -110,7 +121,10 @@ internal static class NativeFogRenderRuntime
     internal static Material RetainMaterialAlias(Material Material) =>
         Owner is { } Current ? Current.RetainMaterialAlias(Material) : Material;
 
-    internal static void BindRenderer(Renderer Renderer) => Owner?.BindRenderer(Renderer);
+    internal static void BindRenderer(Renderer Renderer)
+    {
+        if (Owner is { View: not null } Current) Current.BindRenderer(Renderer);
+    }
 
     internal static void RetireRoot(GameObject Root)
     {

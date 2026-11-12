@@ -569,6 +569,7 @@ internal sealed class PllSettingsPage : UIPage, IHaveParentPage, INavigationPage
             labels[i].color = isSelected ? Color.black : Color.white;
             selected[i].SetActive(isSelected);
         }
+        PllMenu.Show(this, index);   // 6.0.0: the tab's content (PllSettingsContent.cs)
     }
 
     public (UIPage, PageTransistion) GetParentPage() => (returnPage, new SetActivePageTransistion());

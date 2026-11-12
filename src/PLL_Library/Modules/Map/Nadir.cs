@@ -247,8 +247,10 @@ internal static class NadirRuntime
     [HarmonyPatch]
     static class NadirWarpPatch
     {
+        // PEAK builds before 26155610 take a bool; current PEAK takes none (6.0.0: accept either).
         static readonly MethodInfo Factory = AccessTools.DeclaredMethod(
             typeof(MapHandler), nameof(MapHandler.GoToVoidRoutine), new[] { typeof(bool) })
+            ?? AccessTools.DeclaredMethod(typeof(MapHandler), nameof(MapHandler.GoToVoidRoutine), Type.EmptyTypes)
             ?? throw new MissingMethodException(typeof(MapHandler).FullName, nameof(MapHandler.GoToVoidRoutine));
 
         static MethodBase TargetMethod() => AccessTools.EnumeratorMoveNext(Factory)

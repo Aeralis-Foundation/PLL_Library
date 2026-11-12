@@ -299,6 +299,43 @@ internal sealed class LazySlotGenerator
         if (!Map.Active || !Map.CurrentRun!.Configuration.Terminal.Winnable || !ReleasedSlotRetirement.IsRunTerminal(index) || Map.Slots[index].PeakAttachment) return;
         RequestFinishRun();
     }
+
+    internal static void PrefetchNext(MapRun Run)
+    {
+        try
+        {
+            Plugin.StartRoutine(PrefetchAfterArrival(Run));
+        }
+        catch (Exception ex)
+        {
+            Plugin.PLLLog.LogWarning("Background preparation of the next zone could not be scheduled. " + ex.Message);
+        }
+    }
+
+    static IEnumerator PrefetchAfterArrival(MapRun Run)
+    {
+        var Until = Time.realtimeSinceStartup + 2f;
+        while (Time.realtimeSinceStartup < Until) yield return null;
+        PrefetchNextNow(Run);
+    }
+
+    static void PrefetchNextNow(MapRun Run)
+    {
+        try
+        {
+            if (!ReferenceEquals(Map.CurrentRun, Run) || Run is null || !Run.Active || Run.Retirement.ApplyingReleasedPrefix) return;
+            var Next = Map.Index + 1;
+            if (Map.Index < 0 || Next >= Map.Slots.Length || Map.Slots[Next].Released || !Run.IsDeferredSlot(Next)
+                || Map.Slots[Next].FeaturesReady) return;
+            Plugin.PLLLog.LogInfo($"Preparing layout position {Next + 1} in the background.");
+            GenerateLazySlot(Next);
+        }
+        catch (Exception ex)
+        {
+            Plugin.PLLLog.LogWarning("Background preparation of the next zone failed; it will be generated at the campfire instead. " + ex.Message);
+        }
+    }
+
     internal static void GenerateLazySlot(int Index)
     {
         var Run = Map.CurrentRun;
@@ -1000,7 +1037,11 @@ internal sealed class LazySlotGenerator
                     finally
                     {
                         CompleteTransitionLease(Run, destination, completed);
-                        if (completed) NativeContentTools.ObserveReadyCurrent(Run);
+                        if (completed)
+                        {
+                            NativeContentTools.ObserveReadyCurrent(Run);
+                            PrefetchNext(Run);
+                        }
                     }
                 }
             }

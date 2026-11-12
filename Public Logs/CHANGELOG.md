@@ -2,8 +2,36 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [5.9.10]
+## [6.0.0]
 <details open>
+<summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
+
+### Added
+
+- The PLL settings page (pause menu and Settings > PLL) now has content in all three tabs, using PEAK's own settings rows.
+  - Map: the route as one drop-down per stop listing every loaded native and custom biome, with Add a stop, Remove this stop and Reset to PEAK's route; the biomes available; seed, generative map, infinite map, light map size, biome variations and each custom biome's Generative Map options.
+  - PLL Configuration: run rules, start of the run, performance and PLL options, each with its description; fog cutouts and wall boxes behind an Advanced switch; Reload (after editing the file by hand) and Open the config folder.
+  - FAQ & Issues: the PLL version, custom biomes, biome bundles and which map the next expedition uses; a warning when the route names a biome that is not loaded; PLL's warnings and errors from this session; answers to common questions.
+- The next zone is prepared in the background about 2 seconds after arriving in a zone, so the following campfire no longer stalls while it generates.
+
+### Fixed
+
+- PLL loads on the current PEAK build (Steam build 26155610): `MapHandler.GoToVoidRoutine` no longer takes a bool, which made 5.9.10 fail on start with no PLL menu.
+- The Caldera tide height is measured from PEAK's own animation when the PEAK build differs from the one PLL was pinned to, instead of aborting the run back to the menu.
+- Players can join PLL lobbies again: the Steam lobby tag uses the short key `PllAdmission`, and the host writes it again whenever PEAK updates its lobby data, so joiners no longer see "The host has no compatible PLL Library version".
+- On graphics APIs other than Direct3D 11 (Vulkan, D3D12) fog zones are skipped with one warning and the map still loads, instead of the map failing.
+
+### Changed
+
+- The Steam lobby key changed from `af.pll.library/admission` to `PllAdmission`; 6.0.0 lobbies and 5.9.10 lobbies cannot see each other, so everyone in a lobby needs 6.0.0.
+- Creator: `PLL.Creator.Setup.asmdef` references `Mono.Cecil.dll` (the 5.9.10 package failed to compile in Unity).
+
+</details>
+
+---
+
+## [5.9.10]
+<details>
 <summary><strong>Version Details</strong> <small><em>&rarr; click to collapse</em></small></summary>
 
 ### Fixed
