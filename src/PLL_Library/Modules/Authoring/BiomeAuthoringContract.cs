@@ -215,6 +215,7 @@ internal sealed class BiomeAuthoringContract
     }
     internal bool RequiresNativeTornados => Array.Exists(HazardZones, static Zone => Zone.RequiresTornados);
     internal bool RequiresNativeTumbleweeds => Array.Exists(HazardZones, static Zone => Zone.RequiresTumbleweeds);
+    internal bool RequiresNativeEruptions => Array.Exists(HazardZones, static Zone => Zone.RequiresEruptions);
     internal IReadOnlyList<NativeClimbingFixtureContract> ClimbingFixtures => ClimbingFixtureContracts;
     internal IReadOnlyList<SurfaceTextureAuthoringContract> SurfaceTextureContracts => SurfaceTextures;
     internal IReadOnlyList<NativeMaterialContract> NativeMaterialContracts => NativeMaterials;
@@ -248,9 +249,18 @@ internal sealed class BiomeAuthoringContract
         foreach (var Zone in EntityZones) Zone.ResolveDefinitionSources(EntityDefinitions);
         foreach (var Zone in EntityZones) Zone.ResolveExternal(Beetles, Zombies, Condors);
     }
-    internal void ResolveHazardSources(NativeTornadoSource? Tornados, NativeTumbleweedSource? Tumbleweeds)
+    internal ulong RequiredNativeActorProfiles
     {
-        foreach (var Zone in HazardZones) Zone.ResolveExternal(Tornados, Tumbleweeds);
+        get { var Mask = 0UL; foreach (var Zone in EntityZones) Mask |= Zone.RequiredNativeActorProfiles; return Mask; }
+    }
+    internal void ResolveNativeActorProfiles(NativeActorProfileSources? Sources)
+    {
+        foreach (var Zone in EntityZones) Zone.ResolveNativeActorProfiles(Sources);
+    }
+    internal void ResolveHazardSources(NativeTornadoSource? Tornados, NativeTumbleweedSource? Tumbleweeds,
+        NativeEruptionSource? Eruptions = null)
+    {
+        foreach (var Zone in HazardZones) Zone.ResolveExternal(Tornados, Tumbleweeds, Eruptions);
     }
     internal IReadOnlyList<EffectAuthoringContract> EffectContracts => Effects;
     internal IReadOnlyList<VisualAuthoringContract> VisualContracts => Visuals;

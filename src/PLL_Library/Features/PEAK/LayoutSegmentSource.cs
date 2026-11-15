@@ -226,6 +226,8 @@ internal sealed class NativeOrdinarySegmentSource : OrdinaryLayoutSegmentSource,
         AuthoredSegment = Segment;
         IsNativeVariant = Segment.isVariant;
         PeakSuccessorEntry = Bindings.PeakSuccessorEntry;
+        EntryGroundDrop = Bindings.Ports.EntryGroundDrop;
+        ExitGroundDrop = Bindings.Ports.ExitGroundDrop;
         NadirAmulets = NativeAmuletSourceContract.Capture(Bindings.Container);
         RequiresNativeVariantSelection = NativeVariantSelectionRequired(Bindings.Container);
         NativeProgressPoint = ProgressPoint
@@ -263,6 +265,8 @@ internal sealed class NativeOrdinarySegmentSource : OrdinaryLayoutSegmentSource,
     public MapHandler.MapSegment AuthoredSegment { get; }
     public bool IsNativeVariant { get; }
     internal LayoutPort? PeakSuccessorEntry { get; }
+    internal float EntryGroundDrop { get; }
+    internal float ExitGroundDrop { get; }
     internal NativeAmuletSourceContract NadirAmulets { get; }
     internal override int AmuletOpportunityCoverage => NadirAmulets.CoverageBit;
     internal override IReadOnlyList<string> AmuletSourceBindings => NadirAmulets.SourceBindings;

@@ -7,7 +7,49 @@ namespace PLL.Creator.Editor
 {
     internal sealed class PllCreateNativeActorZoneWindow : EditorWindow
     {
-        enum NativeActor { Beetle, MushroomZombie, Condor, Tornado, Tumbleweed }
+        enum NativeActor { Beetle, MushroomZombie, Condor, Tornado, Tumbleweed, VanillaActor, Eruption }
+
+        internal static string PlacementHint(PllNativeActorProfile Profile) => Profile switch
+        {
+            PllNativeActorProfile.Scorpions => "Scorpions: rock faces and ledges up to 45\u00b0, aimed slightly downward into the wall; "
+                + "spots buried inside other rock are skipped.",
+            PllNativeActorProfile.Antlions => "Antlions: each pit checks about 34 m of ground all around itself (within 40\u00b0 of level, "
+                + "10 m above to 15 m below the pit). Give it a wide, open sand flat; pits stay 25 m apart.",
+            PllNativeActorProfile.Spiders => "Spiders: undersides of overhangs and ceilings (140-220\u00b0), with at least 20 m of clear "
+                + "drop below, ground within 200 m, and rock 3-10 m above the hanging point. Point the zone's arrow up into the overhang. "
+                + "Spiders stay 30 m apart.",
+            PllNativeActorProfile.Beehives => "Beehives: walls, ledges and branch undersides, aimed 45\u00b0 downward; tilt toward the "
+                + "surface's normal. PEAK keeps them on wood when surface tag rules are kept.",
+            PllNativeActorProfile.JellyfishGround => "Jellyfish (ground): floors up to 40\u00b0, 5 m apart; stone only when surface "
+                + "tag rules are kept.",
+            PllNativeActorProfile.JellyfishWalls => "Jellyfish (walls): ledges and walls reached by 45\u00b0 rays, surfaces up to 40\u00b0, "
+                + "5 m apart; stone only when surface tag rules are kept.",
+            PllNativeActorProfile.VenusFlyTraps => "Venus fly traps: open ground, 10 m apart.",
+            PllNativeActorProfile.GhostFires => "Ghost fires: level ground up to 30\u00b0 with a clear line above. PEAK keeps them 60 m "
+                + "apart across the whole map, so set a minimum spacing to place more than one in a small zone.",
+            PllNativeActorProfile.Cacti => "Cacti: open ground, 1.5 m apart.",
+            PllNativeActorProfile.CactusBalls => "Cactus balls: open ground, 1.5 m apart.",
+            PllNativeActorProfile.Dynamite => "Dynamite: rock faces and ledges up to 45\u00b0, aimed slightly downward; the stick appears "
+                + "from the spawner when players are near.",
+            PllNativeActorProfile.Mushrooms => "Shelf mushrooms: steep walls between 50\u00b0 and 130\u00b0, 25 m apart (a small zone "
+                + "gets one unless the spacing is lowered).",
+            PllNativeActorProfile.TickPlants => "Tick weeds: ground and ledges up to 40\u00b0, aimed 45\u00b0 downward; ticks jump on "
+                + "players who brush through them.",
+            PllNativeActorProfile.TickMonsteras => "Tick monsteras: ground and ledges up to 40\u00b0, aimed 45\u00b0 downward; ticks jump "
+                + "on players who brush through them.",
+            PllNativeActorProfile.HotSpring => "Hot spring: a capybara pool on a rock shelf that PEAK attaches to a cliff, 2 m out from "
+                + "where a level ray meets the wall, with about 11 m of open air above the pool. Face the zone at a tall vertical wall; "
+                + "one per zone looks like PEAK.",
+            PllNativeActorProfile.Oasis => "Oasis: needs about 11 m of ground within 30\u00b0 of level all around it and open air above "
+                + "the pool; oases stay 25 m apart.",
+            PllNativeActorProfile.Frogs => "Lily-pad frogs: open ground or shallow water beds, 30 m apart.",
+            PllNativeActorProfile.JungleVines => "Berry vines (jungle): hang from walls and ledge edges reached by 45\u00b0 rays; each "
+                + "vine grows berries that players can pick.",
+            PllNativeActorProfile.SwampVines => "Berry vines (swamp): hang from ledges and branch edges reached by straight-down rays; "
+                + "each vine grows berries that players can pick.",
+            PllNativeActorProfile.Cattails => "Cattails: shallow ground and water beds; each bunch can hold a glizzy item.",
+            _ => "",
+        };
 
         GameObject Parent;
         string Id;
@@ -21,15 +63,16 @@ namespace PLL.Creator.Editor
 
         internal static void Open(PllEntityZoneSource OwnedSource)
         {
-            if (OwnedSource is not (PllBeetleZoneSource or PllMushroomZombieZoneSource or PllCondorZoneSource))
-                throw new InvalidOperationException("Choose native Beetle, Mushroom Zombie or Condor.");
+            if (OwnedSource is not (PllBeetleZoneSource or PllMushroomZombieZoneSource or PllCondorZoneSource
+                    or PllNativeActorZoneSource))
+                throw new InvalidOperationException("Choose native Beetle, Mushroom Zombie, Condor or a vanilla actor profile.");
             OpenSource(OwnedSource);
         }
 
         internal static void Open(PllHazardZoneSource OwnedSource)
         {
-            if (OwnedSource is not (PllTornadoZoneSource or PllTumbleweedZoneSource))
-                throw new InvalidOperationException("Choose native Tornado or Tumbleweed.");
+            if (OwnedSource is not (PllTornadoZoneSource or PllTumbleweedZoneSource or PllEruptionZoneSource))
+                throw new InvalidOperationException("Choose native Tornado, Tumbleweed or Caldera Eruption.");
             OpenSource(OwnedSource);
         }
 
@@ -58,6 +101,8 @@ namespace PLL.Creator.Editor
                 PllCondorZoneSource => NativeActor.Condor,
                 PllTornadoZoneSource => NativeActor.Tornado,
                 PllTumbleweedZoneSource => NativeActor.Tumbleweed,
+                PllNativeActorZoneSource => NativeActor.VanillaActor,
+                PllEruptionZoneSource => NativeActor.Eruption,
                 _ => throw new InvalidOperationException("The native actor source is unsupported.")
             };
             var SelectedKind = (NativeActor)EditorGUILayout.EnumPopup("Native Actor", Kind);
@@ -70,6 +115,8 @@ namespace PLL.Creator.Editor
                     NativeActor.Condor => new PllCondorZoneSource(),
                     NativeActor.Tornado => new PllTornadoZoneSource(),
                     NativeActor.Tumbleweed => new PllTumbleweedZoneSource(),
+                    NativeActor.VanillaActor => new PllNativeActorZoneSource(),
+                    NativeActor.Eruption => new PllEruptionZoneSource(),
                     _ => throw new InvalidOperationException("The native actor selection is unsupported.")
                 };
                 GUIUtility.ExitGUI();
@@ -93,6 +140,28 @@ namespace PLL.Creator.Editor
                 case PllTornadoZoneSource Tornado:
                     Tornado.MaximumAlive = EditorGUILayout.IntField("Maximum Alive", Tornado.MaximumAlive);
                     DrawPositions(ref Tornado.Points);
+                    break;
+                case PllNativeActorZoneSource Actors:
+                    Actors.Profile = (PllNativeActorProfile)EditorGUILayout.EnumPopup("Vanilla Actor", Actors.Profile);
+                    Actors.MaximumInitialCount = EditorGUILayout.IntField("Maximum Initial Count", Actors.MaximumInitialCount);
+                    Actors.SpawnChance = EditorGUILayout.Slider("Spawn Chance", Actors.SpawnChance, 0f, 1f);
+                    Actors.MinimumSpacing = EditorGUILayout.FloatField("Minimum World Spacing (0 = PEAK's)", Actors.MinimumSpacing);
+                    Actors.KeepSurfaceTagRules = EditorGUILayout.Toggle("Keep PEAK's Surface Tag Rules", Actors.KeepSurfaceTagRules);
+                    Actors.KeepPatchyDistribution = EditorGUILayout.Toggle("Keep PEAK's Patchy Spread", Actors.KeepPatchyDistribution);
+                    EditorGUILayout.HelpBox("Spawns exactly like PEAK does in its own biome: the same prefabs, aim, scale, rotation and "
+                        + "spacing rules, and PEAK's own networking. Rays travel along the zone's rotation the way PEAK aims that "
+                        + "spawner (straight down for ground actors, angled forward into walls for wall actors), so rotate the zone "
+                        + "to face the walls you want. Rules tied to PEAK's own map (heights, terrain materials, light volumes) are "
+                        + "left out; tag rules are optional.", MessageType.None);
+                    EditorGUILayout.HelpBox(PlacementHint(Actors.Profile), MessageType.Info);
+                    break;
+                case PllEruptionZoneSource Eruption:
+                    Eruption.Frequency = EditorGUILayout.Slider("Frequency (1 = PEAK's)", Eruption.Frequency, 0f, 4f);
+                    Eruption.ActivationPadding = EditorGUILayout.FloatField("Activation Padding", Eruption.ActivationPadding);
+                    EditorGUILayout.HelpBox("PEAK's caldera lava geysers. Use a box: eruptions rise out of its bottom face at random "
+                        + "spots, so set the bottom at your lava surface. They run on PEAK's own timer (first after about 10 s, then "
+                        + "every few seconds, sometimes in bursts) while any player stands over the box's footprint or within the "
+                        + "padding around it. Each geyser heats players within about 10 m and fades after 35 s.", MessageType.Info);
                     break;
                 case PllTumbleweedZoneSource Tumbleweed:
                     Tumbleweed.MaximumAlive = EditorGUILayout.IntField("Maximum Alive", Tumbleweed.MaximumAlive);

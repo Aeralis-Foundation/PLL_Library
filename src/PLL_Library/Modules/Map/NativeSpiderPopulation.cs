@@ -30,6 +30,7 @@ internal static class NativeSpiderPopulation
 
     internal static void Prepare(MapRun Run, FeatureOccurrence Occurrence)
     {
+        if (Roots.TryGetValue(Occurrence.Container, out _)) return;
         var Found = Occurrence.Container.GetComponentsInChildren<SpiderManager>(true);
         if (Found.Length == 0) return;
         if (Found.Length != 1)
@@ -49,7 +50,70 @@ internal static class NativeSpiderPopulation
                 Registrations.Add(Spider, Population);
                 return Population.Manager;
             }
-        return SpiderManager.instance;
+        if (AuthoredPopulation(Spider) is { } Authored)
+        {
+            Registrations.Add(Spider, Authored);
+            return Authored.Manager;
+        }
+        return SpiderManager.instance ? SpiderManager.instance : FallbackManager();
+    }
+
+    static Population? AuthoredPopulation(Spider Spider)
+    {
+        var Run = Map.CurrentRun;
+        if (Run is null) return null;
+        foreach (var Slot in Run.Slots)
+        {
+            var Occurrence = Slot?.Occurrence;
+            if (Occurrence is null || !Occurrence.Container || !Spider.transform.IsChildOf(Occurrence.Container)) continue;
+            if (Roots.TryGetValue(Occurrence.Container, out var Existing)) return Existing;
+            var Host = new GameObject("PLL_SpiderManager");
+            Host.SetActive(false);
+            Host.transform.SetParent(Occurrence.Container, false);
+            var Population = new Population(Run, Occurrence, Host.AddComponent<SpiderManager>());
+            Roots.Add(Occurrence.Container, Population);
+            Managers.Add(Population.Manager, Population);
+            Host.SetActive(true);
+            return Population;
+        }
+        return null;
+    }
+
+    static SpiderManager? fallbackManager;
+
+    // A spider outside any map run with no PEAK manager in the scene: give it one rather than a null reference.
+    static SpiderManager FallbackManager()
+    {
+        if (fallbackManager) return fallbackManager!;
+        fallbackManager = new GameObject("PLL_FallbackSpiderManager").AddComponent<SpiderManager>();
+        Plugin.PLLLog.LogInfo("No PEAK spider manager in this scene; PLL added one for its spiders.");
+        return fallbackManager;
+    }
+
+    static readonly RaycastHit[] GroundHits = new RaycastHit[32];
+
+    [HarmonyPatch(typeof(Spider), nameof(Spider.GetHit))]
+    static class SpiderGroundPatch
+    {
+        [HarmonyPrefix]
+        static bool Prefix(Spider __instance, ref RaycastHit __result)
+        {
+            if (!Registrations.TryGetValue(__instance, out _) || !__instance.startPoint) return true;
+            var Start = __instance.startPoint.position;
+            var Count = Physics.SphereCastNonAlloc(Start, __instance.castRadius, Vector3.down, GroundHits,
+                __instance.castDistance, HelperFunctions.GetMask(HelperFunctions.LayerType.AllPhysicalExceptDefault),
+                QueryTriggerInteraction.Ignore);
+            var Nearest = -1;
+            for (var Index = 0; Index < Count; Index++)
+            {
+                var Hit = GroundHits[Index];
+                if (!Hit.collider || Hit.distance <= 0f || Hit.collider.transform.IsChildOf(__instance.transform)) continue;
+                if (Nearest < 0 || Hit.distance < GroundHits[Nearest].distance) Nearest = Index;
+            }
+            __result = Nearest >= 0 && Vector3.Distance(Start, GroundHits[Nearest].point) >= __instance.minRaycastDistance
+                ? GroundHits[Nearest] : default;
+            return false;
+        }
     }
 
     [HarmonyPatch(typeof(SpiderManager), nameof(SpiderManager.Awake))]

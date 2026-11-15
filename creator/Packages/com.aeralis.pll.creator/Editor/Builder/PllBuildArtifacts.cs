@@ -875,7 +875,9 @@ namespace PLL.Creator.Editor
                     ? "owned fixed plugin population; installed factory revision bound in PEAK; admission after network readiness; Continue regenerates entities"
                     : "owned output branch; native Entity Zone recipe/provider resolved in PEAK; network admission precedes publication";
             if (Feature is PllHazardZoneAuthoring)
-                return "owned output branch; native Tornado/Tumbleweed points and timing retained; network admission precedes publication";
+                return ((PllHazardZoneAuthoring)Feature).Source is PllEruptionZoneSource
+                    ? "owned output branch; native caldera eruption spawner bound to the zone box; PEAK's timer and RPC"
+                    : "owned output branch; native Tornado/Tumbleweed points and timing retained; network admission precedes publication";
             if (Feature is PllHazardAuthoring Hazard)
                 return Hazard.Behavior is PllContactInjuryBehavior
                     ? "fresh same-collider Injury CollisionModifier; actual placed instance gate before native contact; readiness-owned admission"

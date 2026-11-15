@@ -161,6 +161,13 @@ namespace PLL.Creator.Editor
                     PllCreateNativeActorZoneWindow.Open(new PllTornadoZoneSource());
                 else if (Selected.Id == typeof(PllTumbleweedZoneSource).FullName)
                     PllCreateNativeActorZoneWindow.Open(new PllTumbleweedZoneSource());
+                else if (Selected.Id == typeof(PllEruptionZoneSource).FullName)
+                    PllCreateNativeActorZoneWindow.Open(new PllEruptionZoneSource());
+                else if (Selected.Id.StartsWith(typeof(PllNativeActorZoneSource).FullName + "/", StringComparison.Ordinal)
+                    && Enum.TryParse(Selected.Id.Substring(typeof(PllNativeActorZoneSource).FullName!.Length + 1),
+                        out PllNativeActorProfile Profile)
+                    && Enum.IsDefined(typeof(PllNativeActorProfile), Profile))
+                    PllCreateNativeActorZoneWindow.Open(new PllNativeActorZoneSource { Profile = Profile });
                 else throw new InvalidOperationException("The captured native actor is unsupported.");
             }
         }

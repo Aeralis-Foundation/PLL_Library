@@ -43,6 +43,10 @@ internal abstract class EntityZoneBinding
         GameObject? Prefab, NativeEntityAppearanceBinding? Appearance, float Chance, Vector3 Nest) =>
         new CondorPopulation(Output, Volume, Prefab, Appearance, Chance, Nest);
 
+    internal static EntityZoneBinding NativeActors(PllEntityZoneAuthoring Zone, Transform Output, PllZoneVolume Volume,
+        NativeActorProfileSource? Source, int Count, float Chance, float Spacing, bool KeepSurfaceTags, bool KeepPatches) =>
+        new ProfilePopulation(Zone.transform, Output, Volume, Source, Count, Chance, Spacing, KeepSurfaceTags, KeepPatches);
+
     internal static EntityBinding BindAuthored(PllEntityAuthoring Source, FeatureOccurrence Occurrence,
         GameObject Prefab, NativeEntityAppearanceBinding? Appearance, Vector3 NestOffset) =>
         new NativeInstance(Source, Occurrence, Prefab, Appearance, NestOffset);
@@ -260,6 +264,100 @@ internal abstract class EntityZoneBinding
         }
     }
 
+    sealed class ProfilePopulation : EntityZoneBinding
+    {
+        readonly Transform PlacementRoot;
+        readonly Transform Output;
+        readonly PllZoneVolume Volume;
+        readonly NativeActorProfileSource? Source;
+        readonly int Count;
+        readonly float Chance;
+        readonly float Spacing;
+        readonly bool KeepSurfaceTags;
+        readonly bool KeepPatches;
+        internal readonly MobAdmission Admission = new();
+
+        internal ProfilePopulation(Transform PlacementRoot, Transform Output, PllZoneVolume Volume,
+            NativeActorProfileSource? Source, int Count, float Chance, float Spacing, bool KeepSurfaceTags, bool KeepPatches)
+        {
+            this.PlacementRoot = PlacementRoot; this.Output = Output; this.Volume = Volume; this.Source = Source;
+            this.Count = Count; this.Chance = Chance; this.Spacing = Spacing; this.KeepSurfaceTags = KeepSurfaceTags;
+            this.KeepPatches = KeepPatches;
+        }
+
+        internal bool HasMobs => Source is { HasMobs: true };
+
+        internal override IEnumerator Generate()
+        {
+            var Spawner = CreateSpawner();
+            if (!Spawner) yield break;
+            var Routine = Spawner.Execute();
+            try { while (Routine.MoveNext()) yield return null; }
+            finally { (Routine as IDisposable)?.Dispose(); }
+        }
+
+        internal override void GenerateImmediately()
+        {
+            var Spawner = CreateSpawner();
+            if (Spawner) Spawner.ExecuteImmediately();
+        }
+
+        PropSpawner? CreateSpawner()
+        {
+            Clear();
+            if (Count == 0 || Chance == 0f || Source is null) return null;
+            var Root = new GameObject("__PLL_NativeActors_" + Source.Profile);
+            Root.transform.SetParent(Output, false);
+            var Bounds = Volume.Shape == PllZoneShape.Box ? Volume.Size : Vector3.one * (Volume.Radius * 2f);
+            var Reach = Mathf.Max(Bounds.magnitude, 0.01f);
+            var Rotation = Source.RelativeRotation;
+            var Direction = Rotation * Vector3.forward;
+            Root.transform.localPosition = Volume.Center - Direction * (Reach * 0.5f);
+            Root.transform.localRotation = Rotation;
+            if (Source.NeedsTriggerRelay)
+            {
+                var View = Root.AddComponent<PhotonView>();
+                View.Synchronization = ViewSynchronization.Off;
+                Root.AddComponent<TriggerRelay>();
+            }
+            var Spawner = Root.AddComponent<PropSpawner>();
+            Spawner.area = new Vector2(
+                PlacementRoot.TransformVector(Rotation * Vector3.right * Reach).magnitude,
+                PlacementRoot.TransformVector(Rotation * Vector3.up * Reach).magnitude);
+            Spawner.raycastPosition = Source.Raycast;
+            Spawner.rayLength = PlacementRoot.TransformVector(Direction * (Reach * 1.5f)).magnitude;
+            Spawner.rayDirectionOffset = Source.RayOffset;
+            Spawner.rayNearCutoff = Source.RayNearCutoff;
+            Spawner.nrOfSpawns = Count; Spawner.randomSpawns = false;
+            Spawner.chanceToUseSpawner = Chance; Spawner.syncTransforms = Source.SyncTransforms;
+            Spawner.layerType = NativeActorProfileSource.AuthoredLayer(Source.Layer);
+            Spawner.props = (GameObject[])Source.Props.Clone();
+            Spawner.modifiers = Source.CloneModifiers();
+            Spawner.constraints = new List<PropSpawnerConstraint>
+            {
+                new PllNoPropSpawnConstraint(), new PllPropZoneConstraint(PlacementRoot, Volume, false)
+            };
+            Spawner.constraints.AddRange(Source.CloneConstraints(KeepSurfaceTags, KeepPatches, Spacing > 0f));
+            if (Spacing > 0f)
+                Spawner.constraints.Add(new PSC_SameTypeDistance
+                    { minDistance = Spacing, findAllSpawners = false, axisMultipliers = Vector3.one });
+            Spawner.postConstraints = Source.ClonePostConstraints();
+            Spawner.postSpawnBehaviors = new List<PostSpawnBehavior>();
+            NativePrefabContracts.ValidationConstraints(Spawner) = new List<IValidationConstraint>();
+            return Spawner;
+        }
+
+        internal override void Clear()
+        {
+            Admission.Clear();
+            Map.CurrentRun?.NativeSpawns.RetireOutputs(Output.gameObject);
+            for (var Index = Output.childCount - 1; Index >= 0; Index--)
+                UnityEngine.Object.DestroyImmediate(Output.GetChild(Index).gameObject);
+        }
+
+        internal override void Publish() => Admission.Publish();
+    }
+
     sealed class BeetlePopulation : GroundPopulation
     {
         readonly NativeEntityAppearanceBinding? Appearance;
@@ -389,6 +487,12 @@ internal abstract class EntityZoneBinding
             }
             else if (Zone.Binding is ZombieMarkers)
                 __result.GetComponent<MushroomZombieSpawner>().cullRandomly = false;
+            else if (Zone.Binding is ProfilePopulation Profile && Profile.HasMobs)
+                foreach (var Mob in __result.GetComponentsInChildren<Mob>(true))
+                {
+                    NativeMobs.Add(Mob, Profile.Admission);
+                    if (!Profile.Admission.Published) Profile.Admission.DormantBodies.Add(Mob, new DormantBody(Mob.rig));
+                }
         }
     }
 

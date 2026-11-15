@@ -1632,8 +1632,13 @@ internal sealed class ViewBatchSynchronization
     static class EruptionSpawnerUpdatePatch
     {
         [HarmonyPrefix]
-        static bool Prefix(EruptionSpawner __instance) =>
-            GeneratedBatchOriginReady(__instance.photonView, Simulating: true);
+        static bool Prefix(EruptionSpawner __instance)
+        {
+            if (!GeneratedBatchOriginReady(__instance.photonView, Simulating: true)) return false;
+            if (!__instance.TryGetComponent<PllEruptionZoneRuntime>(out var Zone)) return true;
+            Zone.Tick(__instance);
+            return false;
+        }
     }
 
     [HarmonyPatch(typeof(TornadoSpawner), nameof(TornadoSpawner.Update))]

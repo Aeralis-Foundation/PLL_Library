@@ -24,6 +24,7 @@ internal sealed class EntityZoneContract
             PllCondorZoneSource Condor => new CondorRecipe(Condor),
             PllPluginEntityZoneSource Plugin => new PluginEntityRecipe(Plugin),
             PllAuthoredEntityZoneSource Authored => new AuthoredRecipe(Authored),
+            PllNativeActorZoneSource Actors => new ProfileRecipe(Actors),
             _ => throw new InvalidOperationException("The validated Entity Zone source is unsupported.")
         };
     }
@@ -38,6 +39,14 @@ internal sealed class EntityZoneContract
     internal bool HasAppearance => RecipeValue.HasAppearance;
     internal bool RequiresPluginEntities => RecipeValue is PluginEntityRecipe
         || RecipeValue is AuthoredRecipe Authored && Authored.Source.Behavior is PllPluginEntityBehavior;
+
+    internal ulong RequiredNativeActorProfiles => RecipeValue is ProfileRecipe { Enabled: true } Profile
+        ? NativeActorProfileTable.Bit(Profile.Profile) : 0UL;
+
+    internal void ResolveNativeActorProfiles(NativeActorProfileSources? Sources)
+    {
+        if (RecipeValue is ProfileRecipe Recipe) Recipe.Resolve(Sources);
+    }
 
     internal void ResolveDefinitionSources(IReadOnlyList<EntityAuthoringContract> Definitions)
     {
@@ -78,6 +87,7 @@ internal sealed class EntityZoneContract
             case CondorRecipe Recipe: Recipe.Resolve(Condors); break;
             case PluginEntityRecipe Recipe: Recipe.Resolve(); break;
             case AuthoredRecipe: break;
+            case ProfileRecipe: break;
             default: throw new InvalidOperationException("The sealed Entity Zone recipe is unsupported.");
         }
     }
@@ -286,6 +296,48 @@ internal sealed class EntityZoneContract
             Writer.Write((byte)4); WriteGround(Writer); Writer.Write(DefinitionId);
         }
         internal override void ClearExternal() { }
+    }
+
+    sealed class ProfileRecipe : Recipe
+    {
+        readonly int Count;
+        readonly float Chance;
+        readonly float Spacing;
+        readonly bool KeepSurfaceTags;
+        readonly bool KeepPatches;
+        NativeActorProfileSource? Provider;
+
+        internal ProfileRecipe(PllNativeActorZoneSource Source)
+        {
+            Profile = Source.Profile; Count = Source.MaximumInitialCount; Chance = Source.SpawnChance;
+            Spacing = Source.MinimumSpacing; KeepSurfaceTags = Source.KeepSurfaceTagRules;
+            KeepPatches = Source.KeepPatchyDistribution;
+        }
+
+        internal PllNativeActorProfile Profile { get; }
+        internal override bool Enabled => Count != 0 && Chance > 0f;
+
+        internal void Resolve(NativeActorProfileSources? Sources)
+        {
+            if (!Enabled) return;
+            Provider = (Sources ?? throw new InvalidOperationException(
+                $"The Entity Zone requires PEAK's native {NativeActorProfileTable.Get(Profile).Label} provider.")).Require(Profile);
+            Provider.AdmitInitialCount(Count);
+        }
+
+        internal override bool Matches(PllEntityZoneSource Source) => Source is PllNativeActorZoneSource Actors
+            && Actors.Profile == Profile && Actors.MaximumInitialCount == Count && Actors.SpawnChance.Equals(Chance)
+            && Actors.MinimumSpacing.Equals(Spacing) && Actors.KeepSurfaceTagRules == KeepSurfaceTags
+            && Actors.KeepPatchyDistribution == KeepPatches;
+        internal override EntityZoneBinding Bind(PllEntityZoneAuthoring Zone, Transform Output, PllZoneVolume Volume) =>
+            EntityZoneBinding.NativeActors(Zone, Output, Volume, Provider, Count, Chance, Spacing, KeepSurfaceTags, KeepPatches);
+        internal override void WriteManifest(BinaryWriter Writer, bool External)
+        {
+            Writer.Write((byte)5); Writer.Write((byte)Profile); Writer.Write(Count);
+            ManifestEncoding.WriteScalar(Writer, Chance); ManifestEncoding.WriteScalar(Writer, Spacing);
+            Writer.Write(KeepSurfaceTags); Writer.Write(KeepPatches);
+        }
+        internal override void ClearExternal() => Provider = null;
     }
 
     static void ValidateIngress(
