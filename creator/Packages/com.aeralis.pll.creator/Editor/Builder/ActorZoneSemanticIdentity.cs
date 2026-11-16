@@ -33,6 +33,8 @@ namespace PLL.Creator.Editor
                 PllAuthoredHazardZoneSource Hazard => new AuthoredHazardIdentity(Graph, StagedPaths, Hazard),
                 PllTornadoZoneSource Tornado => new TornadoIdentity(Tornado),
                 PllTumbleweedZoneSource Tumbleweed => new TumbleweedIdentity(Tumbleweed),
+                PllEruptionZoneSource Eruption => new EruptionIdentity(Eruption),
+                PllNativeActorZoneSource Actors => new NativeActorIdentity(Actors),
                 _ => throw new InvalidOperationException("The validated actor-zone source is unsupported.")
             };
             var Root = Graph.ByPath[Graph.RootPath].SourceRoot.transform;
@@ -119,6 +121,30 @@ namespace PLL.Creator.Editor
                 if (Actual is not PllBeetleZoneSource Source) throw DefinitionSemanticIdentity.Changed(Context, Field + ".kind");
                 RequireGround(Source.MaximumInitialCount, Source.SpawnChance, Source.MaximumSlope, Source.MinimumSpacing, Context, Field);
                 AppearanceIdentity.RequireOptional(Appearance, Source.Appearance, Resolver, Context, Field);
+            }
+        }
+
+        sealed class NativeActorIdentity : RecipeIdentity
+        {
+            readonly PllNativeActorProfile Profile;
+            readonly int Count;
+            readonly float Chance;
+            readonly float Spacing;
+            readonly bool KeepSurfaceTags;
+            readonly bool KeepPatches;
+            internal NativeActorIdentity(PllNativeActorZoneSource Source)
+            {
+                Profile = Source.Profile; Count = Source.MaximumInitialCount; Chance = Source.SpawnChance;
+                Spacing = Source.MinimumSpacing; KeepSurfaceTags = Source.KeepSurfaceTagRules;
+                KeepPatches = Source.KeepPatchyDistribution;
+            }
+            internal override void Require(object Actual, DefinitionBindingResolver Resolver, string Context, string Field)
+            {
+                if (Actual is not PllNativeActorZoneSource Source) throw DefinitionSemanticIdentity.Changed(Context, Field + ".kind");
+                if (Source.Profile != Profile || Source.MaximumInitialCount != Count || !Source.SpawnChance.Equals(Chance)
+                    || !Source.MinimumSpacing.Equals(Spacing) || Source.KeepSurfaceTagRules != KeepSurfaceTags
+                    || Source.KeepPatchyDistribution != KeepPatches)
+                    throw DefinitionSemanticIdentity.Changed(Context, Field + ".nativeActorPlacement");
             }
         }
 
@@ -244,6 +270,19 @@ namespace PLL.Creator.Editor
                 if (Actual is not PllTumbleweedZoneSource Source) throw DefinitionSemanticIdentity.Changed(Context, Field + ".kind");
                 RequirePoints(Source.MaximumAlive, Source.Positions, Context, Field);
                 if (!Source.SpawnOffset.Equals(Offset)) throw DefinitionSemanticIdentity.Changed(Context, Field + ".spawnOffset");
+            }
+        }
+
+        sealed class EruptionIdentity : RecipeIdentity
+        {
+            readonly float Frequency;
+            readonly float Padding;
+            internal EruptionIdentity(PllEruptionZoneSource Source) { Frequency = Source.Frequency; Padding = Source.ActivationPadding; }
+            internal override void Require(object Actual, DefinitionBindingResolver Resolver, string Context, string Field)
+            {
+                if (Actual is not PllEruptionZoneSource Source) throw DefinitionSemanticIdentity.Changed(Context, Field + ".kind");
+                if (!Source.Frequency.Equals(Frequency) || !Source.ActivationPadding.Equals(Padding))
+                    throw DefinitionSemanticIdentity.Changed(Context, Field + ".eruption");
             }
         }
 

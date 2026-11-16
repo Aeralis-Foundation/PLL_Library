@@ -118,4 +118,74 @@ internal abstract class HazardZoneBinding
             }
         }
     }
+
+    internal sealed class Eruption : HazardZoneBinding
+    {
+        readonly NativeEruptionSource? Source;
+        readonly Transform Zone;
+        readonly PllZoneVolume Volume;
+        readonly float Frequency;
+        readonly float Padding;
+        internal Eruption(Transform Zone, Transform Output, NativeEruptionSource? Source, PllZoneVolume Volume,
+            float Frequency, float Padding) : base(Output, Frequency > 0f ? 1 : 0)
+        {
+            this.Zone = Zone; this.Source = Source; this.Volume = Volume; this.Frequency = Frequency; this.Padding = Padding;
+        }
+        internal override void GenerateImmediately()
+        {
+            Clear();
+            if (Frequency <= 0f) return;
+            var Root = new GameObject("__PLL_EruptionSource");
+            Root.SetActive(false); Root.transform.SetParent(OutputRoot, false);
+            // PEAK's spawner reads its first two children as the start and end of its active band
+            new GameObject("Start").transform.SetParent(Root.transform, false);
+            new GameObject("Stop").transform.SetParent(Root.transform, false);
+            Root.AddComponent<PhotonView>();
+            var Spawner = Root.AddComponent<EruptionSpawner>(); Spawner.eruption = Source!.Prefab;
+            Root.AddComponent<PllEruptionZoneRuntime>().Configure(Zone, Volume, Frequency, Padding);
+            Root.SetActive(true);
+        }
+    }
 }
+
+internal sealed class PllEruptionZoneRuntime : MonoBehaviour
+{
+    Transform Zone = null!;
+    PllZoneVolume Volume;
+    float Frequency;
+    float Padding;
+    float Counter;
+
+    internal void Configure(Transform Zone, PllZoneVolume Volume, float Frequency, float Padding)
+    {
+        this.Zone = Zone; this.Volume = Volume; this.Frequency = Frequency; this.Padding = Padding;
+        Counter = 10f / Frequency;
+    }
+
+    internal void Tick(EruptionSpawner Spawner)
+    {
+        if (!PhotonNetwork.IsMasterClient || !Zone || Frequency <= 0f || !AnyPlayerOver()) return;
+        Counter -= Time.deltaTime;
+        if (Counter >= 0f) return;
+        Counter = UnityEngine.Random.Range(-5f, 15f) / Frequency;
+        var Half = Volume.Size * 0.5f;
+        var Local = new Vector3(
+            Volume.Center.x + UnityEngine.Random.Range(-Half.x, Half.x),
+            Volume.Center.y - Half.y,
+            Volume.Center.z + UnityEngine.Random.Range(-Half.z, Half.z));
+        Spawner.photonView.RPC(nameof(EruptionSpawner.RPCA_SpawnEruption), RpcTarget.All, Zone.TransformPoint(Local));
+    }
+
+    bool AnyPlayerOver()
+    {
+        var Half = Volume.Size * 0.5f;
+        foreach (var Player in Character.AllCharacters)
+        {
+            if (!Player || Player.isBot) continue;
+            var Local = Zone.InverseTransformPoint(Player.Center) - Volume.Center;
+            if (Mathf.Abs(Local.x) <= Half.x + Padding && Mathf.Abs(Local.z) <= Half.z + Padding) return true;
+        }
+        return false;
+    }
+}
+

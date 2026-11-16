@@ -47,12 +47,18 @@ internal readonly struct PeakBridgeProfile
 
 internal sealed class NativePortProfile
 {
-    internal NativePortProfile(Pose? start, LayoutPort[] entries, LayoutPort[] exits)
+    internal NativePortProfile(Pose? start, LayoutPort[] entries, LayoutPort[] exits,
+        float entryGroundDrop = 0f, float exitGroundDrop = 0f)
     {
         Start = start;
         Entries = entries;
         Exits = exits;
+        EntryGroundDrop = entryGroundDrop;
+        ExitGroundDrop = exitGroundDrop;
     }
+
+    internal float EntryGroundDrop { get; }
+    internal float ExitGroundDrop { get; }
 
     internal Pose? Start { get; }
     internal IReadOnlyList<LayoutPort> Entries { get; }
@@ -89,12 +95,26 @@ internal static class NativeSegmentPorts
                 ? reconnect
                 : throw new InvalidOperationException($"PEAK's native {role} entry boundary is unavailable.");
         var entries = new[] { Port(TranslationPose(container, entryAnchor)) };
-        var exits = wallNext
-            ? new[] { Port(TranslationPose(container, FogOrigin(wallNext, role, "exit"))) }
+        var exitAnchor = wallNext ? FogOrigin(wallNext, role, "exit") : null;
+        var exits = exitAnchor
+            ? new[] { Port(TranslationPose(container, exitAnchor!)) }
             : index == last
                 ? NoPorts
                 : throw new InvalidOperationException($"PEAK's native {role} exit boundary is unavailable.");
-        return new NativePortProfile(start, entries, exits);
+        // the ledge under an entry is the previous role's campfire; the ledge under an exit is this segment's own
+        var previousCampfire = wallPrevious && index > 0 ? handler.segments[index - 1]?._segmentCampfire : null;
+        var ownCampfire = source._segmentCampfire ? source._segmentCampfire : authored._segmentCampfire;
+        return new NativePortProfile(start, entries, exits,
+            wallPrevious ? GroundDrop(entryAnchor, previousCampfire) : 0f,
+            exitAnchor ? GroundDrop(exitAnchor!, ownCampfire) : 0f);
+    }
+
+    internal static float GroundDrop(Transform port, GameObject? campfire)
+    {
+        if (!port || !campfire) return 0f;
+        var Offset = port.position - campfire!.transform.position;
+        var Horizontal = new Vector2(Offset.x, Offset.z).magnitude;
+        return float.IsFinite(Offset.y) && Horizontal <= 20f && Offset.y > 0f && Offset.y <= 40f ? Offset.y : 0f;
     }
 
     internal static IReadOnlyList<LayoutPort> Empty => NoPorts;

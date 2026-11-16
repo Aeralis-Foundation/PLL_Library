@@ -333,3 +333,39 @@ internal sealed class NativeCondorSource
 
     internal void WriteManifest(BinaryWriter Writer) { Writer.Write(Fingerprint.Length); Writer.Write(Fingerprint); }
 }
+
+internal sealed class NativeEruptionSource
+{
+    readonly byte[] Fingerprint;
+
+    NativeEruptionSource(GameObject Prefab)
+    {
+        this.Prefab = Prefab;
+        Fingerprint = NativeNetworkPrefabGraph.Fingerprint(Prefab, "PLL/NativeEruption/v1", Writer =>
+        {
+            var Lifetime = Prefab.GetComponent<RemoveAfterSeconds>();
+            ManifestEncoding.WriteScalar(Writer, Lifetime ? Lifetime.seconds : 0f);
+            var Emitters = Prefab.GetComponentsInChildren<StatusEmitter>(true);
+            Writer.Write(Emitters.Length);
+            foreach (var Emitter in Emitters)
+            {
+                Writer.Write((int)Emitter.statusType);
+                ManifestEncoding.WriteScalar(Writer, Emitter.amount); ManifestEncoding.WriteScalar(Writer, Emitter.radius);
+            }
+        });
+    }
+
+    internal GameObject Prefab { get; }
+
+    internal static NativeEruptionSource Capture(NativeSegmentCatalog Catalog)
+    {
+        var Container = Catalog.RequireOrdinary("Caldera").Container;
+        var Spawners = Container ? Container.GetComponentsInChildren<EruptionSpawner>(true) : Array.Empty<EruptionSpawner>();
+        if (Spawners.Length != 1 || !Spawners[0].eruption || Spawners[0].transform.childCount < 2
+            || Spawners[0].eruption.GetComponentInChildren<PhotonView>(true))
+            throw new InvalidOperationException("PEAK's native caldera eruption source is missing or changed.");
+        return new NativeEruptionSource(Spawners[0].eruption);
+    }
+
+    internal void WriteManifest(BinaryWriter Writer) { Writer.Write(Fingerprint.Length); Writer.Write(Fingerprint); }
+}

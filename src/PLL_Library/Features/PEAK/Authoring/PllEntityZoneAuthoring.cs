@@ -35,6 +35,41 @@ public sealed class PllCondorZoneSource : PllEntityZoneSource
     public Vector3 NestPosition = new(0f, 0f, 10f);
 }
 
+public enum PllNativeActorProfile : byte
+{
+    Scorpions,
+    Antlions,
+    Spiders,
+    Beehives,
+    JellyfishGround,
+    JellyfishWalls,
+    VenusFlyTraps,
+    GhostFires,
+    Cacti,
+    CactusBalls,
+    Dynamite,
+    Mushrooms,
+    TickPlants,
+    HotSpring,
+    Oasis,
+    TickMonsteras,
+    Frogs,
+    JungleVines,
+    SwampVines,
+    Cattails
+}
+
+[Serializable]
+public sealed class PllNativeActorZoneSource : PllEntityZoneSource
+{
+    public PllNativeActorProfile Profile = PllNativeActorProfile.Scorpions;
+    [Min(0)] public int MaximumInitialCount = 10;
+    [Range(0f, 1f)] public float SpawnChance = 1f;
+    [Min(0f)] public float MinimumSpacing = 0f;
+    public bool KeepSurfaceTagRules = false;
+    public bool KeepPatchyDistribution = false;
+}
+
 [Serializable]
 public sealed class PllAuthoredEntityZoneSource : PllEntityZoneSource
 {
@@ -99,6 +134,10 @@ static class PllEntityZoneValueContract
                 || !PllAuthoringValueContract.CanEncode(Condor.NestPosition.z)
                 => "Condor nest position must be finite.",
             PllCondorZoneSource => null,
+            PllNativeActorZoneSource Actors when !Enum.IsDefined(typeof(PllNativeActorProfile), Actors.Profile)
+                => "Native Actor Zone profile is unsupported.",
+            PllNativeActorZoneSource Actors => GroundFailure(Actors.MaximumInitialCount,
+                Actors.SpawnChance, 90f, Actors.MinimumSpacing),
             PllPluginEntityZoneSource Plugin => PllPluginEntityZoneValueContract.MetadataFailure(Plugin),
             PllAuthoredEntityZoneSource Authored => AuthoredFailure(Authored),
             _ => "Entity Zone source is unsupported. Select a native source or installed plugin factory."

@@ -15,7 +15,6 @@ namespace PLL.Creator.Editor
 {
     public static class PllBundleBuilder
     {
-        const string BundleName = "content.pll";
         const string MenuPath = "PLL/Build/Build .pll";
 
         public static PllFogShaderAdapter PrepareFogShaderAdapter(PllBiomeDefinition Definition, Shader OriginalShader) =>
@@ -39,6 +38,14 @@ namespace PLL.Creator.Editor
             {
                 PllCreatorResultWindow.ShowFailure(Failure, Selection.activeObject);
             }
+        }
+
+        internal static string UniqueBundleName(IReadOnlyList<PllBiomeDefinition> Definitions)
+        {
+            var Ids = Definitions.Select(Definition => Definition.BiomeId.Value).OrderBy(Value => Value, StringComparer.Ordinal);
+            using var Sha = System.Security.Cryptography.SHA256.Create();
+            var Hash = Sha.ComputeHash(Encoding.UTF8.GetBytes("PLL/content-bundle/v1\n" + string.Join("\n", Ids)));
+            return "content-" + BitConverter.ToString(Hash, 0, 8).Replace("-", string.Empty).ToLowerInvariant() + ".pll";
         }
 
         internal static BuildReportData Build(IReadOnlyList<PllBiomeDefinition> Definitions, string OutputPath)
@@ -68,6 +75,7 @@ namespace PLL.Creator.Editor
                     .Append(RegistryPath).OrderBy(Value => Value, StringComparer.Ordinal).ToArray();
 
                 var Audit = Artifacts.Audit(AssetPaths);
+                var BundleName = UniqueBundleName(Definitions);
                 var Build = new AssetBundleBuild
                 {
                     assetBundleName = BundleName,

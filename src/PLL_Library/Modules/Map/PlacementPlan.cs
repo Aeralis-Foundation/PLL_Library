@@ -61,6 +61,7 @@ internal static class PlacementPlan
     {
         var Placements = new List<Placement>(Plan.Count);
         var BoundaryClearance = new NativeBoundaryClearance(StartPlane, StartSpawns);
+        var FloorMeshes = new NativeMeshAssets();
         Links = new List<LayoutLink>(Math.Max(0, Plan.Count - 1));
         SegmentCount = 0;
         for (var i = 0; i < Plan.Count; i++)
@@ -111,6 +112,7 @@ internal static class PlacementPlan
                 Offset = (PeakSuccessor || FullPeak
                     ? PlacedExit.position
                     : PlacedPosition(Previous, PreviousSource, Transition.Exit)) - Entry;
+                if (!PeakSuccessor && !FullPeak) Offset += GroundAlignment(PreviousSource, Selected[0], FloorMeshes);
                 if (PeakSuccessor)
                     Offset = BoundaryClearance.ResolvePeak(
                         peak,
@@ -142,6 +144,62 @@ internal static class PlacementPlan
         }
         return Placements;
     }
+    const float MaximumMarkerHeight = 40f;
+
+    static Vector3 GroundAlignment(LayoutSegmentSource Previous, LayoutSegmentSource Next, NativeMeshAssets Meshes)
+    {
+        if (Previous is not CustomLayoutSegmentSource && Next is not CustomLayoutSegmentSource) return Vector3.zero;
+        if (!TryFloorDrop(Previous, true, Meshes, out var Exit) || !TryFloorDrop(Next, false, Meshes, out var Entry))
+            return Vector3.zero;
+        var Lift = Entry - Exit;
+        if (Math.Abs(Lift) >= 0.01f)
+            Plugin.PLLLog.LogInfo($"Placement: '{Next.Id}' lined up with '{Previous.Id}' at floor level "
+                + $"({(Lift > 0f ? "+" : "")}{Lift:F1} m from port to port).");
+        return Vector3.up * Lift;
+    }
+
+    static bool TryFloorDrop(LayoutSegmentSource Source, bool Exit, NativeMeshAssets Meshes, out float Drop)
+    {
+        switch (Source)
+        {
+            case CustomLayoutSegmentSource Custom:
+                Drop = CustomFloorDrop(Custom, Exit, Meshes);
+                return true;
+            case NativeOrdinarySegmentSource Native:
+                Drop = Exit ? Native.ExitGroundDrop : Native.EntryGroundDrop;
+                return true;
+            default:
+                Drop = 0f;
+                return false;
+        }
+    }
+
+    static float CustomFloorDrop(CustomLayoutSegmentSource Source, bool Exit, NativeMeshAssets Meshes)
+    {
+        var Marker = Exit ? Source.Registration.Exit.Source : Source.Registration.Entry.Source;
+        var Root = Source.Container;
+        if (!Marker || !Root) return 0f;
+        var Origin = Marker.position;
+        var Terrain = HelperFunctions.terrainMapMask.value;
+        var Best = float.NegativeInfinity;
+        foreach (var Collider in Root.GetComponentsInChildren<MeshCollider>(true))
+        {
+            if (!Collider || !Collider.enabled || Collider.isTrigger || Collider.convex || !Collider.sharedMesh
+                || Collider.attachedRigidbody || (Terrain & (1 << Collider.gameObject.layer)) == 0
+                || !NativePlacement.ActiveWithin(Collider.transform, Root)
+                || Collider.GetComponentInParent<PllCampfireAuthoring>(true)
+                || !NativePlacement.TryWorldBounds(Collider, out var Bounds)
+                || Origin.x < Bounds.min.x || Origin.x > Bounds.max.x || Origin.z < Bounds.min.z || Origin.z > Bounds.max.z
+                || Bounds.min.y > Origin.y + 1f || Bounds.max.y < Origin.y - MaximumMarkerHeight) continue;
+            NativeMeshGeometry Geometry;
+            try { Geometry = Meshes.Resolve(Collider); }
+            catch (Exception) { continue; }
+            if (!Geometry.TryUniqueNearestGroundableIntersection(Origin, Vector3.down, Vector3.up, out var Point)) continue;
+            if (Point.y <= Origin.y + 1f && Point.y >= Origin.y - MaximumMarkerHeight && Point.y > Best) Best = Point.y;
+        }
+        return float.IsNegativeInfinity(Best) ? 0f : Origin.y - Best;
+    }
+
     internal static LayoutTransition ResolvePlacementTransition(
         Placement PreviousPlacement,
         LayoutSegmentSource Next)

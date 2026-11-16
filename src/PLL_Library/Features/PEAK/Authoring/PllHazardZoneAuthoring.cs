@@ -23,6 +23,13 @@ public sealed class PllTumbleweedZoneSource : PllHazardZoneSource
 }
 
 [Serializable]
+public sealed class PllEruptionZoneSource : PllHazardZoneSource
+{
+    [Range(0f, 4f)] public float Frequency = 1f;
+    [Min(0f)] public float ActivationPadding = 20f;
+}
+
+[Serializable]
 public sealed class PllAuthoredHazardZoneSource : PllHazardZoneSource
 {
     public GameObject Prefab = null!;
@@ -66,9 +73,21 @@ static class PllHazardZoneValueContract
         {
             PllTornadoZoneSource Tornado => PointsFailure(Volume, Tornado.Points, Tornado.MaximumAlive, Vector3.zero),
             PllTumbleweedZoneSource Tumbleweed => PointsFailure(Volume, Tumbleweed.Positions, Tumbleweed.MaximumAlive, Tumbleweed.SpawnOffset),
+            PllEruptionZoneSource Eruption => EruptionFailure(Eruption, Shape),
             PllAuthoredHazardZoneSource Authored => AuthoredFailure(Authored),
             _ => "Hazard Zone source is unsupported. Select a native source or authored Hazard prefab."
         };
+    }
+
+    static string? EruptionFailure(PllEruptionZoneSource Source, PllZoneShape Shape)
+    {
+        if (Shape != PllZoneShape.Box) return "Eruption zones use a box: eruptions rise out of its bottom face.";
+        if (!PllAuthoringValueContract.CanEncode(Source.Frequency) || Source.Frequency < 0f || Source.Frequency > 4f)
+            return "Eruption frequency must be between 0 and 4.";
+        if (!PllAuthoringValueContract.CanEncode(Source.ActivationPadding) || Source.ActivationPadding < 0f
+            || Source.ActivationPadding > 10000f)
+            return "Eruption activation padding must be between 0 and 10000.";
+        return null;
     }
 
     static string? AuthoredFailure(PllAuthoredHazardZoneSource Source)

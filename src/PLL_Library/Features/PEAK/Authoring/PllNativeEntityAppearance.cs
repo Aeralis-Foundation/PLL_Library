@@ -45,7 +45,7 @@ static class PllNativeEntityAppearanceValueContract
                 _ => null
             },
         PllAuthoredEntityZoneSource => null,
-        PllMushroomZombieZoneSource or PllPluginEntityZoneSource => null,
+        PllMushroomZombieZoneSource or PllPluginEntityZoneSource or PllNativeActorZoneSource => null,
         _ => throw new ArgumentException("The Entity Zone source is unsupported.", nameof(Source))
     };
 

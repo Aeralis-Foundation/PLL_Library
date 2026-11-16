@@ -20,6 +20,7 @@ internal sealed class HazardZoneContract
         {
             PllTornadoZoneSource Tornado => new TornadoRecipe(Tornado),
             PllTumbleweedZoneSource Tumbleweed => new TumbleweedRecipe(Tumbleweed),
+            PllEruptionZoneSource Eruption => new EruptionRecipe(Eruption),
             PllAuthoredHazardZoneSource Authored => new AuthoredRecipe(Authored),
             _ => throw new InvalidOperationException("The validated Hazard Zone source is unsupported.")
         };
@@ -28,6 +29,7 @@ internal sealed class HazardZoneContract
     internal string Id { get; }
     internal bool RequiresTornados => RecipeValue is TornadoRecipe { Enabled: true };
     internal bool RequiresTumbleweeds => RecipeValue is TumbleweedRecipe { Enabled: true };
+    internal bool RequiresEruptions => RecipeValue is EruptionRecipe { Enabled: true };
 
     internal static HazardZoneContract[] CreateAll(Transform Template, Transform Floor, Transform Campfire,
         BiomeId Biome, AuthoringCandidateGraph Graph, IReadOnlyList<EntityZoneContract> EntityZones)
@@ -56,12 +58,14 @@ internal sealed class HazardZoneContract
         return Result;
     }
 
-    internal void ResolveExternal(NativeTornadoSource? Tornados, NativeTumbleweedSource? Tumbleweeds)
+    internal void ResolveExternal(NativeTornadoSource? Tornados, NativeTumbleweedSource? Tumbleweeds,
+        NativeEruptionSource? Eruptions = null)
     {
         switch (RecipeValue)
         {
             case TornadoRecipe Recipe: Recipe.Resolve(Tornados); break;
             case TumbleweedRecipe Recipe: Recipe.Resolve(Tumbleweeds); break;
+            case EruptionRecipe Recipe: Recipe.Resolve(Eruptions); break;
             case AuthoredRecipe: break;
             default: throw new InvalidOperationException("The sealed Hazard Zone recipe is unsupported.");
         }
@@ -155,6 +159,29 @@ internal sealed class HazardZoneContract
         internal override void WriteManifest(BinaryWriter Writer)
         {
             Writer.Write((byte)1); WritePoints(Writer); ManifestEncoding.WriteVector(Writer, Offset);
+        }
+        internal override void ClearExternal() => Provider = null;
+    }
+
+    sealed class EruptionRecipe : Recipe
+    {
+        readonly float Frequency;
+        readonly float Padding;
+        NativeEruptionSource? Provider;
+        internal EruptionRecipe(PllEruptionZoneSource Source) { Frequency = Source.Frequency; Padding = Source.ActivationPadding; }
+        internal bool Enabled => Frequency > 0f;
+        internal void Resolve(NativeEruptionSource? Source)
+        {
+            if (Enabled && Source is null) throw new InvalidOperationException("The Hazard Zone requires PEAK's native caldera eruption.");
+            Provider = Source;
+        }
+        internal override bool Matches(PllHazardZoneSource Source) => Source is PllEruptionZoneSource Eruption
+            && Eruption.Frequency.Equals(Frequency) && Eruption.ActivationPadding.Equals(Padding);
+        internal override HazardZoneBinding Bind(PllHazardZoneAuthoring Zone, Transform Output, PllZoneVolume Volume) =>
+            new HazardZoneBinding.Eruption(Zone.transform, Output, Provider, Volume, Frequency, Padding);
+        internal override void WriteManifest(BinaryWriter Writer)
+        {
+            Writer.Write((byte)3); ManifestEncoding.WriteScalar(Writer, Frequency); ManifestEncoding.WriteScalar(Writer, Padding);
         }
         internal override void ClearExternal() => Provider = null;
     }

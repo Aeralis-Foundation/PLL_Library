@@ -84,9 +84,11 @@ internal static class BiomeRegistration
         internal bool RequiresNativeCondors { get; private set; }
         internal bool RequiresNativeTornados { get; private set; }
         internal bool RequiresNativeTumbleweeds { get; private set; }
+        internal bool RequiresNativeEruptions { get; private set; }
         internal bool RequiresNativeRopes { get; private set; }
         internal bool RequiresNativeMountedTools { get; private set; }
         internal int RequiredNativeVineMask { get; private set; }
+        internal ulong RequiredNativeActorProfiles { get; private set; }
         internal byte[]? ExternalFingerprint { get; set; }
 
         internal static ContentFile Register(string Path, out string? BundleSha256)
@@ -176,9 +178,11 @@ internal static class BiomeRegistration
                 RequiresNativeCondors |= Contract.RequiresNativeCondors;
                 RequiresNativeTornados |= Contract.RequiresNativeTornados;
                 RequiresNativeTumbleweeds |= Contract.RequiresNativeTumbleweeds;
+                RequiresNativeEruptions |= Contract.RequiresNativeEruptions;
                 RequiresNativeRopes |= Contract.RequiresNativeRopes;
                 RequiresNativeMountedTools |= Contract.RequiresNativeMountedTools;
                 RequiredNativeVineMask |= Contract.RequiredNativeVineMask;
+                RequiredNativeActorProfiles |= Contract.RequiredNativeActorProfiles;
             }
         }
     }
@@ -298,8 +302,10 @@ internal static class BiomeRegistration
             Lazy<NativeCondorSource>? Condors = null;
             Lazy<NativeTornadoSource>? Tornados = null;
             Lazy<NativeTumbleweedSource>? Tumbleweeds = null;
+            Lazy<NativeEruptionSource>? Eruptions = null;
             Lazy<NativeHangingRopeSource>? Ropes = null;
             Lazy<NativeMountedToolSource>? MountedTools = null;
+            NativeActorProfileSources? ActorProfiles = null;
             Exception? NativeFailure = null;
             if (RequiresNativeCatalog)
                 try { Native = NativeLuggageCatalog.CreateCanonicalCatalog(Handler); }
@@ -333,12 +339,16 @@ internal static class BiomeRegistration
                         ? (Tornados ??= new Lazy<NativeTornadoSource>(() => NativeTornadoSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value : null;
                     var TumbleweedProvider = File.RequiresNativeTumbleweeds
                         ? (Tumbleweeds ??= new Lazy<NativeTumbleweedSource>(() => NativeTumbleweedSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value : null;
+                    var EruptionProvider = File.RequiresNativeEruptions
+                        ? (Eruptions ??= new Lazy<NativeEruptionSource>(() => NativeEruptionSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value : null;
                     var RopeProvider = File.RequiresNativeRopes
                         ? (Ropes ??= new Lazy<NativeHangingRopeSource>(NativeHangingRopeSource.Capture,
                             System.Threading.LazyThreadSafetyMode.None)).Value : null;
                     var ToolProvider = File.RequiresNativeMountedTools
                         ? (MountedTools ??= new Lazy<NativeMountedToolSource>(() => NativeMountedToolSource.Capture(NativeCatalog),
                             System.Threading.LazyThreadSafetyMode.None)).Value : null;
+                    var ActorProfileProvider = File.RequiredNativeActorProfiles != 0
+                        ? (ActorProfiles ??= new NativeActorProfileSources(NativeCatalog)) : null;
                     if (NativeFailure is not null && File.NeedsNativeCatalog)
                         throw new InvalidOperationException(
                             "PEAK's canonical native luggage catalog is unavailable.", NativeFailure);
@@ -348,7 +358,8 @@ internal static class BiomeRegistration
                         Contract.ResolveExternal(Items!, Native, VisualBatch,
                             File.RequiresNativeMaterials ? Visuals.Materials : null);
                         Contract.ResolveEntitySources(BeetleProvider, ZombieProvider, CondorProvider);
-                        Contract.ResolveHazardSources(TornadoProvider, TumbleweedProvider);
+                        Contract.ResolveHazardSources(TornadoProvider, TumbleweedProvider, EruptionProvider);
+                        Contract.ResolveNativeActorProfiles(ActorProfileProvider);
                         Contract.ResolveMechanicalHazards(MechanicalBatch);
                         Contract.ResolveVineSources(VineBatch);
                         Contract.ResolveRopeSource(RopeProvider, ToolProvider);
@@ -357,7 +368,7 @@ internal static class BiomeRegistration
                     NativeSpawnCatalog.SealBatch(File.FinalForces);
                     var Fingerprint = CreateExternalFingerprint(File, ResolverBatch, VisualBatch,
                         BeetleProvider, ZombieProvider, CondorProvider, TornadoProvider, TumbleweedProvider,
-                        RopeProvider, MechanicalBatch, ToolProvider, VineBatch);
+                        RopeProvider, MechanicalBatch, ToolProvider, VineBatch, ActorProfileProvider, EruptionProvider);
                     if (File.ExternalFingerprint is { } Expected
                         && !DeterministicObjectIdentity.SameHash(Expected, Fingerprint))
                         throw new InvalidOperationException(
@@ -417,6 +428,33 @@ internal static class BiomeRegistration
                     "Tornado", ManifestEncoding.CreateRevision(TornadoSource.WriteManifest));
                 NativeContentTools.CaptureRecipe(NativeContentPickKind.Actor, typeof(PllTumbleweedZoneSource).FullName!,
                     "Tumbleweed", ManifestEncoding.CreateRevision(TumbleweedSource.WriteManifest));
+                try
+                {
+                    var EruptionSource = (Eruptions ??= new Lazy<NativeEruptionSource>(
+                        () => NativeEruptionSource.Capture(NativeCatalog), System.Threading.LazyThreadSafetyMode.None)).Value;
+                    NativeContentTools.CaptureRecipe(NativeContentPickKind.Actor, typeof(PllEruptionZoneSource).FullName!,
+                        "Caldera Eruption", ManifestEncoding.CreateRevision(EruptionSource.WriteManifest));
+                }
+                catch (InvalidOperationException Failure)
+                {
+                    Plugin.PLLLog.LogWarning($"Native caldera eruption was not exported: {Failure.Message}");
+                }
+                ActorProfiles ??= new NativeActorProfileSources(NativeCatalog);
+                foreach (var Profile in NativeActorProfileTable.All)
+                {
+                    try
+                    {
+                        var ProfileSource = ActorProfiles.Require(Profile);
+                        NativeContentTools.CaptureRecipe(NativeContentPickKind.Actor,
+                            typeof(PllNativeActorZoneSource).FullName + "/" + Profile,
+                            NativeActorProfileTable.Get(Profile).Label,
+                            ManifestEncoding.CreateRevision(ProfileSource.WriteManifest));
+                    }
+                    catch (InvalidOperationException Failure)
+                    {
+                        Plugin.PLLLog.LogWarning($"Native actor profile '{Profile}' was not exported: {Failure.Message}");
+                    }
+                }
                 var ResolverSources = Resolvers.Prepare(NativeResolverSourceCatalog.Seal.SupportedMask);
                 for (var Value = (int)PLLNativeResolverKind.Rain; Value <= (int)PLLNativeResolverKind.SporeCloud; Value++)
                 {
@@ -512,7 +550,7 @@ internal static class BiomeRegistration
         NativeVisualSources Visuals, NativeBeetleSource? Beetles, NativeZombieSource? Zombies,
         NativeCondorSource? Condors, NativeTornadoSource? Tornados, NativeTumbleweedSource? Tumbleweeds,
         NativeHangingRopeSource? Ropes, NativeMechanicalHazards? Mechanical, NativeMountedToolSource? MountedTool,
-        NativeVineRecipes? Vines)
+        NativeVineRecipes? Vines, NativeActorProfileSources? ActorProfiles = null, NativeEruptionSource? Eruptions = null)
     {
         using var Stream = new MemoryStream();
         using (var Writer = new BinaryWriter(Stream, new UTF8Encoding(false, true), true))
@@ -543,6 +581,10 @@ internal static class BiomeRegistration
             Mechanical?.WriteManifest(Writer);
             MountedTool?.WriteManifest(Writer);
             Vines?.WriteManifest(Writer);
+            if (File.RequiredNativeActorProfiles != 0)
+                (ActorProfiles ?? throw new InvalidOperationException(
+                    "A content file's native actor profiles were not captured.")).WriteManifest(Writer, File.RequiredNativeActorProfiles);
+            if (Eruptions is not null) { Writer.Write("PLL/NativeEruption/v1"); Eruptions.WriteManifest(Writer); }
         }
         using var Sha = SHA256.Create();
         return Sha.ComputeHash(Stream.GetBuffer(), 0, checked((int)Stream.Length));
